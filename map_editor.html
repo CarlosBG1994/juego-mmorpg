@@ -2,245 +2,260 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MMORPG Sandbox - Mundo Vivo</title>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Mapas y Facciones - MMORPG Sandbox</title>
     <style>
-        body { margin: 0; background: #0b0b0b; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { touch-action: none; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        body { margin: 0; background: #0b0f19; color: #f8fafc; font-family: system-ui, sans-serif; overflow: hidden; display: flex; height: 100vh; }
+        
+        #sidebar { width: 300px; background: #1e293b; border-right: 2px solid #334155; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; z-index: 10; overflow-y: auto; }
+        h1 { font-size: 18px; color: #38bdf8; margin-top: 0; margin-bottom: 5px; }
+        p { font-size: 13px; color: #94a3b8; margin-bottom: 20px; }
+        
+        .tool-group { margin-bottom: 20px; }
+        .tool-group label { font-size: 12px; font-weight: bold; color: #cbd5e1; display: block; margin-bottom: 8px; text-transform: uppercase; }
+        
+        .btn-tool { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; margin-bottom: 6px; background: #334155; border: 1px solid #475569; color: white; border-radius: 6px; cursor: pointer; font-size: 13px; transition: background 0.2s, transform 0.1s; text-align: left; }
+        .btn-tool:hover { background: #475569; }
+        .btn-tool.active { background: #0284c7; border-color: #38bdf8; font-weight: bold; }
+        
+        .color-indicator { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
+
+        .actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+        .btn-action { padding: 10px; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .btn-action:hover { background: #ef4444; }
+        
+        .instructions { font-size: 11px; color: #64748b; background: #0f172a; padding: 10px; border-radius: 6px; margin-top: 15px; line-height: 1.4; }
+
+        #canvas-container { flex-grow: 1; position: relative; background: #0f172a; cursor: grab; overflow: hidden; }
+        #canvas-container:active { cursor: grabbing; }
+        canvas { display: block; }
+
+        #hud { position: absolute; top: 15px; right: 15px; background: rgba(30, 41, 59, 0.85); padding: 10px 15px; border-radius: 8px; border: 1px solid #334155; font-size: 12px; pointer-events: none; backdrop-filter: blur(4px); }
     </style>
 </head>
 <body>
 
+    <div id="sidebar">
+        <h1>🗺️ Constructor de Mundos</h1>
+        <p>Diseña tu mapa, expande territorios y ubica tus ciudades y mazmorras.</p>
+
+        <div class="tool-group">
+            <label>Seleccionar Elemento a Colocar:</label>
+            <button class="btn-tool active" onclick="setTool('city', this)"><span class="color-indicator" style="background:#b45309;"></span> Ciudad Principal</button>
+            <button class="btn-tool" onclick="setTool('port', this)"><span class="color-indicator" style="background:#1e40af;"></span> Puerto Marítimo</button>
+            <button class="btn-tool" onclick="setTool('dungeon', this)"><span class="color-indicator" style="background:#7f1d1d;"></span> Mazmorra PvP (1h)</button>
+            <button class="btn-tool" onclick="setTool('ruins', this)"><span class="color-indicator" style="background:#581c87;"></span> Ruinas Antiguas</button>
+            <button class="btn-tool" onclick="setTool('forest', this)"><span class="color-indicator" style="background:#166534;"></span> Bosque / Zona Recolección</button>
+            <button class="btn-tool" onclick="setTool('mountain', this)"><span class="color-indicator" style="background:#475569;"></span> Montaña / Minerales</button>
+        </div>
+
+        <div class="tool-group">
+            <label>Acciones de Mapa:</label>
+            <button class="btn-tool" onclick="resetZoom()" style="justify-content: center; background: #1e293b;">🔍 Centrar / Restablecer Vista</button>
+        </div>
+
+        <div class="instructions">
+            💡 <b>Controles:</b><br>
+            • <b>Clic Izquierdo:</b> Colocar elemento.<br>
+            • <b>Rueda del Ratón:</b> Alejar / Agrandar mapa (Zoom).<br>
+            • <b>Clic y Arrastrar:</b> Moverse por el mundo.
+        </div>
+
+        <div class="actions">
+            <button class="btn-action" onclick="clearMap()">🗑️ Borrar Todo el Mapa</button>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <div id="hud">Zoom: 100% | Elementos: 0</div>
+        <canvas id="worldMap"></canvas>
+    </div>
+
 <script>
-    // --- 1. ESCENA DEL MUNDO ABIERTO ---
-    class WorldScene extends Phaser.Scene {
-        constructor() {
-            super('WorldScene');
-        }
+    const canvas = document.getElementById('worldMap');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+    const hud = document.getElementById('hud');
 
-        create() {
-            // Mundo gigante de 2400x1800
-            this.physics.world.setBounds(0, 0, 2400, 1800);
+    const WORLD_WIDTH = 4000;
+    const WORLD_HEIGHT = 4000;
 
-            // Dibujar biomas y terreno básico
-            let mapGraphics = this.add.graphics();
-            
-            // Césped base
-            mapGraphics.fillStyle(0x2d8a4e, 1);
-            mapGraphics.fillRect(0, 0, 2400, 1800);
+    let currentTool = 'city';
+    let elements = [];
 
-            // Mar (izquierda)
-            mapGraphics.fillStyle(0x1a75ff, 1);
-            mapGraphics.fillRect(0, 0, 300, 1800);
-
-            // Montañas (norte y este)
-            mapGraphics.fillStyle(0x666666, 1);
-            mapGraphics.fillCircle(600, 150, 120);
-            mapGraphics.fillCircle(1300, 180, 140);
-            mapGraphics.fillCircle(2200, 500, 160);
-
-            // Caminos de tierra
-            mapGraphics.lineStyle(24, 0xc2a26c, 1);
-            mapGraphics.beginPath();
-            mapGraphics.moveTo(300, 900);
-            mapGraphics.lineTo(2100, 900);
-            mapGraphics.strokePath();
-
-            // --- PORTALES A OTRAS ESCENAS ---
-            // Portal a la Ciudad Central (Un círculo dorado brillante en el mapa)
-            let cityPortal = this.add.circle(1200, 900, 35, 0xffcc00);
-            this.physics.add.existing(cityPortal, true);
-
-            // Texto indicador del portal
-            this.add.text(1160, 850, '🏛️ Ciudad', { fontSize: '14px', fill: '#fff', backgroundColor: '#0008' });
-
-            // Jugador
-            this.player = this.physics.add.sprite(1100, 900, 'playerSprite');
-            this.player.setCollideWorldBounds(true);
-
-            // Cámara sigue al jugador
-            this.cameras.main.setBounds(0, 0, 2400, 1800);
-            this.cameras.main.startFollow(this.player, true, 0.09, 0.09);
-
-            // Enemigos y Tesoros
-            this.enemies = this.physics.add.group();
-            this.treasures = this.physics.add.group();
-
-            // Generar algunos cofres de tesoro iniciales
-            for (let i = 0; i < 10; i++) {
-                let tx = Phaser.Math.Between(400, 2200);
-                let ty = Phaser.Math.Between(200, 1600);
-                let t = this.treasures.create(tx, ty, 'treasureSprite');
-                t.setImmovable(true);
-            }
-
-            // Controles
-            this.cursors = this.input.keyboard.createCursorKeys();
-
-            // Interfaz de Usuario fija en pantalla
-            this.score = 0;
-            this.gold = 0;
-            this.scoreText = this.add.text(16, 16, 'Monstruos: 0', { fontSize: '16px', fill: '#fff', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
-            this.goldText = this.add.text(16, 45, 'Oro: 0 🪙', { fontSize: '16px', fill: '#ffcc00', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
-            this.add.text(16, 74, 'Usa las Flechas para moverte\nEntra al círculo dorado para ir a la Ciudad', { fontSize: '12px', fill: '#aaa', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
-
-            // Generador de enemigos periódicos
-            this.time.addEvent({
-                delay: 1200,
-                callback: this.spawnEnemy,
-                callbackScope: this,
-                loop: true
-            });
-
-            // Colisiones y Superposiciones
-            this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
-            this.physics.add.overlap(this.player, this.treasures, this.collectTreasure, null, this);
-            
-            // Colisión con el portal de la ciudad para cambiar de escena
-            this.physics.add.overlap(this.player, cityPortal, () => {
-                this.scene.start('CityScene');
-            }, null, this);
-        }
-
-        spawnEnemy() {
-            if (!this.player || !this.player.active) return;
-            let angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-            let distance = Phaser.Math.Between(500, 800);
-            let x = this.player.x + Math.cos(angle) * distance;
-            let y = this.player.y + Math.sin(angle) * distance;
-
-            x = Phaser.Math.Clamp(x, 50, 2350);
-            y = Phaser.Math.Clamp(y, 50, 1750);
-
-            let enemy = this.enemies.create(x, y, 'enemySprite');
-            enemy.setCollideWorldBounds(true);
-        }
-
-        hitEnemy(player, enemy) {
-            enemy.destroy();
-            this.score += 1;
-            this.scoreText.setText('Monstruos: ' + this.score);
-        }
-
-        collectTreasure(player, treasure) {
-            treasure.destroy();
-            this.gold += 10;
-            this.goldText.setText('Oro: ' + this.gold + ' 🪙');
-        }
-
-        update() {
-            if (!this.player) return;
-
-            this.player.setVelocity(0);
-
-            if (this.cursors.left.isDown) this.player.setVelocityX(-240);
-            else if (this.cursors.right.isDown) this.player.setVelocityX(240);
-
-            if (this.cursors.up.isDown) this.player.setVelocityY(-240);
-            else if (this.cursors.down.isDown) this.player.setVelocityY(240);
-
-            // Enemigos persiguen al jugador
-            this.enemies.getChildren().forEach((enemy) => {
-                this.physics.moveToObject(enemy, this.player, 120);
-            });
-        }
-    }
-
-
-    // --- 2. ESCENA DE LA CIUDAD (Zona Segura, Posada, Entrenadores) ---
-    class CityScene extends Phaser.Scene {
-        constructor() {
-            super('CityScene');
-        }
-
-        create() {
-            // Fondo de la ciudad (adoquines oscuros)
-            let bg = this.add.graphics();
-            bg.fillStyle(0x3b3a36, 1);
-            bg.fillRect(0, 0, 800, 600);
-
-            // Edificios y Posada
-            bg.fillStyle(0x5c3a21, 1); // Posada / Casa de guardado
-            bg.fillRect(150, 150, 160, 120);
-            bg.fillStyle(0x7f5539, 1);
-            bg.fillRect(450, 150, 180, 130); // Tienda de Oficios y Magia
-
-            // Texto descriptivo en la ciudad
-            this.add.text(180, 180, '🏨 Posada\n(Guardar / Dormir)', { fontSize: '14px', fill: '#fff', align: 'center' });
-            this.add.text(475, 180, '📜 Academia de Magia\n& Oficios (Niveles 1-100)', { fontSize: '14px', fill: '#fff', align: 'center' });
-
-            // Portal para volver al Mundo Abierto
-            let backPortal = this.add.rectangle(400, 520, 200, 50, 0x00aa55);
-            this.physics.add.existing(backPortal, true);
-            this.add.text(325, 508, '🚪 Volver al Mundo Abierto', { fontSize: '14px', fill: '#fff' });
-
-            // Jugador en la ciudad
-            this.player = this.physics.add.sprite(400, 420, 'playerSprite');
-            this.player.setCollideWorldBounds(true);
-            this.cursors = this.input.keyboard.createCursorKeys();
-
-            // Volver al mundo al tocar el portal inferior
-            this.physics.add.overlap(this.player, backPortal, () => {
-                this.scene.start('WorldScene');
-            }, null, this);
-            
-            this.add.text(16, 16, '🏛️ ESTÁS EN LA CIUDAD CENTRAL (Zona Segura)', { fontSize: '18px', fill: '#ffcc00', backgroundColor: '#000aa', padding: {x:8, y:6} });
-        }
-
-        update() {
-            if (!this.player) return;
-            this.player.setVelocity(0);
-            if (this.cursors.left.isDown) this.player.setVelocityX(-220);
-            else if (this.cursors.right.isDown) this.player.setVelocityX(220);
-            if (this.cursors.up.isDown) this.player.setVelocityY(-220);
-            else if (this.cursors.down.isDown) this.player.setVelocityY(220);
-        }
-    }
-
-
-    // --- CONFIGURACIÓN GLOBAL Y PRECARGA ---
-    class BootScene extends Phaser.Scene {
-        constructor() {
-            super('BootScene');
-        }
-
-        preload() {
-            // Generar texturas base para que no falte ningún gráfico
-            let gPlayer = this.make.graphics({x: 0, y: 0, add: false});
-            gPlayer.fillStyle(0x00ff66, 1);
-            gPlayer.fillRect(0, 0, 32, 32);
-            gPlayer.generateTexture('playerSprite', 32, 32);
-
-            let gEnemy = this.make.graphics({x: 0, y: 0, add: false});
-            gEnemy.fillStyle(0xff3333, 1);
-            gEnemy.fillRect(0, 0, 28, 28);
-            gEnemy.generateTexture('enemySprite', 28, 28);
-
-            let gTreasure = this.make.graphics({x: 0, y: 0, add: false});
-            gTreasure.fillStyle(0xffcc00, 1);
-            gTreasure.fillRect(0, 0, 24, 24);
-            gTreasure.generateTexture('treasureSprite', 24, 24);
-        }
-
-        create() {
-            // Arrancar directamente en el Mundo Abierto
-            this.scene.start('WorldScene');
-        }
-    }
-
-    const config = {
-        type: Phaser.AUTO,
-        width: 800,
-        height: 600,
-        physics: {
-            default: 'arcade',
-            arcade: { gravity: { y: 0 }, debug: false }
-        },
-        scene: [BootScene, WorldScene, CityScene]
+    let camera = {
+        x: WORLD_WIDTH / 2 - 400,
+        y: WORLD_HEIGHT / 2 - 300,
+        zoom: 1,
+        isDragging: false,
+        startX: 0,
+        startY: 0
     };
 
-    const game = new Phaser.Game(config);
+    const toolConfig = {
+        city: { name: 'Ciudad', color: '#b45309', size: 50, icon: '🏛️' },
+        port: { name: 'Puerto', color: '#1e40af', size: 40, icon: '⚓' },
+        dungeon: { name: 'Mazmorra', color: '#7f1d1d', size: 45, icon: '🔥' },
+        ruins: { name: 'Ruinas', color: '#581c87', size: 40, icon: '🗿' },
+        forest: { name: 'Bosque', color: '#166534', size: 60, icon: '🌲' },
+        mountain: { name: 'Montaña', color: '#475569', size: 55, icon: '⛰️' }
+    };
+
+    function resizeCanvas() {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function setTool(tool, btn) {
+        currentTool = tool;
+        document.querySelectorAll('.btn-tool').forEach(b => b.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+    }
+
+    function clearMap() {
+        if(confirm('¿Seguro que quieres borrar todos los elementos del mapa?')) {
+            elements = [];
+        }
+    }
+
+    function resetZoom() {
+        camera.zoom = 1;
+        camera.x = WORLD_WIDTH / 2 - canvas.width / 2;
+        camera.y = WORLD_HEIGHT / 2 - canvas.height / 2;
+    }
+    resetZoom();
+
+    container.addEventListener('mousedown', (e) => {
+        if (e.button === 0) {
+            camera.isDragging = true;
+            camera.startX = e.clientX;
+            camera.startY = e.clientY;
+            camera.hasMoved = false;
+        }
+    });
+
+    container.addEventListener('mousemove', (e) => {
+        if (camera.isDragging) {
+            const dx = e.clientX - camera.startX;
+            const dy = e.clientY - camera.startY;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                camera.hasMoved = true;
+            }
+            camera.x -= dx / camera.zoom;
+            camera.y -= dy / camera.zoom;
+            camera.startX = e.clientX;
+            camera.startY = e.clientY;
+        }
+    });
+
+    container.addEventListener('mouseup', (e) => {
+        if (camera.isDragging && !camera.hasMoved && e.button === 0) {
+            const rect = canvas.getBoundingClientRect();
+            const clickScreenX = e.clientX - rect.left;
+            const clickScreenY = e.clientY - rect.top;
+
+            const worldX = clickScreenX / camera.zoom + camera.x;
+            const worldY = clickScreenY / camera.zoom + camera.y;
+
+            elements.push({
+                type: currentTool,
+                x: worldX,
+                y: worldY
+            });
+        }
+        camera.isDragging = false;
+    });
+
+    container.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = 1.1;
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const worldX = mouseX / camera.zoom + camera.x;
+        const worldY = mouseY / camera.zoom + camera.y;
+
+        if (e.deltaY < 0) {
+            camera.zoom *= zoomFactor;
+        } else {
+            camera.zoom /= zoomFactor;
+        }
+
+        camera.zoom = Math.max(0.3, Math.min(3, camera.zoom));
+
+        camera.x = worldX - mouseX / camera.zoom;
+        camera.y = worldY - mouseY / camera.zoom;
+    }, { passive: false });
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.scale(camera.zoom, camera.zoom);
+        ctx.translate(-camera.x, -camera.y);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2;
+        const gridSize = 100;
+        for (let x = 0; x <= WORLD_WIDTH; x += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, WORLD_HEIGHT);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= WORLD_HEIGHT; y += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(WORLD_WIDTH, y);
+            ctx.stroke();
+        }
+
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        elements.forEach(el => {
+            const cfg = toolConfig[el.type];
+            if (!cfg) return;
+
+            ctx.save();
+            ctx.translate(el.x, el.y);
+
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.beginPath();
+            ctx.arc(0, cfg.size/2, cfg.size/2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = cfg.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, cfg.size/2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.font = '20px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(cfg.icon, 0, 0);
+
+            ctx.restore();
+        });
+
+        ctx.restore();
+
+        hud.innerText = `Zoom: ${Math.round(camera.zoom * 100)}% | Elementos: ${elements.length}`;
+
+        requestAnimationFrame(draw);
+    }
+
+    draw();
 </script>
 
 </body>
