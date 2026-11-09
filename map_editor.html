@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MMORPG Sandbox - Mundo Vivo</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; background: #0b0b0b; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { touch-action: none; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+    </style>
+</head>
+<body>
+
+<script>
+    // --- 1. ESCENA DEL MUNDO ABIERTO ---
+    class WorldScene extends Phaser.Scene {
+        constructor() {
+            super('WorldScene');
+        }
+
+        create() {
+            // Mundo gigante de 2400x1800
+            this.physics.world.setBounds(0, 0, 2400, 1800);
+
+            // Dibujar biomas y terreno básico
+            let mapGraphics = this.add.graphics();
+            
+            // Césped base
+            mapGraphics.fillStyle(0x2d8a4e, 1);
+            mapGraphics.fillRect(0, 0, 2400, 1800);
+
+            // Mar (izquierda)
+            mapGraphics.fillStyle(0x1a75ff, 1);
+            mapGraphics.fillRect(0, 0, 300, 1800);
+
+            // Montañas (norte y este)
+            mapGraphics.fillStyle(0x666666, 1);
+            mapGraphics.fillCircle(600, 150, 120);
+            mapGraphics.fillCircle(1300, 180, 140);
+            mapGraphics.fillCircle(2200, 500, 160);
+
+            // Caminos de tierra
+            mapGraphics.lineStyle(24, 0xc2a26c, 1);
+            mapGraphics.beginPath();
+            mapGraphics.moveTo(300, 900);
+            mapGraphics.lineTo(2100, 900);
+            mapGraphics.strokePath();
+
+            // --- PORTALES A OTRAS ESCENAS ---
+            // Portal a la Ciudad Central (Un círculo dorado brillante en el mapa)
+            let cityPortal = this.add.circle(1200, 900, 35, 0xffcc00);
+            this.physics.add.existing(cityPortal, true);
+
+            // Texto indicador del portal
+            this.add.text(1160, 850, '🏛️ Ciudad', { fontSize: '14px', fill: '#fff', backgroundColor: '#0008' });
+
+            // Jugador
+            this.player = this.physics.add.sprite(1100, 900, 'playerSprite');
+            this.player.setCollideWorldBounds(true);
+
+            // Cámara sigue al jugador
+            this.cameras.main.setBounds(0, 0, 2400, 1800);
+            this.cameras.main.startFollow(this.player, true, 0.09, 0.09);
+
+            // Enemigos y Tesoros
+            this.enemies = this.physics.add.group();
+            this.treasures = this.physics.add.group();
+
+            // Generar algunos cofres de tesoro iniciales
+            for (let i = 0; i < 10; i++) {
+                let tx = Phaser.Math.Between(400, 2200);
+                let ty = Phaser.Math.Between(200, 1600);
+                let t = this.treasures.create(tx, ty, 'treasureSprite');
+                t.setImmovable(true);
+            }
+
+            // Controles
+            this.cursors = this.input.keyboard.createCursorKeys();
+
+            // Interfaz de Usuario fija en pantalla
+            this.score = 0;
+            this.gold = 0;
+            this.scoreText = this.add.text(16, 16, 'Monstruos: 0', { fontSize: '16px', fill: '#fff', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
+            this.goldText = this.add.text(16, 45, 'Oro: 0 🪙', { fontSize: '16px', fill: '#ffcc00', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
+            this.add.text(16, 74, 'Usa las Flechas para moverte\nEntra al círculo dorado para ir a la Ciudad', { fontSize: '12px', fill: '#aaa', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
+
+            // Generador de enemigos periódicos
+            this.time.addEvent({
+                delay: 1200,
+                callback: this.spawnEnemy,
+                callbackScope: this,
+                loop: true
+            });
+
+            // Colisiones y Superposiciones
+            this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
+            this.physics.add.overlap(this.player, this.treasures, this.collectTreasure, null, this);
+            
+            // Colisión con el portal de la ciudad para cambiar de escena
+            this.physics.add.overlap(this.player, cityPortal, () => {
+                this.scene.start('CityScene');
+            }, null, this);
+        }
+
+        spawnEnemy() {
+            if (!this.player || !this.player.active) return;
+            let angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+            let distance = Phaser.Math.Between(500, 800);
+            let x = this.player.x + Math.cos(angle) * distance;
+            let y = this.player.y + Math.sin(angle) * distance;
+
+            x = Phaser.Math.Clamp(x, 50, 2350);
+            y = Phaser.Math.Clamp(y, 50, 1750);
+
+            let enemy = this.enemies.create(x, y, 'enemySprite');
+            enemy.setCollideWorldBounds(true);
+        }
+
+        hitEnemy(player, enemy) {
+            enemy.destroy();
+            this.score += 1;
+            this.scoreText.setText('Monstruos: ' + this.score);
+        }
+
+        collectTreasure(player, treasure) {
+            treasure.destroy();
+            this.gold += 10;
+            this.goldText.setText('Oro: ' + this.gold + ' 🪙');
+        }
+
+        update() {
+            if (!this.player) return;
+
+            this.player.setVelocity(0);
+
+            if (this.cursors.left.isDown) this.player.setVelocityX(-240);
+            else if (this.cursors.right.isDown) this.player.setVelocityX(240);
+
+            if (this.cursors.up.isDown) this.player.setVelocityY(-240);
+            else if (this.cursors.down.isDown) this.player.setVelocityY(240);
+
+            // Enemigos persiguen al jugador
+            this.enemies.getChildren().forEach((enemy) => {
+                this.physics.moveToObject(enemy, this.player, 120);
+            });
+        }
+    }
+
+
+    // --- 2. ESCENA DE LA CIUDAD (Zona Segura, Posada, Entrenadores) ---
+    class CityScene extends Phaser.Scene {
+        constructor() {
+            super('CityScene');
+        }
+
+        create() {
+            // Fondo de la ciudad (adoquines oscuros)
+            let bg = this.add.graphics();
+            bg.fillStyle(0x3b3a36, 1);
+            bg.fillRect(0, 0, 800, 600);
+
+            // Edificios y Posada
+            bg.fillStyle(0x5c3a21, 1); // Posada / Casa de guardado
+            bg.fillRect(150, 150, 160, 120);
+            bg.fillStyle(0x7f5539, 1);
+            bg.fillRect(450, 150, 180, 130); // Tienda de Oficios y Magia
+
+            // Texto descriptivo en la ciudad
+            this.add.text(180, 180, '🏨 Posada\n(Guardar / Dormir)', { fontSize: '14px', fill: '#fff', align: 'center' });
+            this.add.text(475, 180, '📜 Academia de Magia\n& Oficios (Niveles 1-100)', { fontSize: '14px', fill: '#fff', align: 'center' });
+
+            // Portal para volver al Mundo Abierto
+            let backPortal = this.add.rectangle(400, 520, 200, 50, 0x00aa55);
+            this.physics.add.existing(backPortal, true);
+            this.add.text(325, 508, '🚪 Volver al Mundo Abierto', { fontSize: '14px', fill: '#fff' });
+
+            // Jugador en la ciudad
+            this.player = this.physics.add.sprite(400, 420, 'playerSprite');
+            this.player.setCollideWorldBounds(true);
+            this.cursors = this.input.keyboard.createCursorKeys();
+
+            // Volver al mundo al tocar el portal inferior
+            this.physics.add.overlap(this.player, backPortal, () => {
+                this.scene.start('WorldScene');
+            }, null, this);
+            
+            this.add.text(16, 16, '🏛️ ESTÁS EN LA CIUDAD CENTRAL (Zona Segura)', { fontSize: '18px', fill: '#ffcc00', backgroundColor: '#000aa', padding: {x:8, y:6} });
+        }
+
+        update() {
+            if (!this.player) return;
+            this.player.setVelocity(0);
+            if (this.cursors.left.isDown) this.player.setVelocityX(-220);
+            else if (this.cursors.right.isDown) this.player.setVelocityX(220);
+            if (this.cursors.up.isDown) this.player.setVelocityY(-220);
+            else if (this.cursors.down.isDown) this.player.setVelocityY(220);
+        }
+    }
+
+
+    // --- CONFIGURACIÓN GLOBAL Y PRECARGA ---
+    class BootScene extends Phaser.Scene {
+        constructor() {
+            super('BootScene');
+        }
+
+        preload() {
+            // Generar texturas base para que no falte ningún gráfico
+            let gPlayer = this.make.graphics({x: 0, y: 0, add: false});
+            gPlayer.fillStyle(0x00ff66, 1);
+            gPlayer.fillRect(0, 0, 32, 32);
+            gPlayer.generateTexture('playerSprite', 32, 32);
+
+            let gEnemy = this.make.graphics({x: 0, y: 0, add: false});
+            gEnemy.fillStyle(0xff3333, 1);
+            gEnemy.fillRect(0, 0, 28, 28);
+            gEnemy.generateTexture('enemySprite', 28, 28);
+
+            let gTreasure = this.make.graphics({x: 0, y: 0, add: false});
+            gTreasure.fillStyle(0xffcc00, 1);
+            gTreasure.fillRect(0, 0, 24, 24);
+            gTreasure.generateTexture('treasureSprite', 24, 24);
+        }
+
+        create() {
+            // Arrancar directamente en el Mundo Abierto
+            this.scene.start('WorldScene');
+        }
+    }
+
+    const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        physics: {
+            default: 'arcade',
+            arcade: { gravity: { y: 0 }, debug: false }
+        },
+        scene: [BootScene, WorldScene, CityScene]
+    };
+
+    const game = new Phaser.Game(config);
+</script>
+
+</body>
+</html>
