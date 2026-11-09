@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Juego MMORPG Survivor</title>
+    <!-- Cargamos el motor de Phaser.js desde CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+
+<script>
+    // Configuración básica del juego Phaser
+    const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH
+        },
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 0 },
+                debug: false
+            }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        }
+    };
+
+    let player;
+    let cursors;
+    const game = new Phaser.Game(config);
+
+    function preload() {
+        // Generamos una textura blanca de 32x32 para usar de personaje sin depender de imágenes externas
+        let graphics = this.make.graphics({x: 0, y: 0, add: false});
+        graphics.fillStyle(0x00ff00, 1);
+        graphics.fillRect(0, 0, 32, 32);
+        graphics.generateTexture('jugadorTemp', 32, 32);
+    }
+
+    function create() {
+        // Añadir texto de bienvenida
+        this.add.text(400, 50, '¡Juego iniciado!', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5);
+
+        // Crear al personaje en el centro
+        player = this.physics.add.sprite(400, 300, 'jugadorTemp');
+        player.setCollideWorldBounds(true);
+
+        // Capturar controles del teclado
+        cursors = this.input.keyboard.createCursorKeys();
+        
+        // Controles táctiles (tocar la pantalla para mover al jugador)
+        this.input.on('pointerdown', function (pointer) {
+            this.physics.moveToObject(player, pointer, 200);
+        }, this);
+
+        this.input.on('pointerup', function (pointer) {
+            player.body.setVelocity(0, 0);
+        }, this);
+    }
+
+    function update() {
+        // Movimiento básico con flechas del teclado
+        player.setVelocity(0);
+
+        if (cursors.left.isDown) {
+            player.setVelocityX(-200);
+        } else if (cursors.right.isDown) {
+            player.setVelocityX(200);
+        }
+
+        if (cursors.up.isDown) {
+            player.setVelocityY(-200);
+        } else if (cursors.down.isDown) {
+            player.setVelocityY(200);
+        }
+    }
+</script>
+
+</body>
+</html>
