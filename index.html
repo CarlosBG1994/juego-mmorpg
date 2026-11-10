@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MMORPG Sandbox - Facciones y Gremios de Oficio</title>
+    <title>MMORPG Sandbox - Hombres Bestia Exclusivos</title>
     <!-- Phaser.js -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     
@@ -88,7 +88,7 @@
                 }
             },
             "Hombre Bestia": {
-                subtypes: ["Lobo-Humano", "Tigre-Humano", "Pantera-Humano", "Tortuga-Humano", "Elefante-Humano"],
+                subtypes: ["Lobo", "Tigre", "Pantera", "Tortuga", "Elefante", "Mono", "Panda (Exclusivo 1 uso)"],
                 classes: {
                     "Cazador Furtivo": { str: 10, agi: 18, int: 6, con: 10, lck: 6, weapon: "Garras / Arco Corto", shield: "Prohibido", skills: ["Ataque Básico", "Ráfaga Veloz"] },
                     "Guerrero Chamán": { str: 14, agi: 8, int: 12, con: 12, lck: 4, weapon: "Bastón Tribal", shield: "Prohibido", skills: ["Ataque Básico", "Proyectil Mágico"] },
@@ -120,6 +120,7 @@
             });
 
             window.updateStatsTable();
+            window.updateAvatarPreviewDOM();
         };
 
         window.updateStatsTable = function() {
@@ -136,13 +137,45 @@
             document.getElementById('t-hp').innerText = st.con * 10;
             document.getElementById('t-weapon').innerText = st.weapon;
             document.getElementById('t-shield').innerText = st.shield;
+            window.updateAvatarPreviewDOM();
         };
 
-        window.updatePreview = function() {
-            document.getElementById('preview-body').style.backgroundColor = document.getElementById('skin-color').value;
-            document.getElementById('preview-hair').style.backgroundColor = document.getElementById('hair-color').value;
-            document.getElementById('preview-clothes').style.backgroundColor = document.getElementById('clothes-color').value;
-            document.getElementById('preview-shoes').style.backgroundColor = document.getElementById('shoes-color').value;
+        window.updateAvatarPreviewDOM = function() {
+            const skin = document.getElementById('skin-color').value;
+            const hair = document.getElementById('hair-color').value;
+            const clothes = document.getElementById('clothes-color').value;
+            const race = document.getElementById('char-race').value;
+            const subtype = document.getElementById('char-subtype').value;
+            const gender = document.getElementById('char-gender').value;
+
+            const pBody = document.getElementById('preview-body');
+            const pHair = document.getElementById('preview-hair');
+            const pClothes = document.getElementById('preview-clothes');
+            const pDetails = document.getElementById('preview-details');
+
+            if(pBody) pBody.style.backgroundColor = skin;
+            if(pHair) pHair.style.backgroundColor = hair;
+            if(pClothes) pClothes.style.backgroundColor = clothes;
+
+            if(pDetails) {
+                if (race === "Hombre Bestia") {
+                    if (subtype.includes("Lobo")) {
+                        pDetails.innerHTML = `<div style="position:absolute; top:4px; left:6px; width:6px; height:10px; background:${hair}; clip-path: polygon(50% 0%, 0% 100%, 100% 100%);"></div><div style="position:absolute; top:4px; right:6px; width:6px; height:10px; background:${hair}; clip-path: polygon(50% 0%, 0% 100%, 100% 100%);"></div>`;
+                    } else if (subtype.includes("Elefante")) {
+                        pDetails.innerHTML = `<div style="position:absolute; top:12px; left:-6px; width:10px; height:14px; background:${skin}; border-radius:50%;"></div><div style="position:absolute; top:16px; left:12px; width:6px; height:14px; background:${skin}; border-radius:4px;"></div>`;
+                    } else if (subtype.includes("Panda")) {
+                        pDetails.innerHTML = `<div style="position:absolute; top:8px; left:4px; width:10px; height:10px; background:#111; border-radius:50%;"></div><div style="position:absolute; top:8px; right:4px; width:10px; height:10px; background:#111; border-radius:50%;"></div>`;
+                    } else if (subtype.includes("Mono")) {
+                        pDetails.innerHTML = `<div style="position:absolute; top:10px; left:-6px; width:8px; height:8px; background:${skin}; border-radius:50%;"></div><div style="position:absolute; top:10px; right:-6px; width:8px; height:8px; background:${skin}; border-radius:50%;"></div>`;
+                    } else {
+                        pDetails.innerHTML = `<div style="position:absolute; top:6px; left:8px; width:8px; height:8px; background:${hair}; border-radius:50%;"></div><div style="position:absolute; top:6px; right:8px; width:8px; height:8px; background:${hair}; border-radius:50%;"></div>`;
+                    }
+                } else if (race === "Elfo") {
+                    pDetails.innerHTML = `<div style="position:absolute; top:10px; left:-4px; width:4px; height:8px; background:${skin};"></div><div style="position:absolute; top:10px; right:-4px; width:4px; height:8px; background:${skin};"></div>`;
+                } else {
+                    pDetails.innerHTML = "";
+                }
+            }
         };
 
         window.createCharacter = async function() {
@@ -156,6 +189,26 @@
             }
 
             try {
+                const race = document.getElementById('char-race').value;
+                const subtype = document.getElementById('char-subtype').value;
+
+                // VALIDACIÓN DE EXCLUSIVIDAD: HOMBRE PANDA (Solo 1 en todo el servidor)
+                if (race === "Hombre Bestia" && subtype.includes("Panda")) {
+                    const playersRef = collection(db, "players");
+                    const qPanda = query(playersRef, where("subtype", ">=", "Panda"));
+                    const pandaSnap = await getDocs(qPanda);
+                    let pandaExists = false;
+                    pandaSnap.forEach(doc => {
+                        if(doc.data().subtype && doc.data().subtype.includes("Panda")) pandaExists = true;
+                    });
+
+                    if (pandaExists) {
+                        creationError.style.display = 'block';
+                        creationError.innerText = "⚠️ ¡El Hombre Panda ya ha sido reclamado por otro aventurero y solo puede existir 1 en el servidor!";
+                        return;
+                    }
+                }
+
                 const playersRef = collection(db, "players");
                 const q = query(playersRef, where("name", "==", charName));
                 const querySnapshot = await getDocs(q);
@@ -168,7 +221,6 @@
 
                 creationError.style.display = 'none';
 
-                const race = document.getElementById('char-race').value;
                 const charClass = document.getElementById('char-class').value;
                 const rawStats = raceData[race].classes[charClass];
 
@@ -184,10 +236,11 @@
                 const playerData = {
                     uid: loggedUser.uid,
                     name: charName,
-                    race: race,
-                    subtype: document.getElementById('char-subtype').value,
-                    charClass: charClass,
+                    gender: document.getElementById('char-gender').value,
                     faction: document.getElementById('char-faction').value,
+                    race: race,
+                    subtype: subtype,
+                    charClass: charClass,
                     stats: baseStats,
                     allowedSkills: rawStats.skills,
                     equippedSkill: rawStats.skills[0],
@@ -281,16 +334,21 @@
         .stats-table td { color: #e2e8f0; }
 
         .preview-container {
-            display: flex; justify-content: center; align-items: center; margin: 6px 0;
+            display: flex; justify-content: center; align-items: center; margin: 10px 0;
         }
         .avatar-box {
-            position: relative; width: 54px; height: 70px; background: #0f172a; 
-            border: 2px solid #475569; border-radius: 8px; display: flex; justify-content: center; align-items: center;
+            position: relative; width: 64px; height: 80px; background: #0f172a; 
+            border: 2px solid #38bdf8; border-radius: 10px; display: flex; justify-content: center; align-items: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
         }
-        .av-hair { position: absolute; top: 8px; width: 30px; height: 14px; border-radius: 4px; z-index: 3; }
-        .av-body { position: absolute; top: 20px; width: 28px; height: 28px; border-radius: 4px; z-index: 2; }
-        .av-clothes { position: absolute; top: 24px; width: 28px; height: 20px; border-radius: 3px; z-index: 3; }
-        .av-shoes { position: absolute; bottom: 6px; width: 24px; height: 8px; border-radius: 2px; z-index: 3; }
+        .av-head { position: absolute; top: 12px; width: 28px; height: 24px; border-radius: 8px; z-index: 2; border: 1px solid rgba(0,0,0,0.2); }
+        .av-hair { position: absolute; top: 8px; width: 30px; height: 14px; border-radius: 6px; z-index: 3; }
+        .av-eyes { position: absolute; top: 20px; width: 16px; height: 4px; display: flex; justify-content: space-between; z-index: 4; }
+        .av-eye { width: 3px; height: 4px; background: #0f172a; border-radius: 50%; }
+        .av-body { position: absolute; top: 34px; width: 32px; height: 26px; border-radius: 6px; z-index: 2; border: 1px solid rgba(0,0,0,0.2); }
+        .av-clothes { position: absolute; top: 38px; width: 32px; height: 20px; border-radius: 4px; z-index: 3; }
+        .av-shoes { position: absolute; bottom: 6px; width: 28px; height: 8px; display: flex; justify-content: space-between; z-index: 3; padding: 0 4px; box-sizing: border-box;}
+        .av-shoe { width: 10px; height: 8px; border-radius: 3px; }
 
         .colors-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; text-align: left;
@@ -337,7 +395,7 @@
         #error-msg, #creation-error { color: #ef4444; font-size: 12px; margin-top: 8px; display: none; }
     </style>
 </head>
-<body>
+<body onload="updateAvatarPreviewDOM()">
 
     <!-- 1. PANTALLA DE LOGIN -->
     <div id="auth-screen" class="screen">
@@ -352,22 +410,33 @@
         </div>
     </div>
 
-    <!-- 2. PANTALLA DE CREACIÓN CON FACCIONES -->
+    <!-- 2. PANTALLA DE CREACIÓN -->
     <div id="char-screen" class="screen">
         <div class="card">
             <h2>🛡️ Creador Avanzado de Mercenario</h2>
-            <p>Elige tu Facción, Raza, Clase y Atributos</p>
+            <p>Configura tu identidad, facción y atributos</p>
             
             <span class="label-title">Nombre del Personaje (Único):</span>
             <input type="text" id="char-name" placeholder="Tu nombre...">
             <div id="creation-error"></div>
 
-            <span class="label-title">Facción:</span>
-            <select id="char-faction">
-                <option value="Alianza de la Aurora">⚔️ Alianza de la Aurora</option>
-                <option value="Legión de Hierro">🛡️ Legión de Hierro</option>
-                <option value="Sindicato Sombrío">🗡️ Sindicato Sombrío</option>
-            </select>
+            <div style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                    <span class="label-title">Género:</span>
+                    <select id="char-gender" onchange="updateAvatarPreviewDOM()">
+                        <option value="Masculino">Masculino</option>
+                        <option value="Femenino">Femenino</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <span class="label-title">Facción:</span>
+                    <select id="char-faction">
+                        <option value="Alianza de la Aurora">⚔️ Aurora</option>
+                        <option value="Legión de Hierro">🛡️ Hierro</option>
+                        <option value="Sindicato Sombrío">🗡️ Sombrío</option>
+                    </select>
+                </div>
+            </div>
 
             <div style="display: flex; gap: 8px;">
                 <div style="flex: 1;">
@@ -376,12 +445,12 @@
                         <option value="Humano">Humano</option>
                         <option value="Elfo">Elfo</option>
                         <option value="Enano">Enano</option>
-                        <option value="Hombre Bestia">Hombre Bestia</option>
+                        <option value="Hombre Bestia" selected>Hombre Bestia</option>
                     </select>
                 </div>
                 <div style="flex: 1;">
-                    <span class="label-title">Variante / Especie:</span>
-                    <select id="char-subtype">
+                    <span class="label-title">Especie / Bestia:</span>
+                    <select id="char-subtype" onchange="updateAvatarPreviewDOM()">
                         <!-- Dinámico -->
                     </select>
                 </div>
@@ -417,9 +486,12 @@
             <div class="preview-container">
                 <div class="avatar-box">
                     <div id="preview-body" class="av-body" style="background-color: #f5d0b1;"></div>
+                    <div id="preview-head" class="av-head" style="background-color: #f5d0b1;"></div>
                     <div id="preview-hair" class="av-hair" style="background-color: #4a3525;"></div>
+                    <div id="preview-eyes" class="av-eyes"><div class="av-eye"></div><div class="av-eye"></div></div>
                     <div id="preview-clothes" class="av-clothes" style="background-color: #2563eb;"></div>
-                    <div id="preview-shoes" class="av-shoes" style="background-color: #1e293b;"></div>
+                    <div id="preview-shoes" class="av-shoes"><div class="av-shoe" style="background:#1e293b;"></div><div class="av-shoe" style="background:#1e293b;"></div></div>
+                    <div id="preview-details"></div>
                 </div>
             </div>
 
@@ -429,7 +501,7 @@
                     <input type="color" id="skin-color" value="#f5d0b1" oninput="updatePreview()">
                 </div>
                 <div class="color-picker-group">
-                    <span>Cabello / Detalles</span>
+                    <span>Cabello / Pelaje</span>
                     <input type="color" id="hair-color" value="#4a3525" oninput="updatePreview()">
                 </div>
                 <div class="color-picker-group">
@@ -461,8 +533,8 @@
 
             <div id="tab-stats" class="menu-content active">
                 <p><b>Nombre:</b> <span id="m-name">-</span></p>
-                <p><b>Facción:</b> <span id="m-faction">-</span></p>
-                <p><b>Raza / Clase:</b> <span id="m-raceclass">-</span></p>
+                <p><b>Género / Facción:</b> <span id="m-genderfaction">-</span></p>
+                <p><b>Raza / Especie:</b> <span id="m-racesub">-</span></p>
                 <p>❤️ <b>HP:</b> <span id="m-hp">100</span> | 🪙 <b>Oro:</b> <span id="m-gold">0</span></p>
                 <p>⚔️ <b>STR:</b> <span id="m-str">10</span> | 🏹 <b>AGI:</b> <span id="m-agi">10</span> | 🔮 <b>INT:</b> <span id="m-int">10</span></p>
             </div>
@@ -502,8 +574,8 @@
         } else {
             if (currentGameData) {
                 document.getElementById('m-name').innerText = currentGameData.name;
-                document.getElementById('m-faction').innerText = currentGameData.faction || "Sin Facción";
-                document.getElementById('m-raceclass').innerText = `${currentGameData.race} (${currentGameData.charClass})`;
+                document.getElementById('m-genderfaction').innerText = `${currentGameData.gender || 'Masculino'} / ${currentGameData.faction || "Sin Facción"}`;
+                document.getElementById('m-racesub').innerText = `${currentGameData.race} (${currentGameData.subtype}) - ${currentGameData.charClass}`;
                 document.getElementById('m-hp').innerText = currentGameData.stats?.hp || 100;
                 document.getElementById('m-str').innerText = currentGameData.stats?.str || 10;
                 document.getElementById('m-agi').innerText = currentGameData.stats?.agi || 10;
@@ -594,36 +666,29 @@
             create() {
                 this.physics.world.setBounds(0, 0, 3000, 3000);
 
-                // 1. Suelo del Mundo Abierto
                 let mapGraphics = this.add.graphics();
                 mapGraphics.fillStyle(0x1e293b, 1);
                 mapGraphics.fillRect(0, 0, 3000, 3000);
 
-                // 2. CIUDAD PRINCIPAL Y FORTALEZAS DE GREMIOS DE OFICIO
-                // Ciudad Central (Zona Segura y Portal)
                 let cityCenter = this.add.circle(1500, 1500, 120, 0x334155);
                 this.physics.add.existing(cityCenter, true);
                 this.add.text(1420, 1490, '🏛️ CIUDAD CENTRAL', { fontSize: '16px', fill: '#38bdf8', backgroundColor: '#0008', padding: {x:6, y:4} });
 
-                // FORTALEZA NORTE: RECOLECCIÓN (Minería, Herboristería, Tala, Pesca)
                 let fortGather = this.add.rectangle(1500, 600, 320, 140, 0x065f46);
                 this.physics.add.existing(fortGather, true);
                 this.add.text(1380, 580, '⛏️ Fortaleza de Recolección\n(Minas, Bosques y Pesca)', { fontSize: '13px', fill: '#34d399', align: 'center' });
 
-                // FORTALEZA ESTE: ARTESANÍA / CRAFTING (Herrería, Sastrería, Joyería, Cocina)[cite: 1, 2, 3]
                 let fortCraft = this.add.rectangle(2400, 1500, 140, 320, 0x7c2d12);
                 this.physics.add.existing(fortCraft, true);
                 this.add.text(2330, 1430, '⚒️ Gremio de Artesanía\n(Herrería, Sastrería, Cocina)', { fontSize: '12px', fill: '#fb923c', align: 'center' });
 
-                // FORTALEZA OESTE: SERVICIOS Y PROCESAMIENTO (Alquimia, Encantamiento)[cite: 1, 2, 3]
                 let fortServices = this.add.rectangle(600, 1500, 140, 320, 0x581c87);
                 this.physics.add.existing(fortServices, true);
                 this.add.text(530, 1430, '🔮 Torre de Procesamiento\n(Alquimia y Encantamiento)', { fontSize: '12px', fill: '#c084fc', align: 'center' });
 
-                // Generar textura 2D diferenciada del jugador
-                this.createDifferentiatedPlayerTexture(userData);
+                this.createDetailedPlayerTexture(userData);
 
-                this.player = this.physics.add.sprite(1500, 1650, 'uniquePlayer');
+                this.player = this.physics.add.sprite(1500, 1650, 'detailedPlayer');
                 this.player.setCollideWorldBounds(true);
 
                 this.maxHp = userData.stats?.hp || 100;
@@ -645,9 +710,9 @@
 
                 this.cursors = this.input.keyboard.createCursorKeys();
 
-                // HUD Informativo con Facción
                 let factionBadge = userData.faction === 'Legión de Hierro' ? '🛡️' : userData.faction === 'Sindicato Sombrío' ? '🗡️' : '⚔️';
-                this.add.text(16, 12, `${factionBadge} [${userData.faction}] ${userData.name} (${userData.charClass})`, { fontSize: '12px', fill: '#38bdf8', backgroundColor: '#000aa', padding: {x:6, y:3} }).setScrollFactor(0);
+                let genderIcon = userData.gender === 'Femenino' ? '♀️' : '♂️';
+                this.add.text(16, 12, `${genderIcon} ${factionBadge} [${userData.faction}] ${userData.name} (${userData.race}: ${userData.subtype})`, { fontSize: '12px', fill: '#38bdf8', backgroundColor: '#000aa', padding: {x:6, y:3} }).setScrollFactor(0);
                 this.scoreText = this.add.text(16, 36, 'Monstruos: ' + (userData.monstersKilled || 0), { fontSize: '13px', fill: '#fff', backgroundColor: '#000aa', padding: {x:6, y:3} }).setScrollFactor(0);
                 this.goldText = this.add.text(16, 60, 'Oro: ' + (userData.gold || 0) + ' 🪙', { fontSize: '13px', fill: '#ffcc00', backgroundColor: '#000aa', padding: {x:6, y:3} }).setScrollFactor(0);
 
@@ -685,10 +750,10 @@
                 this.physics.add.overlap(this.player, this.treasures, this.collectTreasure, null, this);
             }
 
-            createDifferentiatedPlayerTexture(userData) {
-                if (this.textures.exists('uniquePlayer')) return;
+            createDetailedPlayerTexture(userData) {
+                if (this.textures.exists('detailedPlayer')) return;
 
-                let canvasTexture = this.textures.createCanvas('uniquePlayer', 40, 46);
+                let canvasTexture = this.textures.createCanvas('detailedPlayer', 44, 52);
                 let ctx = canvasTexture.context;
 
                 let app = userData.appearance || {};
@@ -697,57 +762,79 @@
                 let clothesColor = app.clothes || '#2563eb';
                 let shoesColor = app.shoes || '#1e293b';
                 let race = userData.race;
+                let subtype = userData.subtype || '';
                 let charClass = userData.charClass;
+                let gender = userData.gender;
 
-                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
                 ctx.beginPath();
-                ctx.ellipse(20, 42, 14, 5, 0, 0, Math.PI * 2);
+                ctx.ellipse(22, 48, 14, 5, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 ctx.fillStyle = shoesColor;
-                ctx.fillRect(11, 36, 6, 8);
-                ctx.fillRect(23, 36, 6, 8);
+                ctx.fillRect(12, 40, 8, 8);
+                ctx.fillRect(24, 40, 8, 8);
 
                 ctx.fillStyle = clothesColor;
+                let bodyWidth = gender === 'Femenino' ? 24 : 28;
+                let bodyOffset = gender === 'Femenino' ? 10 : 8;
+
                 if (charClass.includes("Mago") || charClass.includes("Druida") || charClass.includes("Chamán")) {
-                    ctx.fillRect(8, 18, 24, 20);
+                    ctx.fillRect(bodyOffset, 22, bodyWidth, 22);
                 } else if (charClass.includes("Caballero") || charClass.includes("Guerrero") || charClass.includes("Berserker")) {
-                    ctx.fillRect(6, 16, 28, 20);
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(6, 20, 32, 22);
+                    ctx.fillStyle = clothesColor;
+                    ctx.fillRect(bodyOffset, 22, bodyWidth, 18);
                 } else {
-                    ctx.fillRect(8, 18, 24, 18);
+                    ctx.fillRect(bodyOffset, 22, bodyWidth, 20);
                 }
 
-                ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.fillRect(16, 18, 8, 18);
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                ctx.fillRect(20, 22, 6, 20);
 
                 ctx.fillStyle = skinColor;
-                ctx.fillRect(4, 20, 4, 14);
-                ctx.fillRect(32, 20, 4, 14);
+                ctx.fillRect(4, 24, 4, 14);
+                ctx.fillRect(36, 24, 4, 14);
 
-                ctx.fillRect(12, 8, 16, 14);
+                ctx.fillStyle = skinColor;
+                ctx.fillRect(12, 10, 20, 16);
 
-                if (race === "Elfo") {
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(16, 17, 3, 4);
+                ctx.fillRect(25, 17, 3, 4);
+
+                // CABEZAS DIFERENCIADAS PARA HOMBRES BESTIA
+                if (race === "Hombre Bestia") {
+                    ctx.fillStyle = hairColor;
+                    if (subtype.includes("Lobo")) {
+                        // Orejas puntiagudas de lobo
+                        ctx.beginPath(); ctx.moveTo(12, 10); ctx.lineTo(15, 2); ctx.lineTo(19, 10); ctx.fill();
+                        ctx.beginPath(); ctx.moveTo(25, 10); ctx.lineTo(29, 2); ctx.lineTo(32, 10); ctx.fill();
+                    } else if (subtype.includes("Elefante")) {
+                        // Trompa y orejas grandes
+                        ctx.fillStyle = skinColor;
+                        ctx.fillRect(8, 14, 4, 12);
+                        ctx.fillRect(20, 16, 4, 10); // Trompa
+                    } else if (subtype.includes("Panda")) {
+                        // Manchas negras en los ojos tipo Panda
+                        ctx.fillStyle = '#111';
+                        ctx.fillRect(13, 15, 7, 7);
+                        ctx.fillRect(24, 15, 7, 7);
+                    } else if (subtype.includes("Mono")) {
+                        // Orejas redondas de mono
+                        ctx.fillStyle = skinColor;
+                        ctx.beginPath(); ctx.arc(10, 16, 4, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(34, 16, 4, 0, Math.PI * 2); ctx.fill();
+                    } else if (subtype.includes("Tigre") || subtype.includes("Pantera")) {
+                        // Orejas felinas redondeadas
+                        ctx.beginPath(); ctx.arc(13, 9, 5, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(31, 9, 5, 0, Math.PI * 2); ctx.fill();
+                    }
+                } else if (race === "Elfo") {
                     ctx.fillStyle = skinColor;
-                    ctx.fillRect(9, 12, 3, 5);
-                    ctx.fillRect(28, 12, 3, 5);
-                } else if (race === "Enano") {
-                    ctx.fillStyle = hairColor;
-                    ctx.fillRect(13, 16, 14, 8);
-                } else if (race === "Hombre Bestia") {
-                    ctx.fillStyle = hairColor;
-                    ctx.fillRect(11, 4, 5, 6);
-                    ctx.fillRect(24, 4, 5, 6);
-                }
-
-                ctx.fillStyle = hairColor;
-                if (charClass.includes("Mago")) {
-                    ctx.beginPath();
-                    ctx.moveTo(20, 1);
-                    ctx.lineTo(10, 8);
-                    ctx.lineTo(30, 8);
-                    ctx.fill();
-                } else {
-                    ctx.fillRect(11, 6, 18, 5);
+                    ctx.fillRect(9, 13, 3, 7);
+                    ctx.fillRect(32, 13, 3, 7);
                 }
 
                 canvasTexture.refresh();
@@ -881,8 +968,174 @@
         };
 
         new Phaser.Game(config);
-    }
-</script>
+    </script>
+
+</head>
+<body onload="updateRaceSubtypes()">
+
+    <!-- 1. PANTALLA DE LOGIN -->
+    <div id="auth-screen" class="screen">
+        <div class="card">
+            <h2>⚔️ MERCENARY</h2>
+            <p>Inicia sesión con Google para acceder al sandbox</p>
+            <button class="btn-google" onclick="loginWithGoogle()">
+                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.18v3.15C3.15 21.32 7.22 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.39-1.49-.39-2.24s.14-1.52.39-2.24V6.6H1.18C.43 8.12 0 9.82 0 12s.43 3.88 1.18 5.4l4.09-3.16z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.22 0 3.15 2.68 1.18 6.6l4.09 3.15c.95-2.85 3.6-4.95 6.73-4.95z"/></svg>
+                Continuar con Google
+            </button>
+            <div id="error-msg"></div>
+        </div>
+    </div>
+
+    <!-- 2. PANTALLA DE CREACIÓN -->
+    <div id="char-screen" class="screen">
+        <div class="card">
+            <h2>🛡️ Creador Avanzado de Mercenario</h2>
+            <p>Configura tu identidad, facción y atributos</p>
+            
+            <span class="label-title">Nombre del Personaje (Único):</span>
+            <input type="text" id="char-name" placeholder="Tu nombre...">
+            <div id="creation-error"></div>
+
+            <div style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                    <span class="label-title">Género:</span>
+                    <select id="char-gender" onchange="updateAvatarPreviewDOM()">
+                        <option value="Masculino">Masculino</option>
+                        <option value="Femenino">Femenino</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <span class="label-title">Facción:</span>
+                    <select id="char-faction">
+                        <option value="Alianza de la Aurora">⚔️ Aurora</option>
+                        <option value="Legión de Hierro">🛡️ Hierro</option>
+                        <option value="Sindicato Sombrío">🗡️ Sombrío</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                    <span class="label-title">Raza:</span>
+                    <select id="char-race" onchange="updateRaceSubtypes()">
+                        <option value="Humano">Humano</option>
+                        <option value="Elfo">Elfo</option>
+                        <option value="Enano">Enano</option>
+                        <option value="Hombre Bestia" selected>Hombre Bestia</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <span class="label-title">Especie / Bestia:</span>
+                    <select id="char-subtype" onchange="updateAvatarPreviewDOM()">
+                        <!-- Dinámico -->
+                    </select>
+                </div>
+            </div>
+
+            <span class="label-title">Clase:</span>
+            <select id="char-class" onchange="updateStatsTable()">
+                <!-- Dinámico -->
+            </select>
+
+            <table class="stats-table">
+                <tr>
+                    <th>STR</th><th>AGI</th><th>INT</th><th>CON</th><th>LCK</th><th>HP</th>
+                </tr>
+                <tr>
+                    <td id="t-str">10</td>
+                    <td id="t-agi">10</td>
+                    <td id="t-int">10</td>
+                    <td id="t-con">10</td>
+                    <td id="t-lck">10</td>
+                    <td id="t-hp">100</td>
+                </tr>
+                <tr>
+                    <th colspan="3">Arma Permitida</th>
+                    <th colspan="3">Escudo</th>
+                </tr>
+                <tr>
+                    <td colspan="3" id="t-weapon" style="color:#38bdf8;">-</td>
+                    <td colspan="3" id="t-shield" style="color:#ef4444;">-</td>
+                </tr>
+            </table>
+
+            <div class="preview-container">
+                <div class="avatar-box">
+                    <div id="preview-body" class="av-body" style="background-color: #f5d0b1;"></div>
+                    <div id="preview-head" class="av-head" style="background-color: #f5d0b1;"></div>
+                    <div id="preview-hair" class="av-hair" style="background-color: #4a3525;"></div>
+                    <div id="preview-eyes" class="av-eyes"><div class="av-eye"></div><div class="av-eye"></div></div>
+                    <div id="preview-clothes" class="av-clothes" style="background-color: #2563eb;"></div>
+                    <div id="preview-shoes" class="av-shoes"><div class="av-shoe" style="background:#1e293b;"></div><div class="av-shoe" style="background:#1e293b;"></div></div>
+                    <div id="preview-details"></div>
+                </div>
+            </div>
+
+            <div class="colors-grid">
+                <div class="color-picker-group">
+                    <span>Piel / Base</span>
+                    <input type="color" id="skin-color" value="#f5d0b1" oninput="updatePreview()">
+                </div>
+                <div class="color-picker-group">
+                    <span>Cabello / Pelaje</span>
+                    <input type="color" id="hair-color" value="#4a3525" oninput="updatePreview()">
+                </div>
+                <div class="color-picker-group">
+                    <span>Vestimenta</span>
+                    <input type="color" id="clothes-color" value="#2563eb" oninput="updatePreview()">
+                </div>
+                <div class="color-picker-group">
+                    <span>Zapatos</span>
+                    <input type="color" id="shoes-color" value="#1e293b" oninput="updatePreview()">
+                </div>
+            </div>
+
+            <button class="btn-main" onclick="createCharacter()">¡Entrar al Sandbox!</button>
+        </div>
+    </div>
+
+    <!-- 3. MENÚ DE PAUSA -->
+    <button id="btn-open-menu" onclick="toggleGameMenu()">⚙️ Menú [ESC]</button>
+
+    <div id="game-menu">
+        <div class="menu-box">
+            <h3 style="color: #38bdf8; margin-top: 0;">📋 Gestión del Personaje</h3>
+            
+            <div class="menu-tabs">
+                <button class="tab-btn active" onclick="switchTab('stats', event)">Atributos</button>
+                <button class="tab-btn" onclick="switchTab('equipment', event)">Equipo</button>
+                <button class="tab-btn" onclick="switchTab('skills', event)">Habilidades</button>
+            </div>
+
+            <div id="tab-stats" class="menu-content active">
+                <p><b>Nombre:</b> <span id="m-name">-</span></p>
+                <p><b>Género / Facción:</b> <span id="m-genderfaction">-</span></p>
+                <p><b>Raza / Especie:</b> <span id="m-racesub">-</span></p>
+                <p>❤️ <b>HP:</b> <span id="m-hp">100</span> | 🪙 <b>Oro:</b> <span id="m-gold">0</span></p>
+                <p>⚔️ <b>STR:</b> <span id="m-str">10</span> | 🏹 <b>AGI:</b> <span id="m-agi">10</span> | 🔮 <b>INT:</b> <span id="m-int">10</span></p>
+            </div>
+
+            <div id="tab-equipment" class="menu-content">
+                <p>🗡️ <b>Arma:</b> <span id="eq-weapon">-</span></p>
+                <p>🛡️ <b>Escudo:</b> <span id="eq-shield" style="color:#ef4444;">-</span></p>
+            </div>
+
+            <div id="tab-skills" class="menu-content">
+                <p><b>Habilidad Activa:</b></p>
+                <select id="skill-selector" onchange="changeActiveSkill(this.value)" style="margin-top: 5px;">
+                    <!-- Dinámico -->
+                </select>
+            </div>
+
+            <button class="menu-action-btn" onclick="manualSaveGame()">💾 Guardar Partida</button>
+            <button class="menu-action-btn danger" onclick="deleteCharacterAccount()">🗑️ Borrar Personaje y Reiniciar</button>
+            <button class="menu-action-btn danger" style="background:#475569;" onclick="closeGameAndLogout()">🚪 Salir al Inicio</button>
+            <button class="menu-action-btn" style="background:#0f172a;" onclick="toggleGameMenu()">🔙 Reanudar</button>
+        </div>
+    </div>
+
+    <!-- 4. CONTENEDOR DEL JUEGO -->
+    <div id="game-container"></div>
 
 </body>
 </html>
