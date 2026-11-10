@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MMORPG Sandbox - Creador Avanzado con Tabla y Restricciones</title>
+    <title>MMORPG Sandbox - Nombres Únicos y Creador</title>
     <!-- Phaser.js -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     
@@ -11,7 +11,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDiycgAFTNCytoUEYO24brfQ17Jq00G3Us",
@@ -59,7 +59,6 @@
             }
         };
 
-        // Base de datos de Razas, Clases y Matriz de 50 puntos
         const raceData = {
             "Humano": {
                 subtypes: ["Estándar"],
@@ -147,51 +146,75 @@
         };
 
         window.createCharacter = async function() {
-            const charName = document.getElementById('char-name').value.trim() || "Aventurero";
-            const race = document.getElementById('char-race').value;
-            const charClass = document.getElementById('char-class').value;
-            const rawStats = raceData[race].classes[charClass];
+            const charName = document.getElementById('char-name').value.trim();
+            const creationError = document.getElementById('creation-error');
 
-            let baseStats = {
-                str: rawStats.str,
-                agi: rawStats.agi,
-                int: rawStats.int,
-                con: rawStats.con,
-                lck: rawStats.lck,
-                hp: rawStats.con * 10
-            };
-
-            const playerData = {
-                uid: loggedUser.uid,
-                name: charName,
-                race: race,
-                subtype: document.getElementById('char-subtype').value,
-                charClass: charClass,
-                stats: baseStats,
-                allowedSkills: rawStats.skills,
-                equippedSkill: rawStats.skills[0],
-                equipment: {
-                    weapon: rawStats.weapon,
-                    shield: rawStats.shield
-                },
-                appearance: {
-                    skin: document.getElementById('skin-color').value,
-                    hair: document.getElementById('hair-color').value,
-                    clothes: document.getElementById('clothes-color').value,
-                    shoes: document.getElementById('shoes-color').value
-                },
-                gold: 0,
-                monstersKilled: 0
-            };
+            if (!charName) {
+                creationError.style.display = 'block';
+                creationError.innerText = "Por favor, introduce un nombre válido.";
+                return;
+            }
 
             try {
+                // Verificar si ya existe un jugador con ese nombre en Firestore
+                const playersRef = collection(db, "players");
+                const q = query(playersRef, where("name", "==", charName));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    creationError.style.display = 'block';
+                    creationError.innerText = "⚠️ El nombre '" + charName + "' ya está en uso. Elige otro.";
+                    return;
+                }
+
+                creationError.style.display = 'none';
+
+                const race = document.getElementById('char-race').value;
+                const charClass = document.getElementById('char-class').value;
+                const rawStats = raceData[race].classes[charClass];
+
+                let baseStats = {
+                    str: rawStats.str,
+                    agi: rawStats.agi,
+                    int: rawStats.int,
+                    con: rawStats.con,
+                    lck: rawStats.lck,
+                    hp: rawStats.con * 10
+                };
+
+                const playerData = {
+                    uid: loggedUser.uid,
+                    name: charName,
+                    race: race,
+                    subtype: document.getElementById('char-subtype').value,
+                    charClass: charClass,
+                    stats: baseStats,
+                    allowedSkills: rawStats.skills,
+                    equippedSkill: rawStats.skills[0],
+                    equipment: {
+                        weapon: rawStats.weapon,
+                        shield: rawStats.shield
+                    },
+                    appearance: {
+                        skin: document.getElementById('skin-color').value,
+                        hair: document.getElementById('hair-color').value,
+                        clothes: document.getElementById('clothes-color').value,
+                        shoes: document.getElementById('shoes-color').value
+                    },
+                    gold: 0,
+                    monstersKilled: 0
+                };
+
                 const userRef = doc(database, "players", loggedUser.uid);
                 await setDoc(userRef, playerData);
 
                 document.getElementById('char-screen').style.display = 'none';
                 launchGame(playerData);
+
             } catch (e) {
-                console.error("Error al guardar personaje:", e);
+                console.error("Error al registrar nombre:", e);
+                creationError.style.display = 'block';
+                creationError.innerText = "Error de conexión con la base de datos.";
             }
         };
 
@@ -247,7 +270,6 @@
             font-size: 11px; color: #94a3b8; display: block; text-align: left; margin-bottom: 2px; font-weight: bold;
         }
 
-        /* TABLA DE ESTADÍSTICAS EN TIEMPO REAL */
         .stats-table {
             width: 100%; border-collapse: collapse; background: #0f172a; border-radius: 6px;
             overflow: hidden; font-size: 11px; margin-bottom: 12px; border: 1px solid #334155;
@@ -279,7 +301,6 @@
         }
         input[type="color"] { border: none; width: 20px; height: 20px; background: none; cursor: pointer; }
 
-        /* MENÚ DE GESTIÓN EN JUEGO */
         #game-menu {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(11, 15, 25, 0.85); display: none; justify-content: center; align-items: center; z-index: 200;
@@ -313,7 +334,7 @@
 
         #char-screen { display: none; }
         #game-container { display: none; width: 100vw; height: 100vh; }
-        #error-msg { color: #ef4444; font-size: 12px; margin-top: 15px; display: none; }
+        #error-msg, #creation-error { color: #ef4444; font-size: 12px; margin-top: 8px; display: none; }
     </style>
 </head>
 <body>
@@ -331,14 +352,15 @@
         </div>
     </div>
 
-    <!-- 2. PANTALLA DE CREACIÓN CON TABLA Y RESTRICCIONES -->
+    <!-- 2. PANTALLA DE CREACIÓN CON VALIDACIÓN DE NOMBRE ÚNICO -->
     <div id="char-screen" class="screen">
         <div class="card">
             <h2>🛡️ Creador Avanzado de Mercenario</h2>
-            <p>Selecciona raza, clase y revisa las estadísticas y restricciones</p>
+            <p>Elige un nombre único y configura tus atributos</p>
             
-            <span class="label-title">Nombre del Personaje:</span>
+            <span class="label-title">Nombre del Personaje (Único):</span>
             <input type="text" id="char-name" placeholder="Tu nombre...">
+            <div id="creation-error"></div>
 
             <div style="display: flex; gap: 8px;">
                 <div style="flex: 1;">
@@ -363,7 +385,6 @@
                 <!-- Dinámico -->
             </select>
 
-            <!-- TABLA DE ESTADÍSTICAS EN TIEMPO REAL -->
             <table class="stats-table">
                 <tr>
                     <th>STR</th><th>AGI</th><th>INT</th><th>CON</th><th>LCK</th><th>HP</th>
@@ -386,7 +407,6 @@
                 </tr>
             </table>
 
-            <!-- VISTA PREVIA VISUAL -->
             <div class="preview-container">
                 <div class="avatar-box">
                     <div id="preview-body" class="av-body" style="background-color: #f5d0b1;"></div>
@@ -432,7 +452,6 @@
                 <button class="tab-btn" onclick="switchTab('skills', event)">Habilidades Exclusivas</button>
             </div>
 
-            <!-- TAB DE ATRIBUTOS -->
             <div id="tab-stats" class="menu-content active">
                 <p><b>Nombre:</b> <span id="m-name">-</span></p>
                 <p><b>Raza / Clase:</b> <span id="m-raceclass">-</span></p>
@@ -442,20 +461,18 @@
                 <p>🍀 <b>Suerte (LCK):</b> <span id="m-lck">10</span> | 🪙 <b>Oro:</b> <span id="m-gold">0</span></p>
             </div>
 
-            <!-- TAB DE EQUIPO Y RESTRICCIONES -->
             <div id="tab-equipment" class="menu-content">
                 <p>🗡️ <b>Arma Asignada:</b> <span id="eq-weapon">-</span></p>
                 <p>🛡️ <b>Estado del Escudo:</b> <span id="eq-shield" style="color:#ef4444;">-</span></p>
-                <p style="color: #94a3b8; font-size: 11px; margin-top: 10px;">⚠️ Las restricciones de clase impiden equipar armas de combate pesado o escudos a magos y clases ágiles.</p>
+                <p style="color: #94a3b8; font-size: 11px; margin-top: 10px;">⚠️ Las restricciones de clase impiden equipar armas pesadas o escudos a magos y clases ágiles.</p>
             </div>
 
-            <!-- TAB DE HABILIDADES FILTRADAS POR CLASE -->
             <div id="tab-skills" class="menu-content">
                 <p><b>Habilidades Disponibles para tu Clase:</b></p>
                 <select id="skill-selector" onchange="changeActiveSkill(this.value)" style="margin-top: 5px;">
-                    <!-- Se llena dinámicamente según la clase -->
+                    <!-- Dinámico -->
                 </select>
-                <p style="color: #94a3b8; font-size: 11px; margin-top: 8px;">Las habilidades no compatibles con tu arquetipo han sido bloqueadas y excluidas.</p>
+                <p style="color: #94a3b8; font-size: 11px; margin-top: 8px;">Las habilidades no compatibles están bloqueadas.</p>
             </div>
 
             <button class="menu-action-btn" onclick="manualSaveGame()">💾 Guardar Partida</button>
@@ -495,7 +512,6 @@
                     document.getElementById('eq-shield').style.color = "#22c55e";
                 }
 
-                // Llenar selector de habilidades permitidas
                 const skillSelect = document.getElementById('skill-selector');
                 skillSelect.innerHTML = "";
                 if(currentGameData.allowedSkills) {
@@ -528,7 +544,7 @@
     window.manualSaveGame = function() {
         if (globalSaveFunction) {
             globalSaveFunction();
-            alert("¡Partida y restricciones guardadas en la nube!");
+            alert("¡Partida guardada con éxito en la nube!");
         }
     };
 
