@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MMORPG Sandbox - Gráficos 2D Realistas por Raza y Clase</title>
+    <title>MMORPG Sandbox - Facciones y Gremios de Oficio</title>
     <!-- Phaser.js -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     
@@ -187,6 +187,7 @@
                     race: race,
                     subtype: document.getElementById('char-subtype').value,
                     charClass: charClass,
+                    faction: document.getElementById('char-faction').value,
                     stats: baseStats,
                     allowedSkills: rawStats.skills,
                     equippedSkill: rawStats.skills[0],
@@ -216,6 +217,8 @@
         };
 
         function launchGame(playerData) {
+            document.getElementById('char-screen').style.display = 'none';
+            document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('game-container').style.display = 'block';
             window.startPhaserGame(playerData, database);
         }
@@ -349,15 +352,22 @@
         </div>
     </div>
 
-    <!-- 2. PANTALLA DE CREACIÓN -->
+    <!-- 2. PANTALLA DE CREACIÓN CON FACCIONES -->
     <div id="char-screen" class="screen">
         <div class="card">
             <h2>🛡️ Creador Avanzado de Mercenario</h2>
-            <p>Elige un nombre único y configura tus atributos</p>
+            <p>Elige tu Facción, Raza, Clase y Atributos</p>
             
             <span class="label-title">Nombre del Personaje (Único):</span>
             <input type="text" id="char-name" placeholder="Tu nombre...">
             <div id="creation-error"></div>
+
+            <span class="label-title">Facción:</span>
+            <select id="char-faction">
+                <option value="Alianza de la Aurora">⚔️ Alianza de la Aurora</option>
+                <option value="Legión de Hierro">🛡️ Legión de Hierro</option>
+                <option value="Sindicato Sombrío">🗡️ Sindicato Sombrío</option>
+            </select>
 
             <div style="display: flex; gap: 8px;">
                 <div style="flex: 1;">
@@ -445,31 +455,28 @@
             
             <div class="menu-tabs">
                 <button class="tab-btn active" onclick="switchTab('stats', event)">Atributos</button>
-                <button class="tab-btn" onclick="switchTab('equipment', event)">Equipo & Restricciones</button>
+                <button class="tab-btn" onclick="switchTab('equipment', event)">Equipo</button>
                 <button class="tab-btn" onclick="switchTab('skills', event)">Habilidades</button>
             </div>
 
             <div id="tab-stats" class="menu-content active">
                 <p><b>Nombre:</b> <span id="m-name">-</span></p>
+                <p><b>Facción:</b> <span id="m-faction">-</span></p>
                 <p><b>Raza / Clase:</b> <span id="m-raceclass">-</span></p>
-                <p>❤️ <b>Vida Máxima (HP):</b> <span id="m-hp">100</span></p>
-                <p>⚔️ <b>Fuerza (STR):</b> <span id="m-str">10</span> | 🏹 <b>Agilidad (AGI):</b> <span id="m-agi">10</span></p>
-                <p>🔮 <b>Inteligencia (INT):</b> <span id="m-int">10</span> | 🛡️ <b>Constitución (CON):</b> <span id="m-con">10</span></p>
-                <p>🍀 <b>Suerte (LCK):</b> <span id="m-lck">10</span> | 🪙 <b>Oro:</b> <span id="m-gold">0</span></p>
+                <p>❤️ <b>HP:</b> <span id="m-hp">100</span> | 🪙 <b>Oro:</b> <span id="m-gold">0</span></p>
+                <p>⚔️ <b>STR:</b> <span id="m-str">10</span> | 🏹 <b>AGI:</b> <span id="m-agi">10</span> | 🔮 <b>INT:</b> <span id="m-int">10</span></p>
             </div>
 
             <div id="tab-equipment" class="menu-content">
-                <p>🗡️ <b>Arma Asignada:</b> <span id="eq-weapon">-</span></p>
-                <p>🛡️ <b>Estado del Escudo:</b> <span id="eq-shield" style="color:#ef4444;">-</span></p>
-                <p style="color: #94a3b8; font-size: 11px; margin-top: 10px;">⚠️ Las restricciones de clase impiden equipar armas pesadas o escudos a magos y clases ágiles.</p>
+                <p>🗡️ <b>Arma:</b> <span id="eq-weapon">-</span></p>
+                <p>🛡️ <b>Escudo:</b> <span id="eq-shield" style="color:#ef4444;">-</span></p>
             </div>
 
             <div id="tab-skills" class="menu-content">
-                <p><b>Habilidades Disponibles para tu Clase:</b></p>
+                <p><b>Habilidad Activa:</b></p>
                 <select id="skill-selector" onchange="changeActiveSkill(this.value)" style="margin-top: 5px;">
                     <!-- Dinámico -->
                 </select>
-                <p style="color: #94a3b8; font-size: 11px; margin-top: 8px;">Las habilidades no compatibles están bloqueadas.</p>
             </div>
 
             <button class="menu-action-btn" onclick="manualSaveGame()">💾 Guardar Partida</button>
@@ -495,13 +502,12 @@
         } else {
             if (currentGameData) {
                 document.getElementById('m-name').innerText = currentGameData.name;
+                document.getElementById('m-faction').innerText = currentGameData.faction || "Sin Facción";
                 document.getElementById('m-raceclass').innerText = `${currentGameData.race} (${currentGameData.charClass})`;
                 document.getElementById('m-hp').innerText = currentGameData.stats?.hp || 100;
                 document.getElementById('m-str').innerText = currentGameData.stats?.str || 10;
                 document.getElementById('m-agi').innerText = currentGameData.stats?.agi || 10;
                 document.getElementById('m-int').innerText = currentGameData.stats?.int || 10;
-                document.getElementById('m-con').innerText = currentGameData.stats?.con || 10;
-                document.getElementById('m-lck').innerText = currentGameData.stats?.lck || 10;
                 document.getElementById('m-gold').innerText = currentGameData.gold || 0;
                 
                 document.getElementById('eq-weapon').innerText = currentGameData.equipment?.weapon || "-";
@@ -549,7 +555,7 @@
     };
 
     window.deleteCharacterAccount = async function() {
-        if (confirm("¿Estás seguro de borrar tu personaje actual? Perderás todo el oro y podrás crear uno nuevo.")) {
+        if (confirm("¿Estás seguro de borrar tu personaje actual? Podrás crear uno nuevo.")) {
             if (currentDbInstance && currentUid) {
                 try {
                     const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
@@ -586,45 +592,62 @@
             constructor() { super('WorldScene'); }
 
             create() {
-                this.physics.world.setBounds(0, 0, 2400, 1800);
+                this.physics.world.setBounds(0, 0, 3000, 3000);
 
+                // 1. Suelo del Mundo Abierto
                 let mapGraphics = this.add.graphics();
-                mapGraphics.fillStyle(0x2d8a4e, 1);
-                mapGraphics.fillRect(0, 0, 2400, 1800);
+                mapGraphics.fillStyle(0x1e293b, 1);
+                mapGraphics.fillRect(0, 0, 3000, 3000);
 
-                let cityPortal = this.add.circle(1200, 900, 40, 0xffcc00);
-                this.physics.add.existing(cityPortal, true);
-                this.add.text(1150, 840, '🏛️ Ciudad Central', { fontSize: '14px', fill: '#fff', backgroundColor: '#0008', padding: {x:4, y:2} });
+                // 2. CIUDAD PRINCIPAL Y FORTALEZAS DE GREMIOS DE OFICIO
+                // Ciudad Central (Zona Segura y Portal)
+                let cityCenter = this.add.circle(1500, 1500, 120, 0x334155);
+                this.physics.add.existing(cityCenter, true);
+                this.add.text(1420, 1490, '🏛️ CIUDAD CENTRAL', { fontSize: '16px', fill: '#38bdf8', backgroundColor: '#0008', padding: {x:6, y:4} });
 
-                // Generar textura 2D detallada específica de la raza y clase elegida
+                // FORTALEZA NORTE: RECOLECCIÓN (Minería, Herboristería, Tala, Pesca)
+                let fortGather = this.add.rectangle(1500, 600, 320, 140, 0x065f46);
+                this.physics.add.existing(fortGather, true);
+                this.add.text(1380, 580, '⛏️ Fortaleza de Recolección\n(Minas, Bosques y Pesca)', { fontSize: '13px', fill: '#34d399', align: 'center' });
+
+                // FORTALEZA ESTE: ARTESANÍA / CRAFTING (Herrería, Sastrería, Joyería, Cocina)[cite: 1, 2, 3]
+                let fortCraft = this.add.rectangle(2400, 1500, 140, 320, 0x7c2d12);
+                this.physics.add.existing(fortCraft, true);
+                this.add.text(2330, 1430, '⚒️ Gremio de Artesanía\n(Herrería, Sastrería, Cocina)', { fontSize: '12px', fill: '#fb923c', align: 'center' });
+
+                // FORTALEZA OESTE: SERVICIOS Y PROCESAMIENTO (Alquimia, Encantamiento)[cite: 1, 2, 3]
+                let fortServices = this.add.rectangle(600, 1500, 140, 320, 0x581c87);
+                this.physics.add.existing(fortServices, true);
+                this.add.text(530, 1430, '🔮 Torre de Procesamiento\n(Alquimia y Encantamiento)', { fontSize: '12px', fill: '#c084fc', align: 'center' });
+
+                // Generar textura 2D diferenciada del jugador
                 this.createDifferentiatedPlayerTexture(userData);
 
-                this.player = this.physics.add.sprite(1100, 900, 'uniquePlayer');
+                this.player = this.physics.add.sprite(1500, 1650, 'uniquePlayer');
                 this.player.setCollideWorldBounds(true);
 
                 this.maxHp = userData.stats?.hp || 100;
                 this.currentHp = this.maxHp;
 
-                this.cameras.main.setBounds(0, 0, 2400, 1800);
+                this.cameras.main.setBounds(0, 0, 3000, 3000);
                 this.cameras.main.startFollow(this.player, true, 0.09, 0.09);
 
                 this.enemies = this.physics.add.group();
                 this.projectiles = this.physics.add.group();
                 this.treasures = this.physics.add.group();
 
-                for (let i = 0; i < 12; i++) {
-                    let tx = Phaser.Math.Between(400, 2200);
-                    let ty = Phaser.Math.Between(200, 1600);
+                for (let i = 0; i < 15; i++) {
+                    let tx = Phaser.Math.Between(300, 2700);
+                    let ty = Phaser.Math.Between(300, 2700);
                     let t = this.treasures.create(tx, ty, 'treasureSprite');
                     t.setImmovable(true);
                 }
 
                 this.cursors = this.input.keyboard.createCursorKeys();
 
-                let raceIcon = userData.race === 'Hombre Bestia' ? '🐺' : userData.race === 'Elfo' ? '🧝' : userData.race === 'Enano' ? '🧔' : '👤';
-                let displaySub = userData.subtype && userData.subtype !== 'Estándar' ? ` (${userData.subtype})` : '';
-                
-                this.add.text(16, 12, `${raceIcon} ${userData.name} - ${userData.race}${displaySub} [${userData.charClass}]`, { fontSize: '12px', fill: '#38bdf8', backgroundColor: '#000aa', padding: {x:6, y:3} }).setScrollFactor(0);
+                // HUD Informativo con Facción
+                let factionBadge = userData.faction === 'Legión de Hierro' ? '🛡️' : userData.faction === 'Sindicato Sombrío' ? '🗡️' : '⚔️';
+                this.add.text(16, 12, `${factionBadge} [${userData.faction}] ${userData.name} (${userData.charClass})`, { fontSize: '12px', fill: '#38bdf8', backgroundColor: '#000aa', padding: {x:6, y:3} }).setScrollFactor(0);
                 this.scoreText = this.add.text(16, 36, 'Monstruos: ' + (userData.monstersKilled || 0), { fontSize: '13px', fill: '#fff', backgroundColor: '#000aa', padding: {x:6, y:3} }).setScrollFactor(0);
                 this.goldText = this.add.text(16, 60, 'Oro: ' + (userData.gold || 0) + ' 🪙', { fontSize: '13px', fill: '#ffcc00', backgroundColor: '#000aa', padding: {x:6, y:3} }).setScrollFactor(0);
 
@@ -655,15 +678,13 @@
                     this.castActiveSkill(pointer);
                 });
 
-                this.time.addEvent({ delay: 1200, callback: this.spawnEnemy, callbackScope: this, loop: true });
+                this.time.addEvent({ delay: 1400, callback: this.spawnEnemy, callbackScope: this, loop: true });
 
                 this.physics.add.overlap(this.player, this.enemies, this.hitByEnemy, null, this);
                 this.physics.add.overlap(this.projectiles, this.enemies, this.damageEnemy, null, this);
                 this.physics.add.overlap(this.player, this.treasures, this.collectTreasure, null, this);
-                this.physics.add.overlap(this.player, cityPortal, () => { this.scene.start('CityScene'); }, null, this);
             }
 
-            // Motor gráfico 2D avanzado que diferencia visualmente a cada raza y clase
             createDifferentiatedPlayerTexture(userData) {
                 if (this.textures.exists('uniquePlayer')) return;
 
@@ -678,63 +699,48 @@
                 let race = userData.race;
                 let charClass = userData.charClass;
 
-                // 1. Sombra base
                 ctx.fillStyle = 'rgba(0,0,0,0.35)';
                 ctx.beginPath();
                 ctx.ellipse(20, 42, 14, 5, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // 2. Botas / Zapatos
                 ctx.fillStyle = shoesColor;
                 ctx.fillRect(11, 36, 6, 8);
                 ctx.fillRect(23, 36, 6, 8);
 
-                // 3. Ropa / Cuerpo con volumen según clase
                 ctx.fillStyle = clothesColor;
                 if (charClass.includes("Mago") || charClass.includes("Druida") || charClass.includes("Chamán")) {
-                    // Túnica larga de mago
                     ctx.fillRect(8, 18, 24, 20);
                 } else if (charClass.includes("Caballero") || charClass.includes("Guerrero") || charClass.includes("Berserker")) {
-                    // Armadura pesada ancha
                     ctx.fillRect(6, 16, 28, 20);
                 } else {
-                    // Cuerpo estándar / ágil
                     ctx.fillRect(8, 18, 24, 18);
                 }
 
-                // Reflejo central en la ropa
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
                 ctx.fillRect(16, 18, 8, 18);
 
-                // 4. Brazos
                 ctx.fillStyle = skinColor;
                 ctx.fillRect(4, 20, 4, 14);
                 ctx.fillRect(32, 20, 4, 14);
 
-                // 5. Cabeza (Piel)
                 ctx.fillRect(12, 8, 16, 14);
 
-                // 6. DETALLES VISUALES DIFERENCIADOS POR RAZA Y CLASE
                 if (race === "Elfo") {
-                    // Orejas puntiagudas características de Elfo
                     ctx.fillStyle = skinColor;
                     ctx.fillRect(9, 12, 3, 5);
                     ctx.fillRect(28, 12, 3, 5);
                 } else if (race === "Enano") {
-                    // Barba poblada de Enano
                     ctx.fillStyle = hairColor;
                     ctx.fillRect(13, 16, 14, 8);
                 } else if (race === "Hombre Bestia") {
-                    // Orejas de bestia / animal en la parte superior
                     ctx.fillStyle = hairColor;
                     ctx.fillRect(11, 4, 5, 6);
                     ctx.fillRect(24, 4, 5, 6);
                 }
 
-                // Cabello / Casco / Sombrero superior
                 ctx.fillStyle = hairColor;
                 if (charClass.includes("Mago")) {
-                    // Sombrero puntiagudo de mago
                     ctx.beginPath();
                     ctx.moveTo(20, 1);
                     ctx.lineTo(10, 8);
@@ -805,10 +811,10 @@
                 this.currentHp -= 5;
                 this.updatePlayerHpBar();
                 if (this.currentHp <= 0) {
-                    alert("¡Has caído en combate! Reviviendo en la base...");
+                    alert("¡Has caído en combate! Reviviendo en la Ciudad Central...");
                     this.currentHp = this.maxHp;
                     this.updatePlayerHpBar();
-                    this.player.setPosition(1100, 900);
+                    this.player.setPosition(1500, 1650);
                 }
             }
 
@@ -841,48 +847,15 @@
 
                 if (!this.player) return;
                 this.player.setVelocity(0);
-                if (this.cursors.left.isDown) this.player.setVelocityX(-240);
-                else if (this.cursors.right.isDown) this.player.setVelocityX(240);
-                if (this.cursors.up.isDown) this.player.setVelocityY(-240);
-                else if (this.cursors.down.isDown) this.player.setVelocityY(240);
+                if (this.cursors.left.isDown) this.player.setVelocityX(-250);
+                else if (this.cursors.right.isDown) this.player.setVelocityX(250);
+                if (this.cursors.up.isDown) this.player.setVelocityY(-250);
+                else if (this.cursors.down.isDown) this.player.setVelocityY(250);
 
                 this.enemies.getChildren().forEach((enemy) => {
                     this.physics.moveToObject(enemy, this.player, 110);
                     this.updateEnemyHpBar(enemy);
                 });
-            }
-        }
-
-        class CityScene extends Phaser.Scene {
-            constructor() { super('CityScene'); }
-            create() {
-                let bg = this.add.graphics();
-                bg.fillStyle(0x3b3a36, 1);
-                bg.fillRect(0, 0, 800, 600);
-                this.add.text(250, 180, '🏨 Ciudad Central (Zona Segura)', { fontSize: '16px', fill: '#fff' });
-
-                let backPortal = this.add.rectangle(400, 520, 200, 50, 0x00aa55);
-                this.physics.add.existing(backPortal, true);
-                this.add.text(325, 508, '🚪 Volver al Mundo', { fontSize: '14px', fill: '#fff' });
-
-                this.player = this.physics.add.sprite(400, 420, 'uniquePlayer');
-                this.player.setCollideWorldBounds(true);
-                this.cursors = this.input.keyboard.createCursorKeys();
-
-                this.physics.add.overlap(this.player, backPortal, () => { this.scene.start('WorldScene'); }, null, this);
-            }
-            update() {
-                if (document.getElementById('game-menu').style.display === 'flex') {
-                    this.player.setVelocity(0);
-                    return;
-                }
-
-                if (!this.player) return;
-                this.player.setVelocity(0);
-                if (this.cursors.left.isDown) this.player.setVelocityX(-220);
-                else if (this.cursors.right.isDown) this.player.setVelocityX(220);
-                if (this.cursors.up.isDown) this.player.setVelocityY(-220);
-                else if (this.cursors.down.isDown) this.player.setVelocityY(220);
             }
         }
 
@@ -904,7 +877,7 @@
         const config = {
             type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight, parent: 'game-container',
             physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
-            scene: [BootScene, WorldScene, CityScene]
+            scene: [BootScene, WorldScene]
         };
 
         new Phaser.Game(config);
