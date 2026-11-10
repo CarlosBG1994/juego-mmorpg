@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MMORPG Sandbox - Creador de Personaje</title>
+    <title>MMORPG Sandbox - Creador Avanzado con Tabla y Restricciones</title>
     <!-- Phaser.js -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     
@@ -59,22 +59,43 @@
             }
         };
 
+        // Base de datos de Razas, Clases y Matriz de 50 puntos
         const raceData = {
             "Humano": {
                 subtypes: ["Estándar"],
-                classes: ["Caballero", "Mago", "Pícaro", "Clérigo"]
+                classes: {
+                    "Caballero": { str: 14, agi: 8, int: 6, con: 16, lck: 6, weapon: "Espada Larga", shield: "Escudo de Torre", skills: ["Ataque Básico", "Golpe Devastador"] },
+                    "Mago": { str: 4, agi: 8, int: 18, con: 10, lck: 10, weapon: "Bastón Arcano", shield: "Prohibido", skills: ["Proyectil Mágico", "Explosión Arcana"] },
+                    "Pícaro": { str: 8, agi: 16, int: 8, con: 10, lck: 8, weapon: "Dagas Dobles", shield: "Prohibido", skills: ["Ataque Básico", "Ráfaga Veloz"] },
+                    "Clérigo": { str: 10, agi: 8, int: 12, con: 12, lck: 8, weapon: "Martillo Sagrado", shield: "Escudo Menor", skills: ["Ataque Básico", "Curación Divina"] }
+                }
             },
             "Elfo": {
                 subtypes: ["Silvano", "Alto Elfo"],
-                classes: ["Arquero Místico", "Mago de Batalla", "Asesino", "Druida"]
+                classes: {
+                    "Arquero Místico": { str: 6, agi: 18, int: 12, con: 6, lck: 8, weapon: "Arco Élfico", shield: "Prohibido", skills: ["Ataque Básico", "Ráfaga Veloz", "Flecha Mística"] },
+                    "Mago de Batalla": { str: 6, agi: 10, int: 18, con: 8, lck: 8, weapon: "Espada Mágica", shield: "Prohibido", skills: ["Proyectil Mágico", "Explosión Arcana"] },
+                    "Asesino": { str: 8, agi: 20, int: 6, con: 6, lck: 10, weapon: "Katana Sombria", shield: "Prohibido", skills: ["Ataque Básico", "Ráfaga Veloz"] },
+                    "Druida": { str: 6, agi: 10, int: 16, con: 10, lck: 8, weapon: "Bastón de roble", shield: "Prohibido", skills: ["Proyectil Mágico", "Curación Divina"] }
+                }
             },
             "Enano": {
                 subtypes: ["De las Colinas", "De las Profundidades"],
-                classes: ["Guerrero de la Forja", "Berserker", "Ingeniero Rúnico", "Minero"]
+                classes: {
+                    "Guerrero de la Forja": { str: 16, agi: 6, int: 4, con: 20, lck: 4, weapon: "Hacha de Batalla", shield: "Escudo Rúnico", skills: ["Ataque Básico", "Golpe Devastador"] },
+                    "Berserker": { str: 18, agi: 8, int: 4, con: 16, lck: 4, weapon: "Mandoble a Dos Manos", shield: "Prohibido", skills: ["Ataque Básico", "Golpe Devastador"] },
+                    "Ingeniero Rúnico": { str: 12, agi: 6, int: 14, con: 14, lck: 4, weapon: "Martillo Mecánico", shield: "Escudo Menor", skills: ["Ataque Básico", "Proyectil Mágico"] },
+                    "Minero": { str: 14, agi: 6, int: 6, con: 18, lck: 6, weapon: "Pico de Guerra", shield: "Escudo Menor", skills: ["Ataque Básico", "Golpe Devastador"] }
+                }
             },
             "Hombre Bestia": {
                 subtypes: ["Lobo-Humano", "Tigre-Humano", "Pantera-Humano", "Tortuga-Humano", "Elefante-Humano"],
-                classes: ["Cazador Furtivo", "Guerrero Chamán", "Buitre de las Estepas", "Monje Salvaje"]
+                classes: {
+                    "Cazador Furtivo": { str: 10, agi: 18, int: 6, con: 10, lck: 6, weapon: "Garras / Arco Corto", shield: "Prohibido", skills: ["Ataque Básico", "Ráfaga Veloz"] },
+                    "Guerrero Chamán": { str: 14, agi: 8, int: 12, con: 12, lck: 4, weapon: "Bastón Tribal", shield: "Prohibido", skills: ["Ataque Básico", "Proyectil Mágico"] },
+                    "Buitre de las Estepas": { str: 8, agi: 20, int: 6, con: 8, lck: 8, weapon: "Arco Recurvo", shield: "Prohibido", skills: ["Ataque Básico", "Ráfaga Veloz"] },
+                    "Monje Salvaje": { str: 12, agi: 12, int: 6, con: 16, lck: 4, weapon: "Cestus de Combate", shield: "Prohibido", skills: ["Ataque Básico", "Ráfaga Veloz"] }
+                }
             }
         };
 
@@ -92,12 +113,30 @@
             });
 
             classSelect.innerHTML = "";
-            raceData[race].classes.forEach(cls => {
+            Object.keys(raceData[race].classes).forEach(cls => {
                 let opt = document.createElement('option');
                 opt.value = cls;
                 opt.innerText = cls;
                 classSelect.appendChild(opt);
             });
+
+            window.updateStatsTable();
+        };
+
+        window.updateStatsTable = function() {
+            const race = document.getElementById('char-race').value;
+            const cls = document.getElementById('char-class').value;
+            if (!raceData[race].classes[cls]) return;
+
+            const st = raceData[race].classes[cls];
+            document.getElementById('t-str').innerText = st.str;
+            document.getElementById('t-agi').innerText = st.agi;
+            document.getElementById('t-int').innerText = st.int;
+            document.getElementById('t-con').innerText = st.con;
+            document.getElementById('t-lck').innerText = st.lck;
+            document.getElementById('t-hp').innerText = st.con * 10;
+            document.getElementById('t-weapon').innerText = st.weapon;
+            document.getElementById('t-shield').innerText = st.shield;
         };
 
         window.updatePreview = function() {
@@ -109,13 +148,32 @@
 
         window.createCharacter = async function() {
             const charName = document.getElementById('char-name').value.trim() || "Aventurero";
-            
+            const race = document.getElementById('char-race').value;
+            const charClass = document.getElementById('char-class').value;
+            const rawStats = raceData[race].classes[charClass];
+
+            let baseStats = {
+                str: rawStats.str,
+                agi: rawStats.agi,
+                int: rawStats.int,
+                con: rawStats.con,
+                lck: rawStats.lck,
+                hp: rawStats.con * 10
+            };
+
             const playerData = {
                 uid: loggedUser.uid,
                 name: charName,
-                race: document.getElementById('char-race').value,
+                race: race,
                 subtype: document.getElementById('char-subtype').value,
-                charClass: document.getElementById('char-class').value,
+                charClass: charClass,
+                stats: baseStats,
+                allowedSkills: rawStats.skills,
+                equippedSkill: rawStats.skills[0],
+                equipment: {
+                    weapon: rawStats.weapon,
+                    shield: rawStats.shield
+                },
                 appearance: {
                     skin: document.getElementById('skin-color').value,
                     hair: document.getElementById('hair-color').value,
@@ -155,18 +213,18 @@
             display: flex; justify-content: center; align-items: center; z-index: 100;
         }
         .card {
-            background: #1e293b; border: 2px solid #334155; padding: 25px 35px;
-            border-radius: 12px; width: 440px; box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-            text-align: center; max-height: 90vh; overflow-y: auto;
+            background: #1e293b; border: 2px solid #334155; padding: 20px 30px;
+            border-radius: 12px; width: 460px; box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            text-align: center; max-height: 92vh; overflow-y: auto;
         }
-        .card h2 { margin-top: 0; color: #38bdf8; font-size: 22px; margin-bottom: 5px; }
-        .card p { color: #94a3b8; font-size: 12px; margin-bottom: 15px; }
+        .card h2 { margin-top: 0; color: #38bdf8; font-size: 20px; margin-bottom: 5px; }
+        .card p { color: #94a3b8; font-size: 11px; margin-bottom: 12px; }
         
         .btn-main {
-            width: 100%; padding: 12px; background: #38bdf8; color: #0b0f19;
-            border: none; border-radius: 6px; font-weight: bold; font-size: 14px;
+            width: 100%; padding: 11px; background: #38bdf8; color: #0b0f19;
+            border: none; border-radius: 6px; font-weight: bold; font-size: 13px;
             cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            margin-top: 15px;
+            margin-top: 12px;
         }
         .btn-main:hover { background: #0ea5e9; }
 
@@ -179,39 +237,82 @@
         .btn-google:hover { background: #f1f5f9; }
 
         input[type="text"], select {
-            width: 100%; padding: 9px; background: #0f172a; border: 1px solid #334155;
-            color: #fff; border-radius: 6px; font-size: 13px; box-sizing: border-box; margin-bottom: 12px;
+            width: 100%; padding: 8px; background: #0f172a; border: 1px solid #334155;
+            color: #fff; border-radius: 6px; font-size: 12px; box-sizing: border-box; margin-bottom: 10px;
             text-align: center;
         }
         select { text-align-last: center; cursor: pointer; }
 
         .label-title {
-            font-size: 11px; color: #94a3b8; display: block; text-align: left; margin-bottom: 3px; font-weight: bold;
+            font-size: 11px; color: #94a3b8; display: block; text-align: left; margin-bottom: 2px; font-weight: bold;
         }
+
+        /* TABLA DE ESTADÍSTICAS EN TIEMPO REAL */
+        .stats-table {
+            width: 100%; border-collapse: collapse; background: #0f172a; border-radius: 6px;
+            overflow: hidden; font-size: 11px; margin-bottom: 12px; border: 1px solid #334155;
+        }
+        .stats-table th, .stats-table td {
+            padding: 6px 8px; border: 1px solid #1e293b; text-align: center;
+        }
+        .stats-table th { background: #1e293b; color: #38bdf8; }
+        .stats-table td { color: #e2e8f0; }
 
         .preview-container {
-            display: flex; justify-content: center; align-items: center; margin: 10px 0;
+            display: flex; justify-content: center; align-items: center; margin: 6px 0;
         }
         .avatar-box {
-            position: relative; width: 64px; height: 80px; background: #0f172a; 
+            position: relative; width: 54px; height: 70px; background: #0f172a; 
             border: 2px solid #475569; border-radius: 8px; display: flex; justify-content: center; align-items: center;
         }
-        .av-hair { position: absolute; top: 10px; width: 36px; height: 16px; border-radius: 4px; z-index: 3; }
-        .av-body { position: absolute; top: 24px; width: 32px; height: 32px; border-radius: 4px; z-index: 2; }
-        .av-clothes { position: absolute; top: 28px; width: 32px; height: 24px; border-radius: 3px; z-index: 3; }
-        .av-shoes { position: absolute; bottom: 8px; width: 28px; height: 10px; border-radius: 2px; z-index: 3; }
+        .av-hair { position: absolute; top: 8px; width: 30px; height: 14px; border-radius: 4px; z-index: 3; }
+        .av-body { position: absolute; top: 20px; width: 28px; height: 28px; border-radius: 4px; z-index: 2; }
+        .av-clothes { position: absolute; top: 24px; width: 28px; height: 20px; border-radius: 3px; z-index: 3; }
+        .av-shoes { position: absolute; bottom: 6px; width: 24px; height: 8px; border-radius: 2px; z-index: 3; }
 
         .colors-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; text-align: left;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; text-align: left;
         }
         .color-picker-group {
-            background: #0f172a; padding: 6px 10px; border-radius: 6px; border: 1px solid #334155;
+            background: #0f172a; padding: 4px 8px; border-radius: 6px; border: 1px solid #334155;
             display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #cbd5e1;
         }
-        input[type="color"] { border: none; width: 24px; height: 24px; background: none; cursor: pointer; }
+        input[type="color"] { border: none; width: 20px; height: 20px; background: none; cursor: pointer; }
+
+        /* MENÚ DE GESTIÓN EN JUEGO */
+        #game-menu {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(11, 15, 25, 0.85); display: none; justify-content: center; align-items: center; z-index: 200;
+        }
+        .menu-box {
+            background: #1e293b; border: 2px solid #475569; border-radius: 12px; width: 440px;
+            padding: 25px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+        }
+        .menu-tabs { display: flex; gap: 4px; margin-bottom: 15px; }
+        .tab-btn {
+            flex: 1; padding: 7px; background: #0f172a; border: 1px solid #334155; color: #94a3b8;
+            border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;
+        }
+        .tab-btn.active { background: #38bdf8; color: #0b0f19; border-color: #38bdf8; }
+        .menu-content { display: none; text-align: left; font-size: 12px; color: #e2e8f0; min-height: 160px; }
+        .menu-content.active { display: block; }
+        
+        .menu-action-btn {
+            width: 100%; padding: 9px; background: #334155; color: #fff; border: none;
+            border-radius: 6px; font-weight: bold; margin-top: 8px; cursor: pointer; transition: 0.2s; font-size: 12px;
+        }
+        .menu-action-btn:hover { background: #475569; }
+        .menu-action-btn.danger { background: #ef4444; }
+        .menu-action-btn.danger:hover { background: #dc2626; }
+
+        #btn-open-menu {
+            position: absolute; top: 15px; right: 15px; z-index: 150; background: #1e293b;
+            border: 2px solid #38bdf8; color: #38bdf8; padding: 8px 14px; border-radius: 6px;
+            font-weight: bold; cursor: pointer; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
 
         #char-screen { display: none; }
-        #game-container { display: none; }
+        #game-container { display: none; width: 100vw; height: 100vh; }
         #error-msg { color: #ef4444; font-size: 12px; margin-top: 15px; display: none; }
     </style>
 </head>
@@ -230,11 +331,11 @@
         </div>
     </div>
 
-    <!-- 2. PANTALLA DE CREACIÓN Y PERSONALIZACIÓN DE PERSONAJE -->
+    <!-- 2. PANTALLA DE CREACIÓN CON TABLA Y RESTRICCIONES -->
     <div id="char-screen" class="screen">
         <div class="card">
-            <h2>🛡️ Creador de Mercenario</h2>
-            <p>Configura tu raza, especie y apariencia visual</p>
+            <h2>🛡️ Creador Avanzado de Mercenario</h2>
+            <p>Selecciona raza, clase y revisa las estadísticas y restricciones</p>
             
             <span class="label-title">Nombre del Personaje:</span>
             <input type="text" id="char-name" placeholder="Tu nombre...">
@@ -252,18 +353,40 @@
                 <div style="flex: 1;">
                     <span class="label-title">Variante / Especie:</span>
                     <select id="char-subtype">
-                        <!-- Se llena dinámicamente -->
+                        <!-- Dinámico -->
                     </select>
                 </div>
             </div>
 
             <span class="label-title">Clase:</span>
-            <select id="char-class">
-                <!-- Se llena dinámicamente -->
+            <select id="char-class" onchange="updateStatsTable()">
+                <!-- Dinámico -->
             </select>
 
-            <!-- VISTA PREVIA VISUAL EN TIEMPO REAL -->
-            <span class="label-title" style="text-align: center;">Vista Previa del Aspecto</span>
+            <!-- TABLA DE ESTADÍSTICAS EN TIEMPO REAL -->
+            <table class="stats-table">
+                <tr>
+                    <th>STR</th><th>AGI</th><th>INT</th><th>CON</th><th>LCK</th><th>HP</th>
+                </tr>
+                <tr>
+                    <td id="t-str">10</td>
+                    <td id="t-agi">10</td>
+                    <td id="t-int">10</td>
+                    <td id="t-con">10</td>
+                    <td id="t-lck">10</td>
+                    <td id="t-hp">100</td>
+                </tr>
+                <tr>
+                    <th colspan="3">Arma Permitida</th>
+                    <th colspan="3">Escudo</th>
+                </tr>
+                <tr>
+                    <td colspan="3" id="t-weapon" style="color:#38bdf8;">-</td>
+                    <td colspan="3" id="t-shield" style="color:#ef4444;">-</td>
+                </tr>
+            </table>
+
+            <!-- VISTA PREVIA VISUAL -->
             <div class="preview-container">
                 <div class="avatar-box">
                     <div id="preview-body" class="av-body" style="background-color: #f5d0b1;"></div>
@@ -275,11 +398,11 @@
 
             <div class="colors-grid">
                 <div class="color-picker-group">
-                    <span>Piel / Pelo base</span>
+                    <span>Piel / Base</span>
                     <input type="color" id="skin-color" value="#f5d0b1" oninput="updatePreview()">
                 </div>
                 <div class="color-picker-group">
-                    <span>Detalles / Melena</span>
+                    <span>Cabello</span>
                     <input type="color" id="hair-color" value="#4a3525" oninput="updatePreview()">
                 </div>
                 <div class="color-picker-group">
@@ -296,11 +419,134 @@
         </div>
     </div>
 
-    <!-- 3. CONTENEDOR DEL JUEGO -->
+    <!-- 3. MENÚ DE PAUSA -->
+    <button id="btn-open-menu" onclick="toggleGameMenu()">⚙️ Menú [ESC]</button>
+
+    <div id="game-menu">
+        <div class="menu-box">
+            <h3 style="color: #38bdf8; margin-top: 0;">📋 Gestión del Personaje</h3>
+            
+            <div class="menu-tabs">
+                <button class="tab-btn active" onclick="switchTab('stats', event)">Atributos</button>
+                <button class="tab-btn" onclick="switchTab('equipment', event)">Equipo & Restricciones</button>
+                <button class="tab-btn" onclick="switchTab('skills', event)">Habilidades Exclusivas</button>
+            </div>
+
+            <!-- TAB DE ATRIBUTOS -->
+            <div id="tab-stats" class="menu-content active">
+                <p><b>Nombre:</b> <span id="m-name">-</span></p>
+                <p><b>Raza / Clase:</b> <span id="m-raceclass">-</span></p>
+                <p>❤️ <b>Vida Máxima (HP):</b> <span id="m-hp">100</span></p>
+                <p>⚔️ <b>Fuerza (STR):</b> <span id="m-str">10</span> | 🏹 <b>Agilidad (AGI):</b> <span id="m-agi">10</span></p>
+                <p>🔮 <b>Inteligencia (INT):</b> <span id="m-int">10</span> | 🛡️ <b>Constitución (CON):</b> <span id="m-con">10</span></p>
+                <p>🍀 <b>Suerte (LCK):</b> <span id="m-lck">10</span> | 🪙 <b>Oro:</b> <span id="m-gold">0</span></p>
+            </div>
+
+            <!-- TAB DE EQUIPO Y RESTRICCIONES -->
+            <div id="tab-equipment" class="menu-content">
+                <p>🗡️ <b>Arma Asignada:</b> <span id="eq-weapon">-</span></p>
+                <p>🛡️ <b>Estado del Escudo:</b> <span id="eq-shield" style="color:#ef4444;">-</span></p>
+                <p style="color: #94a3b8; font-size: 11px; margin-top: 10px;">⚠️ Las restricciones de clase impiden equipar armas de combate pesado o escudos a magos y clases ágiles.</p>
+            </div>
+
+            <!-- TAB DE HABILIDADES FILTRADAS POR CLASE -->
+            <div id="tab-skills" class="menu-content">
+                <p><b>Habilidades Disponibles para tu Clase:</b></p>
+                <select id="skill-selector" onchange="changeActiveSkill(this.value)" style="margin-top: 5px;">
+                    <!-- Se llena dinámicamente según la clase -->
+                </select>
+                <p style="color: #94a3b8; font-size: 11px; margin-top: 8px;">Las habilidades no compatibles con tu arquetipo han sido bloqueadas y excluidas.</p>
+            </div>
+
+            <button class="menu-action-btn" onclick="manualSaveGame()">💾 Guardar Partida</button>
+            <button class="menu-action-btn danger" onclick="closeGameAndLogout()">🚪 Salir al Inicio</button>
+            <button class="menu-action-btn" style="background:#0f172a;" onclick="toggleGameMenu()">🔙 Reanudar</button>
+        </div>
+    </div>
+
+    <!-- 4. CONTENEDOR DEL JUEGO -->
     <div id="game-container"></div>
 
 <script>
+    let globalSaveFunction = null;
+    let currentGameData = null;
+
+    window.toggleGameMenu = function() {
+        const menu = document.getElementById('game-menu');
+        if (menu.style.display === 'flex') {
+            menu.style.display = 'none';
+        } else {
+            if (currentGameData) {
+                document.getElementById('m-name').innerText = currentGameData.name;
+                document.getElementById('m-raceclass').innerText = `${currentGameData.race} (${currentGameData.charClass})`;
+                document.getElementById('m-hp').innerText = currentGameData.stats?.hp || 100;
+                document.getElementById('m-str').innerText = currentGameData.stats?.str || 10;
+                document.getElementById('m-agi').innerText = currentGameData.stats?.agi || 10;
+                document.getElementById('m-int').innerText = currentGameData.stats?.int || 10;
+                document.getElementById('m-con').innerText = currentGameData.stats?.con || 10;
+                document.getElementById('m-lck').innerText = currentGameData.stats?.lck || 10;
+                document.getElementById('m-gold').innerText = currentGameData.gold || 0;
+                
+                document.getElementById('eq-weapon').innerText = currentGameData.equipment?.weapon || "-";
+                document.getElementById('eq-shield').innerText = currentGameData.equipment?.shield || "Prohibido";
+                if(currentGameData.equipment?.shield === "Prohibido") {
+                    document.getElementById('eq-shield').style.color = "#ef4444";
+                } else {
+                    document.getElementById('eq-shield').style.color = "#22c55e";
+                }
+
+                // Llenar selector de habilidades permitidas
+                const skillSelect = document.getElementById('skill-selector');
+                skillSelect.innerHTML = "";
+                if(currentGameData.allowedSkills) {
+                    currentGameData.allowedSkills.forEach(sk => {
+                        let opt = document.createElement('option');
+                        opt.value = sk;
+                        opt.innerText = sk;
+                        if(sk === currentGameData.equippedSkill) opt.selected = true;
+                        skillSelect.appendChild(opt);
+                    });
+                }
+            }
+            menu.style.display = 'flex';
+        }
+    };
+
+    window.switchTab = function(tabName, evt) {
+        document.querySelectorAll('.menu-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + tabName).classList.add('active');
+        evt.currentTarget.classList.add('active');
+    };
+
+    window.changeActiveSkill = function(skillName) {
+        if (currentGameData) {
+            currentGameData.equippedSkill = skillName;
+        }
+    };
+
+    window.manualSaveGame = function() {
+        if (globalSaveFunction) {
+            globalSaveFunction();
+            alert("¡Partida y restricciones guardadas en la nube!");
+        }
+    };
+
+    window.closeGameAndLogout = function() {
+        location.reload();
+    };
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer.style.display === 'block') {
+                toggleGameMenu();
+            }
+        }
+    });
+
     window.startPhaserGame = function(userData, dbInstance) {
+        currentGameData = userData;
 
         class WorldScene extends Phaser.Scene {
             constructor() { super('WorldScene'); }
@@ -312,22 +558,26 @@
                 mapGraphics.fillStyle(0x2d8a4e, 1);
                 mapGraphics.fillRect(0, 0, 2400, 1800);
 
-                let cityPortal = this.add.circle(1200, 900, 35, 0xffcc00);
+                let cityPortal = this.add.circle(1200, 900, 40, 0xffcc00);
                 this.physics.add.existing(cityPortal, true);
-                this.add.text(1160, 850, '🏛️ Ciudad', { fontSize: '14px', fill: '#fff', backgroundColor: '#0008' });
+                this.add.text(1150, 840, '🏛️ Ciudad Central', { fontSize: '14px', fill: '#fff', backgroundColor: '#0008', padding: {x:4, y:2} });
 
-                this.createPlayerTexture(userData.appearance);
+                this.createRealisticPlayerTexture(userData.appearance);
 
-                this.player = this.physics.add.sprite(1100, 900, 'customPlayer');
+                this.player = this.physics.add.sprite(1100, 900, 'realisticPlayer');
                 this.player.setCollideWorldBounds(true);
+
+                this.maxHp = userData.stats?.hp || 100;
+                this.currentHp = this.maxHp;
 
                 this.cameras.main.setBounds(0, 0, 2400, 1800);
                 this.cameras.main.startFollow(this.player, true, 0.09, 0.09);
 
                 this.enemies = this.physics.add.group();
+                this.projectiles = this.physics.add.group();
                 this.treasures = this.physics.add.group();
 
-                for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 12; i++) {
                     let tx = Phaser.Math.Between(400, 2200);
                     let ty = Phaser.Math.Between(200, 1600);
                     let t = this.treasures.create(tx, ty, 'treasureSprite');
@@ -336,58 +586,112 @@
 
                 this.cursors = this.input.keyboard.createCursorKeys();
 
-                this.score = userData.monstersKilled || 0;
-                this.gold = userData.gold || 0;
-
                 let raceIcon = userData.race === 'Hombre Bestia' ? '🐺' : userData.race === 'Elfo' ? '🧝' : userData.race === 'Enano' ? '🧔' : '👤';
                 let displaySub = userData.subtype && userData.subtype !== 'Estándar' ? ` (${userData.subtype})` : '';
                 
-                this.add.text(16, 16, `${raceIcon} ${userData.name} - ${userData.race}${displaySub} [${userData.charClass}]`, { fontSize: '13px', fill: '#38bdf8', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
-                this.scoreText = this.add.text(16, 46, 'Monstruos: ' + this.score, { fontSize: '14px', fill: '#fff', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
-                this.goldText = this.add.text(16, 74, 'Oro: ' + this.gold + ' 🪙', { fontSize: '14px', fill: '#ffcc00', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
+                this.add.text(16, 12, `${raceIcon} ${userData.name} - ${userData.race}${displaySub} [${userData.charClass}]`, { fontSize: '12px', fill: '#38bdf8', backgroundColor: '#000aa', padding: {x:6, y:3} }).setScrollFactor(0);
+                this.scoreText = this.add.text(16, 36, 'Monstruos: ' + (userData.monstersKilled || 0), { fontSize: '13px', fill: '#fff', backgroundColor: '#000aa', padding: {x:6, y:3} }).setScrollFactor(0);
+                this.goldText = this.add.text(16, 60, 'Oro: ' + (userData.gold || 0) + ' 🪙', { fontSize: '13px', fill: '#ffcc00', backgroundColor: '#000aa', padding: {x:6, y:3} }).setScrollFactor(0);
+
+                this.hpBarBg = this.add.graphics().setScrollFactor(0);
+                this.hpBarFill = this.add.graphics().setScrollFactor(0);
+                this.updatePlayerHpBar();
+
+                document.getElementById('btn-open-menu').style.display = 'block';
+
+                globalSaveFunction = async () => {
+                    if (dbInstance && userData.uid) {
+                        try {
+                            const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                            const userRef = doc(dbInstance, "players", userData.uid);
+                            await updateDoc(userRef, {
+                                gold: userData.gold,
+                                monstersKilled: userData.monstersKilled,
+                                stats: userData.stats
+                            });
+                        } catch (e) {
+                            console.error("Error al guardar en la nube:", e);
+                        }
+                    }
+                };
+
+                this.input.on('pointerdown', (pointer) => {
+                    if (document.getElementById('game-menu').style.display === 'flex') return;
+                    this.castActiveSkill(pointer);
+                });
 
                 this.time.addEvent({ delay: 1200, callback: this.spawnEnemy, callbackScope: this, loop: true });
 
-                this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
+                this.physics.add.overlap(this.player, this.enemies, this.hitByEnemy, null, this);
+                this.physics.add.overlap(this.projectiles, this.enemies, this.damageEnemy, null, this);
                 this.physics.add.overlap(this.player, this.treasures, this.collectTreasure, null, this);
                 this.physics.add.overlap(this.player, cityPortal, () => { this.scene.start('CityScene'); }, null, this);
             }
 
-            createPlayerTexture(app) {
-                if (this.textures.exists('customPlayer')) return;
+            updatePlayerHpBar() {
+                this.hpBarBg.clear();
+                this.hpBarBg.fillStyle(0x000000, 0.7);
+                this.hpBarBg.fillRect(16, 84, 150, 14);
 
-                let canvasTexture = this.textures.createCanvas('customPlayer', 32, 32);
-                let ctx = canvasTexture.context;
-
-                ctx.fillStyle = app?.skin || '#f5d0b1';
-                ctx.fillRect(4, 8, 24, 20);
-
-                ctx.fillStyle = app?.clothes || '#2563eb';
-                ctx.fillRect(4, 16, 24, 12);
-
-                ctx.fillStyle = app?.hair || '#4a3525';
-                ctx.fillRect(4, 6, 24, 8);
-
-                ctx.fillStyle = app?.shoes || '#1e293b';
-                ctx.fillRect(6, 28, 8, 4);
-                ctx.fillRect(18, 28, 8, 4);
-
-                canvasTexture.refresh();
+                this.hpBarFill.clear();
+                let hpPercent = Math.max(0, this.currentHp / this.maxHp);
+                this.hpBarFill.fillStyle(0xef4444, 1);
+                this.hpBarFill.fillRect(18, 86, 146 * hpPercent, 10);
             }
 
-            async saveProgress() {
-                if (dbInstance && userData.uid) {
-                    try {
-                        const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-                        const userRef = doc(dbInstance, "players", userData.uid);
-                        await updateDoc(userRef, {
-                            gold: this.gold,
-                            monstersKilled: this.score
-                        });
-                    } catch (e) {
-                        console.error("Error al guardar en la nube:", e);
-                    }
-                }
+            castActiveSkill(pointer) {
+                let skill = currentGameData.equippedSkill || "Ataque Básico";
+                let worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+
+                let proj = this.physics.add.sprite(this.player.x, this.player.y, 'projectileSprite');
+                let str = currentGameData.stats?.str || 10;
+                let int = currentGameData.stats?.int || 10;
+                
+                proj.damage = skill.includes("Mágico") || skill.includes("Arcana") ? int * 1.5 : str * 1.2;
+                
+                this.physics.moveTo(proj, worldPoint.x, worldPoint.y, 450);
+                this.projectiles.add(proj);
+
+                this.time.delayedCall(900, () => { if (proj.active) proj.destroy(); });
+            }
+
+            createRealisticPlayerTexture(app) {
+                if (this.textures.exists('realisticPlayer')) return;
+
+                let canvasTexture = this.textures.createCanvas('realisticPlayer', 36, 42);
+                let ctx = canvasTexture.context;
+
+                let skinColor = app?.skin || '#f5d0b1';
+                let hairColor = app?.hair || '#4a3525';
+                let clothesColor = app?.clothes || '#2563eb';
+                let shoesColor = app?.shoes || '#1e293b';
+
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(18, 38, 12, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = shoesColor;
+                ctx.fillRect(10, 34, 6, 6);
+                ctx.fillRect(20, 34, 6, 6);
+
+                ctx.fillStyle = clothesColor;
+                ctx.fillRect(8, 18, 20, 16);
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                ctx.fillRect(14, 18, 8, 16);
+
+                ctx.fillStyle = skinColor;
+                ctx.fillRect(5, 20, 4, 12);
+                ctx.fillRect(27, 20, 4, 12);
+
+                ctx.fillRect(11, 8, 14, 12);
+
+                ctx.fillStyle = hairColor;
+                ctx.fillRect(10, 6, 16, 5);
+                ctx.fillRect(9, 9, 3, 6);
+                ctx.fillRect(24, 9, 3, 6);
+
+                canvasTexture.refresh();
             }
 
             spawnEnemy() {
@@ -395,25 +699,66 @@
                 let angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
                 let x = this.player.x + Math.cos(angle) * 700;
                 let y = this.player.y + Math.sin(angle) * 700;
-                let enemy = this.enemies.create(x, y, 'enemySprite');
+                
+                let enemy = this.physics.add.sprite(x, y, 'enemySprite');
                 enemy.setCollideWorldBounds(true);
+                enemy.maxHp = 40;
+                enemy.hp = 40;
+
+                enemy.hpBar = this.add.graphics();
+                this.updateEnemyHpBar(enemy);
+
+                this.enemies.add(enemy);
             }
 
-            hitEnemy(player, enemy) {
-                enemy.destroy();
-                this.score += 1;
-                this.scoreText.setText('Monstruos: ' + this.score);
-                this.saveProgress();
+            updateEnemyHpBar(enemy) {
+                if (!enemy.active) return;
+                enemy.hpBar.clear();
+                enemy.hpBar.fillStyle(0x000000, 0.6);
+                enemy.hpBar.fillRect(enemy.x - 14, enemy.y - 24, 28, 5);
+                enemy.hpBar.fillStyle(0x22c55e, 1);
+                let pct = Math.max(0, enemy.hp / enemy.maxHp);
+                enemy.hpBar.fillRect(enemy.x - 14, enemy.y - 24, 28 * pct, 5);
+            }
+
+            hitByEnemy(player, enemy) {
+                this.currentHp -= 5;
+                this.updatePlayerHpBar();
+                if (this.currentHp <= 0) {
+                    alert("¡Has caído en combate! Reviviendo en la base...");
+                    this.currentHp = this.maxHp;
+                    this.updatePlayerHpBar();
+                    this.player.setPosition(1100, 900);
+                }
+            }
+
+            damageEnemy(projectile, enemy) {
+                projectile.destroy();
+                enemy.hp -= projectile.damage || 15;
+                this.updateEnemyHpBar(enemy);
+
+                if (enemy.hp <= 0) {
+                    if (enemy.hpBar) enemy.hpBar.destroy();
+                    enemy.destroy();
+                    currentGameData.monstersKilled = (currentGameData.monstersKilled || 0) + 1;
+                    this.scoreText.setText('Monstruos: ' + currentGameData.monstersKilled);
+                    if (globalSaveFunction) globalSaveFunction();
+                }
             }
 
             collectTreasure(player, treasure) {
                 treasure.destroy();
-                this.gold += 10;
-                this.goldText.setText('Oro: ' + this.gold + ' 🪙');
-                this.saveProgress();
+                currentGameData.gold = (currentGameData.gold || 0) + 10;
+                this.goldText.setText('Oro: ' + currentGameData.gold + ' 🪙');
+                if (globalSaveFunction) globalSaveFunction();
             }
 
             update() {
+                if (document.getElementById('game-menu').style.display === 'flex') {
+                    this.player.setVelocity(0);
+                    return;
+                }
+
                 if (!this.player) return;
                 this.player.setVelocity(0);
                 if (this.cursors.left.isDown) this.player.setVelocityX(-240);
@@ -422,7 +767,8 @@
                 else if (this.cursors.down.isDown) this.player.setVelocityY(240);
 
                 this.enemies.getChildren().forEach((enemy) => {
-                    this.physics.moveToObject(enemy, this.player, 120);
+                    this.physics.moveToObject(enemy, this.player, 110);
+                    this.updateEnemyHpBar(enemy);
                 });
             }
         }
@@ -439,28 +785,18 @@
                 this.physics.add.existing(backPortal, true);
                 this.add.text(325, 508, '🚪 Volver al Mundo', { fontSize: '14px', fill: '#fff' });
 
-                if (!this.textures.exists('customPlayer')) {
-                    let canvasTexture = this.textures.createCanvas('customPlayer', 32, 32);
-                    let ctx = canvasTexture.context;
-                    ctx.fillStyle = userData.appearance?.skin || '#f5d0b1';
-                    ctx.fillRect(4, 8, 24, 20);
-                    ctx.fillStyle = userData.appearance?.clothes || '#2563eb';
-                    ctx.fillRect(4, 16, 24, 12);
-                    ctx.fillStyle = userData.appearance?.hair || '#4a3525';
-                    ctx.fillRect(4, 6, 24, 8);
-                    ctx.fillStyle = userData.appearance?.shoes || '#1e293b';
-                    ctx.fillRect(6, 28, 8, 4);
-                    ctx.fillRect(18, 28, 8, 4);
-                    canvasTexture.refresh();
-                }
-
-                this.player = this.physics.add.sprite(400, 420, 'customPlayer');
+                this.player = this.physics.add.sprite(400, 420, 'realisticPlayer');
                 this.player.setCollideWorldBounds(true);
                 this.cursors = this.input.keyboard.createCursorKeys();
 
                 this.physics.add.overlap(this.player, backPortal, () => { this.scene.start('WorldScene'); }, null, this);
             }
             update() {
+                if (document.getElementById('game-menu').style.display === 'flex') {
+                    this.player.setVelocity(0);
+                    return;
+                }
+
                 if (!this.player) return;
                 this.player.setVelocity(0);
                 if (this.cursors.left.isDown) this.player.setVelocityX(-220);
@@ -474,16 +810,19 @@
             constructor() { super('BootScene'); }
             preload() {
                 let gEnemy = this.make.graphics({x: 0, y: 0, add: false});
-                gEnemy.fillStyle(0xff3333, 1); gEnemy.fillRect(0, 0, 28, 28); gEnemy.generateTexture('enemySprite', 28, 28);
+                gEnemy.fillStyle(0xff3333, 1); gEnemy.fillCircle(14, 14, 14); gEnemy.generateTexture('enemySprite', 28, 28);
 
                 let gTreasure = this.make.graphics({x: 0, y: 0, add: false});
                 gTreasure.fillStyle(0xffcc00, 1); gTreasure.fillRect(0, 0, 24, 24); gTreasure.generateTexture('treasureSprite', 24, 24);
+
+                let gProj = this.make.graphics({x: 0, y: 0, add: false});
+                gProj.fillStyle(0x38bdf8, 1); gProj.fillCircle(6, 6, 6); gProj.generateTexture('projectileSprite', 12, 12);
             }
             create() { this.scene.start('WorldScene'); }
         }
 
         const config = {
-            type: Phaser.AUTO, width: 800, height: 600, parent: 'game-container',
+            type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight, parent: 'game-container',
             physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
             scene: [BootScene, WorldScene, CityScene]
         };
