@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MMORPG Sandbox - Mercenary</title>
+    <title>MMORPG Sandbox - Creador de Personaje</title>
     <!-- Phaser.js -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     
@@ -11,7 +11,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDiycgAFTNCytoUEYO24brfQ17Jq00G3Us",
@@ -28,42 +28,122 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
+        let loggedUser = null;
+        let database = db;
+
         window.loginWithGoogle = async function() {
             try {
                 const result = await signInWithPopup(auth, provider);
-                const user = result.user;
+                loggedUser = result.user;
                 
-                const userRef = doc(db, "players", user.uid);
+                const userRef = doc(db, "players", loggedUser.uid);
                 const userSnap = await getDoc(userRef);
 
-                let playerData = {
-                    uid: user.uid,
-                    name: user.displayName || "Mercenario",
-                    gold: 0,
-                    monstersKilled: 0
-                };
+                document.getElementById('auth-screen').style.display = 'none';
 
                 if (!userSnap.exists()) {
-                    await setDoc(userRef, playerData);
+                    document.getElementById('char-screen').style.display = 'flex';
+                    document.getElementById('char-name').value = loggedUser.displayName || "Aventurero";
+                    window.updateRaceSubtypes(); // Cargar subtipos y clases iniciales
                 } else {
-                    playerData = userSnap.data();
-                    playerData.uid = user.uid;
+                    let playerData = userSnap.data();
+                    playerData.uid = loggedUser.uid;
+                    launchGame(playerData);
                 }
 
-                window.currentUserData = playerData;
-                window.db = db;
-
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('game-container').style.display = 'block';
-                initGame(playerData);
-
             } catch (error) {
-                console.error("Error al autenticar con Google:", error);
-                const errorMsg = document.getElementById('error-msg');
-                errorMsg.style.display = 'block';
-                errorMsg.innerText = "Error de conexión con Google: " + error.message;
+                console.error("Error al autenticar:", error);
+                document.getElementById('error-msg').style.display = 'block';
+                document.getElementById('error-msg'].innerText = "Error: " + error.message;
             }
         };
+
+        // Razas, Subtipos y Clases asociadas
+        const raceData = {
+            "Humano": {
+                subtypes: ["Estándar"],
+                classes: ["Caballero", "Mago", "Pícaro", "Clérigo"]
+            },
+            "Elfo": {
+                subtypes: ["Silvano", "Alto Elfo"],
+                classes: ["Arquero Místico", "Mago de Batalla", "Asesino", "Druida"]
+            },
+            "Enano": {
+                subtypes: ["De las Colinas", "De las Profundidades"],
+                classes: ["Guerrero de la Forja", "Berserker", "Ingeniero Rúnico", "Minero"]
+            },
+            "Hombre Bestia": {
+                subtypes: ["Lobo-Humano", "Tigre-Humano", "Pantera-Humano", "Tortuga-Humano", "Elefante-Humano"],
+                classes: ["Cazador Furtivo", "Guerrero Chamán", "Buitre de las Estepas", "Monje Salvaje"]
+            }
+        };
+
+        window.updateRaceSubtypes = function() {
+            const race = document.getElementById('char-race').value;
+            const subtypeSelect = document.getElementById('char-subtype');
+            const classSelect = document.getElementById('char-class');
+            
+            // Llenar subtipos
+            subtypeSelect.innerHTML = "";
+            raceData[race].subtypes.forEach(sub => {
+                let opt = document.createElement('option');
+                opt.value = sub;
+                opt.innerText = sub;
+                subtypeSelect.appendChild(opt);
+            });
+
+            // Llenar clases
+            classSelect.innerHTML = "";
+            raceData[race].classes.forEach(cls => {
+                let opt = document.createElement('option');
+                opt.value = cls;
+                opt.innerText = cls;
+                classSelect.appendChild(opt);
+            });
+        };
+
+        // Actualizar vista previa visual en tiempo real
+        window.updatePreview = function() {
+            document.getElementById('preview-body').style.backgroundColor = document.getElementById('skin-color').value;
+            document.getElementById('preview-hair').style.backgroundColor = document.getElementById('hair-color').value;
+            document.getElementById('preview-clothes').style.backgroundColor = document.getElementById('clothes-color').value;
+            document.getElementById('preview-shoes').style.backgroundColor = document.getElementById('shoes-color').value;
+        };
+
+        window.createCharacter = async function() {
+            const charName = document.getElementById('char-name').value.trim() || "Aventurero";
+            
+            const playerData = {
+                uid: loggedUser.uid,
+                name: charName,
+                race: document.getElementById('char-race').value,
+                subtype: document.getElementById('char-subtype').value,
+                charClass: document.getElementById('char-class').value,
+                appearance: {
+                    skin: document.getElementById('skin-color').value,
+                    hair: document.getElementById('hair-color').value,
+                    clothes: document.getElementById('clothes-color').value,
+                    shoes: document.getElementById('shoes-color').value
+                },
+                gold: 0,
+                monstersKilled: 0
+            };
+
+            try {
+                const userRef = doc(database, "players", loggedUser.uid);
+                await setDoc(userRef, playerData);
+
+                document.getElementById('char-screen').style.display = 'none';
+                launchGame(playerData);
+            } catch (e) {
+                console.error("Error al guardar personaje:", e);
+            }
+        };
+
+        function launchGame(playerData) {
+            document.getElementById('game-container').style.display = 'block';
+            window.startPhaserGame(playerData, database);
+        }
     </script>
 
     <style>
@@ -72,19 +152,27 @@
             display: flex; justify-content: center; align-items: center; 
             height: 100vh; font-family: system-ui, sans-serif; color: #f8fafc;
         }
-        #auth-screen {
+        .screen {
             position: absolute; width: 100%; height: 100%;
-            background: rgba(11, 15, 25, 0.95);
+            background: rgba(11, 15, 25, 0.96);
             display: flex; justify-content: center; align-items: center; z-index: 100;
         }
-        .auth-card {
-            background: #1e293b; border: 2px solid #334155; padding: 35px;
-            border-radius: 12px; width: 340px; box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-            text-align: center;
+        .card {
+            background: #1e293b; border: 2px solid #334155; padding: 25px 35px;
+            border-radius: 12px; width: 440px; box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            text-align: center; max-height: 90vh; overflow-y: auto;
         }
-        .auth-card h2 { margin-top: 0; color: #38bdf8; font-size: 24px; margin-bottom: 5px; }
-        .auth-card p { color: #94a3b8; font-size: 13px; margin-bottom: 25px; }
+        .card h2 { margin-top: 0; color: #38bdf8; font-size: 22px; margin-bottom: 5px; }
+        .card p { color: #94a3b8; font-size: 12px; margin-bottom: 15px; }
         
+        .btn-main {
+            width: 100%; padding: 12px; background: #38bdf8; color: #0b0f19;
+            border: none; border-radius: 6px; font-weight: bold; font-size: 14px;
+            cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            margin-top: 15px;
+        }
+        .btn-main:hover { background: #0ea5e9; }
+
         .btn-google {
             width: 100%; padding: 12px; background: #ffffff; color: #1e293b;
             border: none; border-radius: 6px; font-weight: bold; font-size: 14px;
@@ -92,17 +180,52 @@
             gap: 10px; transition: background 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
         .btn-google:hover { background: #f1f5f9; }
-        #error-msg { color: #ef4444; font-size: 12px; margin-top: 15px; display: none; }
+
+        input[type="text"], select {
+            width: 100%; padding: 9px; background: #0f172a; border: 1px solid #334155;
+            color: #fff; border-radius: 6px; font-size: 13px; box-sizing: border-box; margin-bottom: 12px;
+            text-align: center;
+        }
+        select { text-align-last: center; cursor: pointer; }
+
+        .label-title {
+            font-size: 11px; color: #94a3b8; display: block; text-align: left; margin-bottom: 3px; font-weight: bold;
+        }
+
+        /* VISTA PREVIA DEL PERSONAJE */
+        .preview-container {
+            display: flex; justify-content: center; align-items: center; margin: 10px 0;
+        }
+        .avatar-box {
+            position: relative; width: 64px; height: 80px; background: #0f172a; 
+            border: 2px solid #475569; border-radius: 8px; display: flex; justify-content: center; align-items: center;
+        }
+        .av-hair { position: absolute; top: 10px; width: 36px; height: 16px; border-radius: 4px; z-index: 3; }
+        .av-body { position: absolute; top: 24px; width: 32px; height: 32px; border-radius: 4px; z-index: 2; }
+        .av-clothes { position: absolute; top: 28px; width: 32px; height: 24px; border-radius: 3px; z-index: 3; }
+        .av-shoes { position: absolute; bottom: 8px; width: 28px; height: 10px; border-radius: 2px; z-index: 3; }
+
+        .colors-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; text-align: left;
+        }
+        .color-picker-group {
+            background: #0f172a; padding: 6px 10px; border-radius: 6px; border: 1px solid #334155;
+            display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #cbd5e1;
+        }
+        input[type="color"] { border: none; width: 24px; height: 24px; background: none; cursor: pointer; }
+
+        #char-screen { display: none; }
         #game-container { display: none; }
+        #error-msg { color: #ef4444; font-size: 12px; margin-top: 15px; display: none; }
     </style>
 </head>
 <body>
 
-    <div id="auth-screen">
-        <div class="auth-card">
+    <!-- 1. PANTALLA DE LOGIN CON GOOGLE -->
+    <div id="auth-screen" class="screen">
+        <div class="card">
             <h2>⚔️ MERCENARY</h2>
-            <p>Inicia sesión con Google para guardar tu progreso en la nube</p>
-            
+            <p>Inicia sesión con Google para acceder al sandbox</p>
             <button class="btn-google" onclick="loginWithGoogle()">
                 <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.18v3.15C3.15 21.32 7.22 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.39-1.49-.39-2.24s.14-1.52.39-2.24V6.6H1.18C.43 8.12 0 9.82 0 12s.43 3.88 1.18 5.4l4.09-3.16z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.22 0 3.15 2.68 1.18 6.6l4.09 3.15c.95-2.85 3.6-4.95 6.73-4.95z"/></svg>
                 Continuar con Google
@@ -111,10 +234,77 @@
         </div>
     </div>
 
+    <!-- 2. PANTALLA DE CREACIÓN Y PERSONALIZACIÓN DE PERSONAJE -->
+    <div id="char-screen" class="screen">
+        <div class="card">
+            <h2>🛡️ Creador de Mercenario</h2>
+            <p>Configura tu raza, especie y apariencia visual</p>
+            
+            <span class="label-title">Nombre del Personaje:</span>
+            <input type="text" id="char-name" placeholder="Tu nombre...">
+
+            <div style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                    <span class="label-title">Raza:</span>
+                    <select id="char-race" onchange="updateRaceSubtypes()">
+                        <option value="Humano">Humano</option>
+                        <option value="Elfo">Elfo</option>
+                        <option value="Enano">Enano</option>
+                        <option value="Hombre Bestia">Hombre Bestia</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <span class="label-title">Variante / Especie:</span>
+                    <select id="char-subtype">
+                        <!-- Se llena dinámicamente -->
+                    </select>
+                </div>
+            </div>
+
+            <span class="label-title">Clase:</span>
+            <select id="char-class">
+                <!-- Se llena dinámicamente -->
+            </select>
+
+            <!-- VISTA PREVIA VISUAL EN TIEMPO REAL -->
+            <span class="label-title" style="text-align: center;">Vista Previa del Aspecto</span>
+            <div class="preview-container">
+                <div class="avatar-box">
+                    <div id="preview-body" class="av-body" style="background-color: #f5d0b1;"></div>
+                    <div id="preview-hair" class="av-hair" style="background-color: #4a3525;"></div>
+                    <div id="preview-clothes" class="av-clothes" style="background-color: #2563eb;"></div>
+                    <div id="preview-shoes" class="av-shoes" style="background-color: #1e293b;"></div>
+                </div>
+            </div>
+
+            <div class="colors-grid">
+                <div class="color-picker-group">
+                    <span>Piel / Pelo base</span>
+                    <input type="color" id="skin-color" value="#f5d0b1" oninput="updatePreview()">
+                </div>
+                <div class="color-picker-group">
+                    <span>Detalles / Melena</span>
+                    <input type="color" id="hair-color" value="#4a3525" oninput="updatePreview()">
+                </div>
+                <div class="color-picker-group">
+                    <span>Vestimenta</span>
+                    <input type="color" id="clothes-color" value="#2563eb" oninput="updatePreview()">
+                </div>
+                <div class="color-picker-group">
+                    <span>Zapatos</span>
+                    <input type="color" id="shoes-color" value="#1e293b" oninput="updatePreview()">
+                </div>
+            </div>
+
+            <button class="btn-main" onclick="createCharacter()">¡Entrar al Sandbox!</button>
+        </div>
+    </div>
+
+    <!-- 3. CONTENEDOR DEL JUEGO -->
     <div id="game-container"></div>
 
 <script>
-    function initGame(userData) {
+    window.startPhaserGame = function(userData, dbInstance) {
 
         class WorldScene extends Phaser.Scene {
             constructor() { super('WorldScene'); }
@@ -130,7 +320,9 @@
                 this.physics.add.existing(cityPortal, true);
                 this.add.text(1160, 850, '🏛️ Ciudad', { fontSize: '14px', fill: '#fff', backgroundColor: '#0008' });
 
-                this.player = this.physics.add.sprite(1100, 900, 'playerSprite');
+                this.createPlayerTexture(userData.appearance);
+
+                this.player = this.physics.add.sprite(1100, 900, 'customPlayer');
                 this.player.setCollideWorldBounds(true);
 
                 this.cameras.main.setBounds(0, 0, 2400, 1800);
@@ -151,7 +343,11 @@
                 this.score = userData.monstersKilled || 0;
                 this.gold = userData.gold || 0;
 
-                this.add.text(16, 16, `👤 ${userData.name}`, { fontSize: '15px', fill: '#38bdf8', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
+                // HUD con información detallada de su raza, variante y clase
+                let raceIcon = userData.race === 'Hombre Bestia' ? '🐺' : userData.race === 'Elfo' ? '🧝' : userData.race === 'Enano' ? '🧔' : '👤';
+                let displaySub = userData.subtype && userData.subtype !== 'Estándar' ? ` (${userData.subtype})` : '';
+                
+                this.add.text(16, 16, `${raceIcon} ${userData.name} - ${userData.race}${displaySub} [${userData.charClass}]`, { fontSize: '13px', fill: '#38bdf8', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
                 this.scoreText = this.add.text(16, 46, 'Monstruos: ' + this.score, { fontSize: '14px', fill: '#fff', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
                 this.goldText = this.add.text(16, 74, 'Oro: ' + this.gold + ' 🪙', { fontSize: '14px', fill: '#ffcc00', backgroundColor: '#000aa', padding: {x:6, y:4} }).setScrollFactor(0);
 
@@ -162,11 +358,33 @@
                 this.physics.add.overlap(this.player, cityPortal, () => { this.scene.start('CityScene'); }, null, this);
             }
 
+            createPlayerTexture(app) {
+                if (this.textures.exists('customPlayer')) return;
+
+                let canvasTexture = this.textures.createCanvas('customPlayer', 32, 32);
+                let ctx = canvasTexture.context;
+
+                ctx.fillStyle = app?.skin || '#f5d0b1';
+                ctx.fillRect(4, 8, 24, 20);
+
+                ctx.fillStyle = app?.clothes || '#2563eb';
+                ctx.fillRect(4, 16, 24, 12);
+
+                ctx.fillStyle = app?.hair || '#4a3525';
+                ctx.fillRect(4, 6, 24, 8);
+
+                ctx.fillStyle = app?.shoes || '#1e293b';
+                ctx.fillRect(6, 28, 8, 4);
+                ctx.fillRect(18, 28, 8, 4);
+
+                canvasTexture.refresh();
+            }
+
             async saveProgress() {
-                if (window.db && userData.uid) {
+                if (dbInstance && userData.uid) {
                     try {
                         const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-                        const userRef = doc(window.db, "players", userData.uid);
+                        const userRef = doc(dbInstance, "players", userData.uid);
                         await updateDoc(userRef, {
                             gold: this.gold,
                             monstersKilled: this.score
@@ -226,7 +444,22 @@
                 this.physics.add.existing(backPortal, true);
                 this.add.text(325, 508, '🚪 Volver al Mundo', { fontSize: '14px', fill: '#fff' });
 
-                this.player = this.physics.add.sprite(400, 420, 'playerSprite');
+                if (!this.textures.exists('customPlayer')) {
+                    let canvasTexture = this.textures.createCanvas('customPlayer', 32, 32);
+                    let ctx = canvasTexture.context;
+                    ctx.fillStyle = userData.appearance?.skin || '#f5d0b1';
+                    ctx.fillRect(4, 8, 24, 20);
+                    ctx.fillStyle = userData.appearance?.clothes || '#2563eb';
+                    ctx.fillRect(4, 16, 24, 12);
+                    ctx.fillStyle = userData.appearance?.hair || '#4a3525';
+                    ctx.fillRect(4, 6, 24, 8);
+                    ctx.fillStyle = userData.appearance?.shoes || '#1e293b';
+                    ctx.fillRect(6, 28, 8, 4);
+                    ctx.fillRect(18, 28, 8, 4);
+                    canvasTexture.refresh();
+                }
+
+                this.player = this.physics.add.sprite(400, 420, 'customPlayer');
                 this.player.setCollideWorldBounds(true);
                 this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -245,9 +478,6 @@
         class BootScene extends Phaser.Scene {
             constructor() { super('BootScene'); }
             preload() {
-                let gPlayer = this.make.graphics({x: 0, y: 0, add: false});
-                gPlayer.fillStyle(0x00ff66, 1); gPlayer.fillRect(0, 0, 32, 32); gPlayer.generateTexture('playerSprite', 32, 32);
-
                 let gEnemy = this.make.graphics({x: 0, y: 0, add: false});
                 gEnemy.fillStyle(0xff3333, 1); gEnemy.fillRect(0, 0, 28, 28); gEnemy.generateTexture('enemySprite', 28, 28);
 
