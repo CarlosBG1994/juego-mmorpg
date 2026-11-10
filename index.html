@@ -44,7 +44,7 @@
                 if (!userSnap.exists()) {
                     document.getElementById('char-screen').style.display = 'flex';
                     document.getElementById('char-name').value = loggedUser.displayName || "Aventurero";
-                    window.updateRaceSubtypes(); // Cargar subtipos y clases iniciales
+                    window.updateRaceSubtypes(); 
                 } else {
                     let playerData = userSnap.data();
                     playerData.uid = loggedUser.uid;
@@ -53,12 +53,12 @@
 
             } catch (error) {
                 console.error("Error al autenticar:", error);
-                document.getElementById('error-msg').style.display = 'block';
-                document.getElementById('error-msg'].innerText = "Error: " + error.message;
+                const errorMsg = document.getElementById('error-msg');
+                errorMsg.style.display = 'block';
+                errorMsg.innerText = "Error: " + error.message;
             }
         };
 
-        // Razas, Subtipos y Clases asociadas
         const raceData = {
             "Humano": {
                 subtypes: ["Estándar"],
@@ -83,7 +83,6 @@
             const subtypeSelect = document.getElementById('char-subtype');
             const classSelect = document.getElementById('char-class');
             
-            // Llenar subtipos
             subtypeSelect.innerHTML = "";
             raceData[race].subtypes.forEach(sub => {
                 let opt = document.createElement('option');
@@ -92,7 +91,6 @@
                 subtypeSelect.appendChild(opt);
             });
 
-            // Llenar clases
             classSelect.innerHTML = "";
             raceData[race].classes.forEach(cls => {
                 let opt = document.createElement('option');
@@ -102,7 +100,6 @@
             });
         };
 
-        // Actualizar vista previa visual en tiempo real
         window.updatePreview = function() {
             document.getElementById('preview-body').style.backgroundColor = document.getElementById('skin-color').value;
             document.getElementById('preview-hair').style.backgroundColor = document.getElementById('hair-color').value;
@@ -192,7 +189,6 @@
             font-size: 11px; color: #94a3b8; display: block; text-align: left; margin-bottom: 3px; font-weight: bold;
         }
 
-        /* VISTA PREVIA DEL PERSONAJE */
         .preview-container {
             display: flex; justify-content: center; align-items: center; margin: 10px 0;
         }
@@ -343,7 +339,6 @@
                 this.score = userData.monstersKilled || 0;
                 this.gold = userData.gold || 0;
 
-                // HUD con información detallada de su raza, variante y clase
                 let raceIcon = userData.race === 'Hombre Bestia' ? '🐺' : userData.race === 'Elfo' ? '🧝' : userData.race === 'Enano' ? '🧔' : '👤';
                 let displaySub = userData.subtype && userData.subtype !== 'Estándar' ? ` (${userData.subtype})` : '';
                 
