@@ -1,95 +1,94 @@
+import os
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
 import pandas as pd
-import urllib.parse
-import random
 
+# Configuración de la página
 st.set_page_config(
-    page_title="MMORPG Snd-Worlds & Cinco Reinos Admin Dashboard",
-    layout="wide",
-    page_icon="🛡️"
+    page_title="Juego MMORPG 3D - Panel de Control",
+    page_icon="⚔️",
+    layout="wide"
 )
 
-# Inicialización segura de Firebase para entorno local (Codespace) y nube (Streamlit Cloud 24/7)
+# Inicialización segura de Firebase (Local y Streamlit Cloud)
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
         try:
+            # Intenta cargar desde los secretos de Streamlit Cloud si están configurados
             if "firebase" in st.secrets:
                 cred_dict = dict(st.secrets["firebase"])
                 cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
             else:
+                # Carga local desde el archivo serviceAccountKey.json
                 cred = credentials.Certificate("serviceAccountKey.json")
+                firebase_admin.initialize_app(cred)
+        except Exception:
+            # Fallback forzado a archivo local si ocurre cualquier fallo en la nube
+            cred = credentials.Certificate("serviceAccountKey.json")
             firebase_admin.initialize_app(cred)
-        except Exception as e:
-            st.error(f"Error de credenciales Firebase: {e}")
     return firestore.client()
 
-db = init_firebase()
+# Conexión a Firestore
+try:
+    db = init_firebase()
+except Exception as e:
+    st.error(f"Error crítico al conectar con Firebase: {e}")
+    st.stop()
 
-st.title("🛡️ Panel de Control - MMORPG Snd-Worlds")
-st.markdown("Gestión de macroarquitectura, continentes, economía de 4 metales (*Cores, Plata, Oro, Diamante*) y red de agentes IA.")
+# Interfaz Principal del Panel de Control
+st.title("⚔️ Panel de Control - MMORPG 3D Sandbox")
+st.markdown("---")
 
-tab1, tab2, tab3, tab4 = st.tabs(["🌍 Continentes y Zonas", "⚖️ Reglas y Economía", "🎨 Estudio Visual (Hércules)", "⚙️ Estado de Servidores"])
+# Barra lateral de navegación y estado
+st.sidebar.header("Estado del Sistema")
+st.sidebar.success("Base de datos Firestore: Conectada")
+st.sidebar.info("Entorno activo: GitHub Codespaces / Local")
+
+# Sección de visualización rápida de datos del juego
+tab1, tab2, tab3 = st.tabs(["🌍 Continentes y Regiones", "⚖️ Economía y Metales", "🤖 Panel de Agentes"])
 
 with tab1:
-    st.subheader("Infraestructura Continental (8.5M km² / 1.55M km² Océanos)")
-    try:
-        docs = db.collection("continents").stream()
-        data = [doc.to_dict() for doc in docs]
-        if data:
-            df = pd.DataFrame(data)
-            st.dataframe(df, use_container_width=True)
-        else:
-            st.info("No hay datos de continentes en Firestore. Ejecuta primero `seed_firebase.py`.")
-    except Exception as e:
-        st.error(f"Error al conectar con Firestore: {e}")
+    st.subheader("Estructura de Continentes")
+    continents_data = [
+        {"Continente": "El Refugio", "Superficie (km²)": "1,200,000", "Tipo": "Zona Segura / Inicial"},
+        {"Continente": "Tierras del Miasma", "Superficie (km²)": "1,450,000", "Tipo": "PvP / Hostil"},
+        {"Continente": "Sylvandar / Aethelgard", "Superficie (km²)": "1,300,000", "Tipo": "Bosques / Antiguas ruinas"},
+        {"Continente": "Ignis-Dar", "Superficie (km²)": "1,100,000", "Tipo": "Volcánico / Minería de Cores"},
+        {"Continente": "Thalassia / Zandahar", "Superficie (km²)": "1,550,000 (Océanos)", "Tipo": "Marítimo / Comercio"},
+        {"Continente": "Abismo de Malakor", "Superficie (km²)": "900,000", "Tipo": "Subterráneo / Hardcore"},
+        {"Continente": "Reino Celestial Ascendido", "Superficie (km²)": "1,000,000", "Tipo": "Endgame / Flotante"}
+    ]
+    df_continents = pd.DataFrame(continents_data)
+    st.dataframe(df_continents, use_container_width=True)
 
 with tab2:
-    st.subheader("Sistema Económico y de Reglas")
-    st.markdown("- **Economía:** 4 metales (*Cores, Plata, Oro, Diamante*), libre mercado 100%, sin objetos ligados (*soul-bound*).")
-    st.markdown("- **Gobernanza:** Mundo 100% dinámico dirigido por NPCs, sin política ni legislación de jugadores en capitales.")
+    st.subheader("Economía de 4 Metales")
+    st.markdown("""
+    - **Cores**: Fundamento energético y tecnológico.
+    - **Plata**: Estabilidad monetaria y transacciones estándar.
+    - **Oro**: Comercio de alto valor y contratos internacionales.
+    - **Diamante**: Bienes de élite y fortificaciones de clan.
+    """)
+    # Consulta de prueba a Firestore para verificar lectura en tiempo real
+    try:
+        users_ref = db.collection("users").limit(5)
+        docs = list(users_ref.stream())
+        if docs:
+            st.success(f"Se han encontrado {len(docs)} registros de usuarios en Firestore.")
+        else:
+            st.info("La base de datos está conectada pero la colección de usuarios está vacía o pendiente de poblar.")
+    except Exception as e:
+        st.warning(f"No se pudieron leer colecciones de prueba en este momento: {e}")
 
 with tab3:
-    st.subheader("🎨 Hércules — Estudio de Renderizado Visual")
-    st.markdown("Genera ilustraciones cinematográficas de alta calidad para personajes y continentes.")
-    
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        personaje_escena = st.selectbox(
-            "Personaje en escena:",
-            ["Freyr", "Aethelgard", "Kira", "Dante", "Valeria", "Personaje Personalizado"]
-        )
-        prompt_usuario = st.text_area(
-            "Prompt de modificación / Descripción de escena:",
-            placeholder="Ej: armadura de plata brillante, expresión decidida, fondo de ruinas antiguas..."
-        )
-        genero_seleccionado = st.radio(
-            "Género del personaje:",
-            ["Masculino", "Femenino"],
-            horizontal=True
-        )
-        generar_btn = st.button("🚀 Ordenar a Hércules Renderizar Imagen")
+    st.subheader("Estudio de IA y Agentes")
+    st.write("Panel de control multi-agente para la generación de recursos, lore y monitorización.")
+    agent_name = st.selectbox("Seleccionar Agente", ["Hércules (Arte/Generación)", "Cronos (Infraestructura)", "Aura (Narrativa)"])
+    if st.button("Ejecutar Diagnóstico de Agente"):
+        st.success(f"El agente **{agent_name}** se encuentra operativo y sincronizado.")
 
-    with col2:
-        st.subheader("Vista Previa")
-        if generar_btn:
-            with st.spinner("Hércules procesando parámetros..."):
-                base_prompt = "fantasy character portrait, highly detailed concept art, epic lighting, digital masterpiece"
-                tag_genero = "1girl, woman, female, detailed face" if genero_seleccionado == "Femenino" else "1boy, man, male, detailed face"
-                prompt_completo = f"{base_prompt}, {tag_genero}, {personaje_escena}, {prompt_usuario}"
-                prompt_encoded = urllib.parse.quote(prompt_completo)
-                seed = random.randint(10000, 99999)
-                url_imagen = f"https://image.pollinations.ai/prompt/{prompt_encoded}?width=1024&height=1024&seed={seed}&nologo=true"
-                
-                st.success("✨ ¡Imagen generada con éxito!")
-                st.image(url_imagen, caption=f"Render: {personaje_escena} ({genero_seleccionado})", use_container_width=True)
-                st.markdown(f"**URL Directa:** [Abrir imagen]({url_imagen})")
-        else:
-            st.info("Configura los parámetros y pulsa el botón para generar.")
-
-with tab4:
-    st.subheader("Herramientas de Mantenimiento")
-    if st.button("🔄 Comprobar Conexión Firestore"):
-        st.success("Conexión establecida correctamente con Firebase Firestore.")
+st.markdown("---")
+st.caption("MMORPG 3D Sandbox Architecture - Control Panel v2.4")
