@@ -7,6 +7,10 @@
     "start": "npx http-server -p 8000"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/ios": "^8.6.2",
     "http-server": "^14.1.1"
   }
 }
