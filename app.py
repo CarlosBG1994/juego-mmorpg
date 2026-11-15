@@ -48,14 +48,17 @@ if "hero_hp" not in st.session_state:
     st.session_state.hero_hp = 100
 if "hero_xp" not in st.session_state:
     st.session_state.hero_xp = 0
+
 # Inventario de los 4 metales y recursos
 if "cores" not in st.session_state: st.session_state.cores = 10
 if "plata" not in st.session_state: st.session_state.plata = 250
 if "oro" not in st.session_state: st.session_state.oro = 15
 if "diamante" not in st.session_state: st.session_state.diamante = 2
+
 # Habilidades desbloqueadas
 if "skills" not in st.session_state:
     st.session_state.skills = ["Golpe Base", "Tajo de Miasma", "Escudo de Cores"]
+
 # Ubicación actual en el mundo abierto
 if "current_location" not in st.session_state:
     st.session_state.current_location = "El Refugio (Zona Segura / Inicio)"
@@ -83,12 +86,12 @@ if not st.session_state.game_started:
             st.rerun()
             
     with col2:
-        st.info("""
-        ### Lore y Reglas del Servidor
-        * **Mundo Abierto Masivo:** 8,500,000 km² terrestres y 1,550,000 km² de océanos interconectados.
-        * **Economía de 4 Metales:** Sin restricciones de objetos ligados al alma (*soul-bound*). Todo se rige por **Cores, Plata, Oro y Diamante**.
-        * **Libertad Total:** Cero gobierno artificial de jugadores; economía y rutas de caravanas 100% dinámicas.
-        """)
+        st.info(
+            "### Lore y Reglas del Servidor\n"
+            "* **Mundo Abierto Masivo:** 8,500,000 km² terrestres y 1,550,000 km² de océanos interconectados.\n"
+            "* **Economía de 4 Metales:** Sin restricciones de objetos ligados al alma (soul-bound). Todo se rige por Cores, Plata, Oro y Diamante.\n"
+            "* **Libertad Total:** Cero gobierno artificial de jugadores; economía y rutas de caravanas 100% dinámicas."
+        )
     st.stop()
 
 # ================= INTERFAZ PRINCIPAL DE JUEGO =================
@@ -100,12 +103,12 @@ st.sidebar.markdown(f"📍 **Ubicación:** `{st.session_state.current_location}`
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("💰 Inventario de Metales")
-st.sidebar.markdown(f"""
-- 💠 **Cores:** `{st.session_state.cores}`
-- 🥈 **Plata:** `{st.session_state.plata}`
-- 🪙 **Oro:** `{st.session_state.oro}`
-- 💎 **Diamante:** `{st.session_state.diamante}`
-""")
+st.sidebar.markdown(
+    f"- 💠 **Cores:** `{st.session_state.cores}`\n"
+    f"- 🥈 **Plata:** `{st.session_state.plata}`\n"
+    f"- 🪙 **Oro:** `{st.session_state.oro}`\n"
+    f"- 💎 **Diamante:** `{st.session_state.diamante}`"
+)
 
 if st.sidebar.button("🚪 Volver al Menú Principal"):
     st.session_state.game_started = False
@@ -123,7 +126,6 @@ tab_play, tab_world, tab_skills, tab_quests, tab_codex = st.tabs([
 with tab_play:
     st.subheader(f"Exploración Activa: {st.session_state.current_location}")
     
-    # Selector de viaje por el mundo
     new_loc = st.selectbox("Moverse a otra región del mundo", [
         "El Refugio (Zona Segura / Inicio)",
         "Tierras del Miasma (PvP / Hostil)",
@@ -223,12 +225,31 @@ with tab_quests:
     col_q1, col_q2 = st.columns(2)
     with col_q1:
         st.markdown("### 🗺️ Misiones Principales")
-        st.markdown("""
-        1. **El Despertar en El Refugio** (Completada): Asegura los perímetros iniciales y comprende el flujo de la Plata.
-        2. **La Senda de los Cores** (En curso): Explora las profundidades de *Ignis-Dar* para recolectar 5 Cores energéticos.
-        3. **Caravana hacia Thalassia** (Disponible): Escolta una línea de transporte marítimo a través de los océanos.
-        """)
+        st.markdown(
+            "1. **El Despertar en El Refugio** (Completada): Asegura los perímetros iniciales y comprende el flujo de la Plata.\n"
+            "2. **La Senda de los Cores** (En curso): Explora las profundidades de *Ignis-Dar* para recolectar 5 Cores energéticos.\n"
+            "3. **Caravana hacia Thalassia** (Disponible): Escolta una línea de transporte marítimo a través de los océanos."
+        )
     with col_q2:
         st.markdown("### 🏛️ Mazmorras Creadas")
-        st.markdown("""
-        *
+        st.markdown(
+            "* **Las Catacumbas del Miasma** (Nivel recomendado: 15): Dificultad alta, enemigos basados en daño corrosivo.\n"
+            "* **La Forja Eterna de Ignis-Dar** (Nivel recomendado: 30): Mazmorra de incursión para la obtención masiva de Cores.\n"
+            "* **El Sagrario del Abismo de Malakor** (Nivel recomendado: 50): Endgame profundo con jefes de fase múltiple."
+        )
+
+with tab_codex:
+    st.subheader("📚 Códice Completo: Lore, Economía y Sistemas")
+    st.markdown(
+        "* **Economía de 4 Metales:**\n"
+        "  - *Cores*: Núcleos de energía avanzada y tecnología del mundo.\n"
+        "  - *Plata*: Moneda base para el comercio cotidiano y contratos estándar.\n"
+        "  - *Oro*: Respaldo para caravanas comerciales pesadas e intercambio internacional.\n"
+        "  - *Diamante*: Bienes supremos y material de construcción para bastiones de gremio.\n"
+        "* **Arquitectura del Servidor y Motor:**\n"
+        "  - Desplegado sobre Capacitor / WebGL / Streamlit con persistencia atómica en Firebase Firestore.\n"
+        "  - Estructurado para soportar transacciones fluidas sin intervención de administradores (mundo 100% dinámico conducido por simulación abierta)."
+    )
+
+st.markdown("---")
+st.caption("MMORPG 3D Sandbox Engine - Sistema Interactivo en Vivo v3.1")
