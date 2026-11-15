@@ -4,7 +4,7 @@ cat << 'EOF' > www/index.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snd-Worlds MMORPG - Sandbox Definitivo</title>
+    <title>Snd-Worlds MMORPG - Motor JRPG Sandbox Definitivo</title>
     <style>
         body {
             margin: 0;
@@ -20,7 +20,7 @@ cat << 'EOF' > www/index.html
         }
         #game-container {
             position: relative;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
             border: 6px solid #1e293b;
             border-radius: 6px;
             background: #0f172a;
@@ -34,8 +34,8 @@ cat << 'EOF' > www/index.html
             position: absolute;
             top: 0;
             left: 0;
-            width: 900px;
-            height: 540px;
+            width: 960px;
+            height: 560px;
             background: #060913;
             display: flex;
             flex-direction: column;
@@ -56,14 +56,14 @@ cat << 'EOF' > www/index.html
             font-size: 15px;
             margin: 6px 0;
             border-radius: 4px;
-            width: 320px;
+            width: 340px;
             text-align: center;
         }
         button {
             background: #38bdf8;
             color: #060913;
             border: none;
-            padding: 10px 22px;
+            padding: 11px 24px;
             font-family: 'Courier New', Courier, monospace;
             font-weight: bold;
             font-size: 15px;
@@ -85,7 +85,8 @@ cat << 'EOF' > www/index.html
             font-size: 12px;
             line-height: 1.5;
             pointer-events: none;
-            width: 280px;
+            width: 290px;
+            text-align: left;
         }
         .world-panel {
             position: absolute;
@@ -93,10 +94,10 @@ cat << 'EOF' > www/index.html
             right: 10px;
             background: rgba(15, 23, 42, 0.95);
             border: 2px solid #eab308;
-            padding: 12px 15px;
+            padding: 12px 16px;
             border-radius: 6px;
             font-size: 12px;
-            width: 240px;
+            width: 260px;
             text-align: left;
         }
         .world-panel select { width: 100%; font-size: 12px; padding: 6px; margin-top: 5px; }
@@ -107,9 +108,9 @@ cat << 'EOF' > www/index.html
     <!-- PANTALLA DE INICIO Y ACCESO GOOGLE -->
     <div id="login-screen" class="screen">
         <h1 style="color: #38bdf8; margin-bottom: 2px;">⚔️ SIND-WORLDS MMORPG SANDBOX ⚔️</h1>
-        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">Universo Masivo de 7 Continentes | Economía de 4 Metales | Cero Objetos Ligados</p>
+        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 25px;">Universo Masivo de 7 Continentes | Economía de 4 Metales | Cero Objetos Ligados</p>
         
-        <input type="email" id="google-email" placeholder="Correo Google (ej. carlos@gmail.com)">
+        <input type="text" id="google-email" placeholder="Correo Google / Usuario (ej. carlos@gmail.com)" value="carlos.vanguard@gmail.com">
         <input type="text" id="hero-name" placeholder="Nombre del Héroe" value="Carlos_Vanguard">
         
         <select id="hero-race">
@@ -126,14 +127,16 @@ cat << 'EOF' > www/index.html
             <option value="Nómada Comercial">Clase: Nómada de Rutas</option>
         </select>
 
-        <button onclick="loginWithGoogle()">🌐 Conectar Google y Entrar al Mundo</button>
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+            <button onclick="enterGame()">🌐 Entrar con Google</button>
+        </div>
     </div>
 
     <!-- PANTALLA DE COMBATE JRPG -->
     <div id="battle-screen" class="screen hidden">
         <h2 id="battle-title" style="color: #ef4444; margin-bottom: 15px;">¡Encuentro Hostil en el Territorio!</h2>
-        <div id="battle-log" style="background: #0f172a; border: 2px solid #475569; padding: 15px; width: 550px; height: 130px; margin-bottom: 15px; text-align: left; font-size: 13px; overflow-y: auto;">
-            ¡Una amenaza bloquea tu ruta en este continente!
+        <div id="battle-log" style="background: #0f172a; border: 2px solid #475569; padding: 15px; width: 600px; height: 140px; margin-bottom: 20px; text-align: left; font-size: 13px; overflow-y: auto;">
+            ¡Una amenaza bloquea tu ruta en este continente! Prepárate para el combate táctico.
         </div>
         <div>
             <button onclick="battleAction('attack')">⚔️ Ataque Físico</button>
@@ -170,7 +173,7 @@ cat << 'EOF' > www/index.html
             </div>
         </div>
 
-        <canvas id="gameCanvas" width="900" height="540"></canvas>
+        <canvas id="gameCanvas" width="960" height="560"></canvas>
     </div>
 
     <script>
@@ -178,10 +181,10 @@ cat << 'EOF' > www/index.html
         const ctx = canvas.getContext('2d');
 
         let player = {
-            x: 450,
-            y: 270,
+            x: 480,
+            y: 280,
             size: 16,
-            speed: 4,
+            speed: 4.5,
             email: "",
             name: "Carlos_Vanguard",
             race: "Humanos",
@@ -201,25 +204,19 @@ cat << 'EOF' > www/index.html
         window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-        // Elementos interactivos del mapa según el continente actual
         let worldElements = [
-            { type: 'tree', x: 120, y: 120 }, { type: 'tree', x: 180, y: 100 }, { type: 'tree', x: 780, y: 400 },
-            { type: 'city', x: 380, y: 60, w: 140, h: 75, name: "Capital de El Refugio" },
-            { type: 'enemy', x: 280, y: 350, name: "Bestia de Miasma", color: "#ef4444" },
-            { type: 'enemy', x: 700, y: 220, name: "Sombra Corrupta", color: "#f97316" },
-            { type: 'resource', x: 160, y: 420, name: "Veta de Plata", color: "#cbd5e1" },
-            { type: 'resource', x: 750, y: 120, name: "Núcleo de Cores", color: "#a855f7" }
+            { type: 'tree', x: 120, y: 120 }, { type: 'tree', x: 180, y: 100 }, { type: 'tree', x: 840, y: 420 },
+            { type: 'city', x: 400, y: 60, w: 160, h: 80, name: "Capital de El Refugio" },
+            { type: 'enemy', x: 280, y: 380, name: "Bestia de Miasma", color: "#ef4444" },
+            { type: 'enemy', x: 750, y: 220, name: "Sombra Corrupta", color: "#f97316" },
+            { type: 'resource', x: 160, y: 450, name: "Veta de Plata", color: "#cbd5e1" },
+            { type: 'resource', x: 800, y: 120, name: "Núcleo de Cores", color: "#a855f7" }
         ];
 
-        function loginWithGoogle() {
+        function enterGame() {
             const emailInput = document.getElementById('google-email').value.trim();
-            if (!emailInput || !emailInput.includes('@')) {
-                alert("Introduce un correo de Google válido para conectar con Firebase.");
-                return;
-            }
-
-            player.email = emailInput;
-            player.name = document.getElementById('hero-name').value || emailInput.split('@')[0];
+            player.email = emailInput || "carlos.vanguard@gmail.com";
+            player.name = document.getElementById('hero-name').value || "Carlos_Vanguard";
             player.race = document.getElementById('hero-race').value;
             player.class = document.getElementById('hero-class').value;
 
@@ -264,23 +261,22 @@ cat << 'EOF' > www/index.html
             player.x += dx;
             player.y += dy;
 
-            player.x = Math.max(25, Math.min(canvas.width - 25, player.x));
-            player.y = Math.max(25, Math.min(canvas.height - 25, player.y));
+            player.x = Math.max(30, Math.min(canvas.width - 30, player.x));
+            player.y = Math.max(30, Math.min(canvas.height - 30, player.y));
 
             worldElements.forEach((el, index) => {
                 let dist = Math.hypot(player.x - el.x, player.y - el.y);
-                if (dist < 32) {
+                if (dist < 34) {
                     if (el.type === 'enemy') {
                         triggerBattle(el);
                         worldElements.splice(index, 1);
                     } else if (el.type === 'resource') {
-                        if (el.name.includes("Plata")) player.plata += 30;
+                        if (el.name.includes("Plata")) player.plata += 35;
                         else { player.cores += 3; player.oro += 2; }
-                        player.xp += 30;
+                        player.xp += 35;
                         checkLevelUp();
-                        alert(`¡Has extraído recursos en ${player.currentContinent}: ${el.name}!`);
-                        worldElements.splice(index, 1);
                         updateHUD();
+                        worldElements.splice(index, 1);
                     }
                 }
             });
@@ -290,19 +286,19 @@ cat << 'EOF' > www/index.html
             document.getElementById('game-container').classList.add('hidden');
             document.getElementById('battle-screen').classList.remove('hidden');
             document.getElementById('battle-title').innerText = `¡Combate en ${player.currentContinent} vs ${enemy.name}!`;
-            document.getElementById('battle-log').innerHTML = `Te enfrentas a una criatura hostil de nivel superior. Selecciona tu táctica:`;
+            document.getElementById('battle-log').innerHTML = `Te enfrentas a una criatura hostil en el mapa. Selecciona tu táctica de combate:`;
         }
 
         function battleAction(action) {
             const log = document.getElementById('battle-log');
             if (action === 'attack') {
-                log.innerHTML += `<br>¡Golpe crítico de clase! Enemigo derrotado con éxito.`;
-                player.plata += 60; player.xp += 40;
+                log.innerHTML += `<br>¡Ataque físico ejecutado con éxito! Enemigo abatido.`;
+                player.plata += 50; player.xp += 40;
             } else if (action === 'skill') {
-                log.innerHTML += `<br>¡Poder elemental desatado! Invasión neutralizada.`;
-                player.oro += 8; player.diamante += 1; player.xp += 60;
+                log.innerHTML += `<br>¡Habilidad especial desatada! Invasión neutralizada.`;
+                player.oro += 10; player.diamante += 1; player.xp += 65;
             } else {
-                log.innerHTML += `<br>¡Has escapado a una zona segura!`;
+                log.innerHTML += `<br>¡Has huido a una zona segura con éxito!`;
             }
             checkLevelUp();
 
@@ -310,16 +306,15 @@ cat << 'EOF' > www/index.html
                 document.getElementById('battle-screen').classList.add('hidden');
                 document.getElementById('game-container').classList.remove('hidden');
                 updateHUD();
-            }, 1400);
+            }, 1500);
         }
 
         function checkLevelUp() {
             if (player.xp >= 100) {
                 player.level++;
                 player.xp = 0;
-                player.maxHp += 30;
+                player.maxHp += 35;
                 player.hp = player.maxHp;
-                alert(`¡NIVEL SUPERIOR! Has alcanzado el Nivel ${player.level} en el mundo.`);
             }
         }
 
@@ -330,10 +325,10 @@ cat << 'EOF' > www/index.html
             // Río serpenteante del continente
             ctx.fillStyle = '#0284c7';
             ctx.beginPath();
-            ctx.moveTo(0, 180);
-            ctx.bezierCurveTo(320, 90, 580, 360, 900, 200);
-            ctx.lineTo(900, 260);
-            ctx.bezierCurveTo(580, 420, 320, 150, 0, 240);
+            ctx.moveTo(0, 190);
+            ctx.bezierCurveTo(340, 100, 620, 380, 960, 210);
+            ctx.lineTo(960, 280);
+            ctx.bezierCurveTo(620, 450, 340, 170, 0, 260);
             ctx.fill();
 
             // Elementos del mapa (Árboles, Ciudades, Enemigos, Recursos)
@@ -349,19 +344,19 @@ cat << 'EOF' > www/index.html
                     ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 2; ctx.strokeRect(el.x, el.y, el.w, el.h);
                     ctx.fillStyle = '#f8fafc';
                     ctx.font = '11px Courier New';
-                    ctx.fillText("🏛️ " + el.name, el.x + 8, el.y + 24);
+                    ctx.fillText("🏛️ " + el.name, el.x + 8, el.y + 25);
                 } else if (el.type === 'enemy') {
                     ctx.fillStyle = el.color;
-                    ctx.beginPath(); ctx.arc(el.x, el.y, 15, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(el.x, el.y, 16, 0, Math.PI * 2); ctx.fill();
                     ctx.fillStyle = '#ffffff';
                     ctx.font = '10px Courier New';
-                    ctx.fillText(el.name, el.x - 32, el.y - 18);
+                    ctx.fillText(el.name, el.x - 30, el.y - 18);
                 } else if (el.type === 'resource') {
                     ctx.fillStyle = el.color;
-                    ctx.beginPath(); ctx.arc(el.x, el.y, 11, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(el.x, el.y, 12, 0, Math.PI * 2); ctx.fill();
                     ctx.fillStyle = '#e2e8f0';
                     ctx.font = '10px Courier New';
-                    ctx.fillText(el.name, el.x - 26, el.y - 14);
+                    ctx.fillText(el.name, el.x - 28, el.y - 15);
                 }
             });
 
