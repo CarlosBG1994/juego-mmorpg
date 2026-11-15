@@ -1,15 +1,16 @@
+cat << 'EOF' > www/index.html
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snd-Worlds MMORPG 2D Sandbox</title>
+    <title>Snd-Worlds JRPG - Dragon Quest & Pokémon Style</title>
     <style>
         body {
             margin: 0;
-            background-color: #0f172a;
+            background-color: #0b1329;
             color: #f8fafc;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Courier New', Courier, monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -19,128 +20,308 @@
         }
         #game-container {
             position: relative;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-            border: 4px solid #334155;
-            border-radius: 8px;
-            background: #1e293b;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            border: 6px solid #1e293b;
+            border-radius: 4px;
+            background: #0f172a;
         }
         canvas {
             display: block;
-            background: #090d16;
+            background: #1e293b;
+            image-rendering: pixelated;
         }
-        .ui-panel {
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 800px;
+            height: 480px;
+            background: #0b1329;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .hidden { display: none !important; }
+        input, select {
+            background: #1e293b;
+            color: #38bdf8;
+            border: 2px solid #38bdf8;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            margin: 8px 0;
+            border-radius: 4px;
+            width: 300px;
+            text-align: center;
+        }
+        button {
+            background: #38bdf8;
+            color: #0b1329;
+            border: none;
+            padding: 12px 24px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: 0.2s;
+        }
+        button:hover { background: #0ea5e9; transform: translateY(-2px); }
+        .ui-hud {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid #38bdf8;
             padding: 10px 15px;
-            border-radius: 6px;
-            border: 1px solid #475569;
-            font-size: 14px;
-            pointer-events: none;
-        }
-        .controls-hint {
-            margin-top: 10px;
+            border-radius: 4px;
             font-size: 13px;
-            color: #94a3b8;
-            text-align: center;
+            line-height: 1.4;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-    <h2 style="margin: 0 0 10px 0; color: #38bdf8;">⚔️ Snd-Worlds MMORPG 2D Sandbox</h2>
+    <!-- PANTALLA DE INICIO Y CREACIÓN DE PERSONAJE -->
+    <div id="login-screen" class="screen">
+        <h1 style="color: #38bdf8; margin-bottom: 5px;">⚔️ SND-WORLDS MMORPG ⚔️</h1>
+        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 25px;">Universo Sandbox Abierto | Estilo Clásico JRPG</p>
+        
+        <input type="text" id="google-email" placeholder="Correo Google (ej. heroe@gmail.com)">
+        <input type="text" id="hero-name" placeholder="Nombre del Héroe" value="Carlos_Vanguard">
+        
+        <select id="hero-race">
+            <option value="Humano">Raza: Humano (Equilibrado)</option>
+            <option value="Elfo">Raza: Elfo (Ágil / Mágico)</option>
+            <option value="Enano">Raza: Enano (Resistente / Minero)</option>
+            <option value="Hombre Bestia">Raza: Hombre Bestia (Feroz / Melé)</option>
+        </select>
 
-    <div id="game-container">
-        <div class="ui-panel" id="ui-stats">
-            <strong>Héroe:</strong> Carlos_Vanguard<br>
-            <strong>Ubicación:</strong> El Refugio (Zona Inicial)<br>
-            <strong>Nivel:</strong> 1 | <strong>XP:</strong> 0/100<br>
-            <strong>Metales:</strong> 💠 Cores: 5 | 🥈 Plata: 100 | 🪙 Oro: 10 | 💎 Diam.: 1
-        </div>
-        <canvas id="gameCanvas" width="800" height="450"></canvas>
+        <select id="hero-class">
+            <option value="Guerrero de Vanguardia">Clase: Guerrero de Vanguardia</option>
+            <option value="Maestro de Cores">Clase: Maestro de Forja de Cores</option>
+            <option value="Explorador de Frontera">Clase: Explorador de Frontera</option>
+        </select>
+
+        <button onclick="startGame()">Comenzar Aventura</button>
     </div>
 
-    <div class="controls-hint">
-        Usa las teclas <b>W, A, S, D</b> o las <b>Flechas del Teclado</b> para moverte por el mundo 2D. Acércate a los enemigos o recursos.
+    <!-- PANTALLA DE COMBATE JRPG (ESTILO DRAGON QUEST) -->
+    <div id="battle-screen" class="screen hidden">
+        <h2 id="battle-title" style="color: #ef4444; margin-bottom: 20px;">¡Encuentro Hostil!</h2>
+        <div id="battle-log" style="background: #1e293b; border: 2px solid #475569; padding: 20px; width: 500px; height: 120px; margin-bottom: 20px; text-align: left; font-size: 14px; overflow-y: auto;">
+            ¡Una criatura salvaje ha bloqueado tu camino en El Refugio!
+        </div>
+        <div>
+            <button onclick="battleAction('attack')">⚔️ Atacar</button>
+            <button onclick="battleAction('skill')">✨ Usar Habilidad</button>
+            <button onclick="battleAction('escape')">🏃 Huir</button>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR DEL JUEGO PRINCIPAL -->
+    <div id="game-container" class="hidden">
+        <div class="ui-hud" id="hud-stats">
+            <strong>Héroe:</strong> <span id="ui-name">Carlos</span> (<span id="ui-race">Humano</span>)<br>
+            <strong>Nivel:</strong> <span id="ui-level">1</span> | <strong>XP:</strong> <span id="ui-xp">0</span>/100<br>
+            <strong>Salud:</strong> ❤️ <span id="ui-hp">100</span>/100<br>
+            <strong>Inventario:</strong> 💠 <span id="ui-cores">5</span> Cores | 🥈 <span id="ui-plata">100</span> Plata | 🪙 <span id="ui-oro">10</span> Oro | 💎 <span id="ui-diamante">1</span> Diam.
+        </div>
+        <canvas id="gameCanvas" width="800" height="480"></canvas>
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Estado del jugador
         let player = {
             x: 400,
-            y: 225,
-            size: 20,
-            speed: 3,
-            color: '#38bdf8'
+            y: 240,
+            size: 16,
+            speed: 3.5,
+            name: "Carlos_Vanguard",
+            race: "Humano",
+            class: "Guerrero",
+            level: 1,
+            xp: 0,
+            hp: 100,
+            maxHp: 100,
+            cores: 5,
+            plata: 100,
+            oro: 10,
+            diamante: 1
         };
 
-        // Controles de teclado
+        let activeEnemy = null;
         let keys = {};
-        window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
-        window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+        window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-        // Entidades del mundo (Enemigos y recursos de metales)
-        let entities = [
-            { x: 200, y: 150, type: 'enemy', color: '#ef4444', size: 16, name: 'Bestia de Miasma' },
-            { x: 600, y: 300, type: 'resource', color: '#eab308', size: beta = 14, name: 'Veta de Oro' },
-            { x: 150, y: 350, type: 'resource', color: '#a855f7', size: 14, name: 'Núcleo de Cores' },
-            { x: 650, y: 100, type: 'enemy', color: '#ef4444', size: 16, name: 'Sombra Corrupta' }
+        // Elementos del mapa: Árboles, Ríos, Ciudades y Enemigos
+        let worldElements = [
+            { type: 'tree', x: 100, y: 100, w: 40, h: 50 },
+            { type: 'tree', x: 160, y: 90, w: 40, h: 50 },
+            { type: 'tree', x: 700, y: 350, w: 40, h: 50 },
+            { type: 'city', x: 350, y: 60, w: 100, h: 80, name: "El Refugio (Ciudad Inicial)" },
+            { type: 'enemy', x: 250, y: 300, name: "Bestia de Miasma", color: "#ef4444" },
+            { type: 'enemy', x: 600, y: 200, name: "Sombra Corrupta", color: "#f97316" },
+            { type: 'resource', x: 150, y: 380, name: "Veta de Plata", color: "#cbd5e1" },
+            { type: 'resource', x: 650, y: 100, name: "Núcleo de Cores", color: "#a855f7" }
         ];
 
-        function update() {
-            // Movimiento fluido con W, A, S, D
-            if ((keys['w'] || keys['arrowup']) && player.y > player.size) player.y -= player.speed;
-            if ((keys['s'] || keys['arrowdown']) && player.y < canvas.height - player.size) player.y += player.speed;
-            if ((keys['a'] || keys['arrowleft']) && player.x > player.size) player.x -= player.speed;
-            if ((keys['d'] || keys['arrowright']) && player.x < canvas.width - player.size) player.x += player.speed;
+        function startGame() {
+            const email = document.getElementById('google-email').value;
+            player.name = document.getElementById('hero-name').value || "Carlos_Vanguard";
+            player.race = document.getElementById('hero-race').value;
+            player.class = document.getElementById('hero-class').value;
 
-            // Colisiones con entidades
-            entities.forEach((ent, index) => {
-                let dist = Math.hypot(player.x - ent.x, player.y - ent.y);
-                if (dist < player.size + ent.size) {
-                    if (ent.type === 'resource') {
-                        alert(`¡Has recolectado recursos de ${ent.name}!`);
-                        entities.splice(index, 1);
-                    } else if (ent.type === 'enemy') {
-                        alert(`¡Te has encontrado con ${ent.name}! Combate iniciado.`);
-                        player.x -= 30; // Retroceso táctico
+            document.getElementById('ui-name').innerText = player.name;
+            document.getElementById('ui-race').innerText = player.race;
+
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('game-container').classList.remove('hidden');
+
+            updateHUD();
+            loop();
+        }
+
+        function updateHUD() {
+            document.getElementById('ui-level').innerText = player.level;
+            document.getElementById('ui-xp').innerText = player.xp;
+            document.getElementById('ui-hp').innerText = player.hp;
+            document.getElementById('ui-cores').innerText = player.cores;
+            document.getElementById('ui-plata').innerText = player.plata;
+            document.getElementById('ui-oro').innerText = player.oro;
+            document.getElementById('ui-diamante').innerText = player.diamante;
+        }
+
+        function update() {
+            let dx = 0, dy = 0;
+            if (keys['w'] || keys['arrowup']) dy -= player.speed;
+            if (keys['s'] || keys['arrowdown']) dy += player.speed;
+            if (keys['a'] || keys['arrowleft']) dx -= player.speed;
+            if (keys['d'] || keys['arrowright']) dx += player.speed;
+
+            player.x += dx;
+            player.y += dy;
+
+            // Limites del mapa
+            player.x = Math.max(20, Math.min(canvas.width - 20, player.x));
+            player.y = Math.max(20, Math.min(canvas.height - 20, player.y));
+
+            // Colisiones con elementos del mundo
+            worldElements.forEach((el, index) => {
+                let dist = Math.hypot(player.x - el.x, player.y - el.y);
+                if (dist < 30) {
+                    if (el.type === 'enemy') {
+                        activeEnemy = el;
+                        triggerBattle(el);
+                        worldElements.splice(index, 1);
+                    } else if (el.type === 'resource') {
+                        if (el.name.includes("Plata")) player.plata += 25;
+                        else player.cores += 2;
+                        player.xp += 20;
+                        checkLevelUp();
+                        alert(`¡Has recolectado recursos de ${el.name}!`);
+                        worldElements.splice(index, 1);
+                        updateHUD();
                     }
                 }
             });
         }
 
+        function triggerBattle(enemy) {
+            document.getElementById('game-container').classList.add('hidden');
+            document.getElementById('battle-screen').classList.remove('hidden');
+            document.getElementById('battle-title').innerText = `¡Combate contra ${enemy.name}!`;
+            document.getElementById('battle-log').innerHTML = `Te has encontrado frente a una <b>${enemy.name}</b> en las tierras de El Refugio.<br>Elige tu acción de combate:`;
+        }
+
+        function battleAction(action) {
+            const log = document.getElementById('battle-log');
+            if (action === 'attack') {
+                log.innerHTML += `<br>Atacas con fuerza. ¡Has derrotado al enemigo!`;
+                player.plata += 50;
+                player.xp += 40;
+                checkLevelUp();
+            } else if (action === 'skill') {
+                log.innerHTML += `<br>¡Usas habilidad especial! Daño crítico. ¡Enemigo abatido!`;
+                player.oro += 5;
+                player.xp += 50;
+                checkLevelUp();
+            } else {
+                log.innerHTML += `<br>¡Has huido con éxito!`;
+            }
+
+            setTimeout(() => {
+                document.getElementById('battle-screen').classList.add('hidden');
+                document.getElementById('game-container').classList.remove('hidden');
+                updateHUD();
+            }, 1500);
+        }
+
+        function checkLevelUp() {
+            if (player.xp >= 100) {
+                player.level++;
+                player.xp = 0;
+                player.maxHp += 20;
+                player.hp = player.maxHp;
+                alert(`¡NUEVO NIVEL! Has ascendido al Nivel ${player.level}`);
+            }
+        }
+
         function draw() {
-            // Limpiar pantalla (Fondo del mundo 2D)
-            ctx.fillStyle = '#090d16';
+            // Fondo de hierba verde estilo Pokémon / RPG clásico
+            ctx.fillStyle = '#166534';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Dibujar cuadrícula del mapa (Suelo de El Refugio)
-            ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < canvas.width; i += 40) {
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
-            }
-            for (let j = 0; j < canvas.height; j += 40) {
-                ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
-            }
+            // Dibujar río serpenteante (Azul agua)
+            ctx.fillStyle = '#0284c7';
+            ctx.beginPath();
+            ctx.moveTo(0, 180);
+            ctx.bezierCurveTo(300, 100, 500, 300, 800, 200);
+            ctx.lineTo(800, 260);
+            ctx.bezierCurveTo(500, 360, 300, 160, 0, 240);
+            ctx.fill();
 
-            // Dibujar entidades (enemigos y recursos)
-            entities.forEach(ent => {
-                ctx.fillStyle = ent.color;
-                ctx.beginPath();
-                ctx.arc(ent.x, ent.y, ent.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '11px sans-serif';
-                ctx.fillText(ent.name, ent.x - 20, ent.y - 20);
+            // Dibujar elementos del mundo (Árboles, Ciudades, Recursos, Enemigos)
+            worldElements.forEach(el => {
+                if (el.type === 'tree') {
+                    ctx.fillStyle = '#14532d'; // Tronco / sombra
+                    ctx.beginPath(); ctx.arc(el.x, el.y, 22, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#22c55e'; // Copa del árbol
+                    ctx.beginPath(); ctx.arc(el.x, el.y - 5, 18, 0, Math.PI * 2); ctx.fill();
+                } else if (el.type === 'city') {
+                    ctx.fillStyle = '#64748b';
+                    ctx.fillRect(el.x, el.y, el.w, el.h);
+                    ctx.fillStyle = '#f8fafc';
+                    ctx.font = '10px Courier New';
+                    ctx.fillText("🏛️ El Refugio", el.x + 5, el.y + 25);
+                } else if (el.type === 'enemy') {
+                    ctx.fillStyle = el.color;
+                    ctx.beginPath(); ctx.arc(el.x, el.y, 14, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '10px Courier New';
+                    ctx.fillText(el.name, el.x - 30, el.y - 18);
+                } else if (el.type === 'resource') {
+                    ctx.fillStyle = el.color;
+                    ctx.beginPath(); ctx.arc(el.x, el.y, 10, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.font = '10px Courier New';
+                    ctx.fillText(el.name, el.x - 25, el.y - 14);
+                }
             });
 
-            // Dibujar al jugador (Héroe 2D)
-            ctx.fillStyle = player.color;
+            // Dibujar al Héroe (Estilo personaje RPG clásico)
+            ctx.fillStyle = '#38bdf8';
             ctx.beginPath();
             ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
             ctx.fill();
@@ -148,10 +329,10 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Nombre del héroe sobre el personaje
-            ctx.fillStyle = '#38bdf8';
-            ctx.font = 'bold 12px sans-serif';
-            ctx.fillText('Carlos_Vanguard', player.x - 40, player.y - 28);
+            // Nombre del héroe sobre el avatar
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px Courier New';
+            ctx.fillText(player.name, player.x - 35, player.y - 20);
         }
 
         function loop() {
@@ -159,8 +340,7 @@
             draw();
             requestAnimationFrame(loop);
         }
-
-        loop();
     </script>
 </body>
 </html>
+EOF
