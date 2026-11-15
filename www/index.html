@@ -4,7 +4,7 @@ cat << 'EOF' > www/index.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snd-Worlds MMORPG - Motor JRPG Sandbox Definitivo</title>
+    <title>Snd-Worlds MMORPG - Motor JRPG Sandbox Global Definitivo</title>
     <!-- SDK de Firebase 10 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -32,6 +32,15 @@ cat << 'EOF' > www/index.html
             if (user) {
                 document.getElementById('google-user-email').innerText = user.email;
                 if (user.displayName) document.getElementById('hero-name').value = user.displayName;
+                try {
+                    const docRef = doc(db, "players", user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        window.playerData = docSnap.data();
+                    }
+                } catch (e) {
+                    console.log("Modo local de sincronización activo.");
+                }
             }
         });
     </script>
@@ -128,7 +137,7 @@ cat << 'EOF' > www/index.html
             font-size: 11px;
             line-height: 1.4;
             pointer-events: none;
-            width: 270px;
+            width: 280px;
             text-align: left;
         }
         .world-panel {
@@ -140,7 +149,7 @@ cat << 'EOF' > www/index.html
             padding: 10px 14px;
             border-radius: 6px;
             font-size: 11px;
-            width: 250px;
+            width: 260px;
             text-align: left;
         }
         .world-panel select { width: 100%; font-size: 11px; padding: 5px; margin-top: 4px; }
@@ -149,17 +158,18 @@ cat << 'EOF' > www/index.html
             border: 2px solid #475569;
             padding: 12px;
             border-radius: 6px;
-            width: 600px;
+            width: 620px;
             font-size: 12px;
             color: #cbd5e1;
-            margin: 10px 0;
+            margin: 8px 0;
             text-align: left;
             line-height: 1.4;
         }
         .skills-grid {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             margin-top: 5px;
+            flex-wrap: wrap;
         }
         .skill-badge {
             background: #1e293b;
@@ -202,12 +212,12 @@ cat << 'EOF' > www/index.html
             </select>
         </div>
 
-        <!-- CAJA DE LORE DE RAZA Y ASPECTO VISUAL -->
+        <!-- LORE DE RAZA -->
         <div class="lore-box" id="race-lore-box">
-            <b>Lore de Raza:</b> Los Humanos poseen una adaptabilidad innata, capaces de liderar expediciones a través de los continentes de Snd-Worlds con gran versatilidad.
+            <b>Lore de Raza (Humanos):</b> Raza versátil originaria de las planicies centrales de El Refugio. Poseen gran equilibrio en combate y liderazgo natural para establecer rutas comerciales.
         </div>
 
-        <!-- VISTA PREVIA DE LAS 5 HABILIDADES DE CLASE -->
+        <!-- LAS 5 HABILIDADES DE CLASE -->
         <div class="lore-box" style="border-color: #38bdf8;" id="class-skills-box">
             <b>Habilidades de Clase (5 Activas):</b>
             <div class="skills-grid" id="skills-container">
@@ -226,15 +236,10 @@ cat << 'EOF' > www/index.html
     <div id="battle-screen" class="screen hidden">
         <h2 id="battle-title" style="color: #ef4444; margin-bottom: 10px;">¡Encuentro Hostil!</h2>
         <div id="battle-log" style="background: #0f172a; border: 2px solid #475569; padding: 15px; width: 620px; height: 130px; margin-bottom: 15px; text-align: left; font-size: 13px; overflow-y: auto;">
-            ¡Una criatura hostil bloquea tu camino! Selecciona tu táctica de combate:
+            ¡Una criatura hostil bloquea tu camino! Selecciona una de tus 5 habilidades de clase:
         </div>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 700px;">
-            <button onclick="battleAction(1)">1. [Habilidad 1]</button>
-            <button onclick="battleAction(2)">2. [Habilidad 2]</button>
-            <button onclick="battleAction(3)">3. [Habilidad 3]</button>
-            <button onclick="battleAction(4)">4. [Habilidad 4]</button>
-            <button onclick="battleAction(5)">5. [Habilidad 5]</button>
-            <button onclick="battleAction('escape')" style="background: #ef4444; color: #fff;">🏃 Huir</button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 750px;" id="battle-skills-actions">
+            <!-- Botones de habilidades generados dinámicamente -->
         </div>
     </div>
 
@@ -254,7 +259,7 @@ cat << 'EOF' > www/index.html
         </div>
 
         <div class="world-panel">
-            <strong>🗺️ Selector de Continentes:</strong>
+            <strong>🗺️ Los 7 Continentes:</strong>
             <select id="continent-select" onchange="changeContinent(this.value)">
                 <option value="El Refugio">El Refugio (Zona Inicial / Segura)</option>
                 <option value="Tierras del Miasma">Tierras del Miasma (Hostil / PvP)</option>
@@ -383,7 +388,7 @@ cat << 'EOF' > www/index.html
                 player.activeQuest = "Explora El Refugio y recolecta Vetas de Plata.";
             } else if (continent.includes("Miasma")) {
                 info.innerText = "Zona PvP hostil. Alta recompensa en oro.";
-                player.activeQuest = "Derrota 3 Bestias de Miasma y sobrevive.";
+                player.activeQuest = "Derrota Bestias de Miasma y sobrevive.";
             } else if (continent.includes("Sylvandar")) {
                 info.innerText = "Bosques antiguos. Magia y recursos elficos.";
                 player.activeQuest = "Busca el árbol madre en Sylvandar.";
@@ -444,6 +449,12 @@ cat << 'EOF' > www/index.html
             document.getElementById('battle-screen').classList.remove('hidden');
             document.getElementById('battle-title').innerText = `¡Combate contra ${enemy.name} (${player.currentContinent})!`;
             document.getElementById('battle-log').innerHTML = `Te enfrentas a un enemigo hostil. Usa una de tus 5 habilidades de clase:`;
+
+            // Generar botones de las 5 habilidades activas en la pantalla de combate
+            const skills = classSkillsData[player.class];
+            const container = document.getElementById('battle-skills-actions');
+            container.innerHTML = skills.map((s, idx) => `<button onclick="battleAction(${idx + 1})">✨ ${s}</button>`).join('') +
+                                  `<button onclick="battleAction('escape')" style="background: #ef4444; color: #fff;">🏃 Huir</button>`;
         }
 
         function battleAction(action) {
@@ -451,7 +462,8 @@ cat << 'EOF' > www/index.html
             if (action === 'escape') {
                 log.innerHTML += `<br>¡Has huido con éxito hacia la zona segura!`;
             } else {
-                log.innerHTML += `<br>¡Usaste la Habilidad ${action} de ${player.class}! Daño crítico infligido. Enemigo derrotado.`;
+                const skills = classSkillsData[player.class];
+                log.innerHTML += `<br>¡Usaste la habilidad <b>${skills[action - 1]}</b> de ${player.class}! Daño crítico infligido. Enemigo derrotado.`;
                 player.plata += 60; player.oro += 5; player.xp += 50;
             }
             checkLevelUp();
@@ -460,7 +472,7 @@ cat << 'EOF' > www/index.html
                 document.getElementById('battle-screen').classList.add('hidden');
                 document.getElementById('game-container').classList.remove('hidden');
                 updateHUD();
-            }, 1600);
+            }, 1800);
         }
 
         function checkLevelUp() {
@@ -515,7 +527,7 @@ cat << 'EOF' > www/index.html
                 }
             });
 
-            // Avatar del Héroe (Color dinámico según la raza seleccionada)
+            // Avatar del Héroe con aspecto dinámico según raza seleccionada
             ctx.fillStyle = player.color;
             ctx.beginPath(); ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2); ctx.fill();
             ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5; ctx.stroke();
