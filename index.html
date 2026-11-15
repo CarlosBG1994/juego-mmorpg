@@ -1,0 +1,153 @@
+import streamlit as st
+import firebase_admin
+from firebase_admin import credentials, firestore
+import pandas as pd
+
+# Configuración de la interfaz
+st.set_page_config(
+    page_title="Gestor Maestro JRPG MMORPG",
+    page_icon="🛡️",
+    layout="wide"
+)
+
+# Inicialización segura de Firebase
+@st.cache_resource
+def init_firebase():
+    if not firebase_admin._apps:
+        try:
+            cred = credentials.Certificate("serviceAccountKey.json")
+            firebase_admin.initialize_app(cred)
+        except Exception as e:
+            st.error(f"Error al conectar con Firebase: {e}")
+            return None
+    return firestore.client()
+
+db = init_firebase()
+
+if db is None:
+    st.stop()
+
+st.title("🛡️ Panel de Control Maestro: JRPG MMORPG")
+st.markdown("Administración centralizada de la macroarquitectura, reglas del mundo, habilidades y misiones.")
+
+# Función auxiliar para recuperar datos
+def fetch_data(collection_name):
+    try:
+        docs = db.collection(collection_name).stream()
+        data = []
+        for doc in docs:
+            item = doc.to_dict()
+            item["_doc_id"] = doc.id
+            data.append(item)
+        return data
+    except Exception as e:
+        st.error(f"Error al leer la colección {collection_name}: {e}")
+        return []
+
+points_data = fetch_data("game_design_points")
+skills_data = fetch_data("game_skills")
+quests_data = fetch_data("game_quests")
+
+# Métricas superiores
+col1, col2, col3 = st.columns(3)
+col1.metric("Puntos y Reglas Registradas", len(points_data))
+col2.metric("Habilidades Activas", len(skills_data))
+col3.metric("Misiones de Campaña/Secundarias", len(quests_data))
+
+st.markdown("---")
+
+# Pestañas de Navegación
+tab_pts, tab_skl, tab_qst, tab_stats = st.tabs([
+    "📜 Puntos de Arquitectura", 
+    "⚔️ Habilidades y Grimorios", 
+    "🧭 Misiones del Mundo", 
+    "📊 Analítica y Gráficos"
+])
+
+# ==========================================
+# TAB 1: PUNTOS DE DISEÑO
+# ==========================================
+with tab_pts:
+    st.subheader("Gestión de Reglas del Mundo y Sistemas")
+    
+    f_stat = st.selectbox("Filtrar por Estado", ["Todos", "active", "deleted"], key="f_stat_pts")
+    search_query = st.text_input("Buscar por Título o ID", key="search_pt_input")
+    
+    filtered_pts = points_data
+    if f_stat != "Todos":
+        filtered_pts = [p for p in filtered_pts if p.get("status") == f_stat]
+    if search_query:
+        filtered_pts = [p for p in filtered_pts if search_query.lower() in p.get("title", "").lower() or search_query.lower() in p["_doc_id"].lower()]
+
+    if not filtered_pts:
+        st.info("No se encontraron registros. Ejecuta `python seed_firebase.py` en tu terminal.")
+    else:
+        for pt in filtered_pts:
+            color_bullet = "🟢" if pt.get("status") == "active" else "🔴"
+            with st.expander(f"{color_bullet} [{pt['_doc_id']}] {pt.get('title')} ({pt.get('category')})"):
+                c_a, c_b = st.columns([3, 1])
+                with c_a:
+                    st.write(f"**Resumen:** {pt.get('summary')}")
+                    rules = pt.get("rules", {})
+                    st.caption(f"NPC Control: {rules.get('npc_controlled')} | Gobierno Jugadores: {rules.get('player_governance')} | Soulbound: {rules.get('soulbound')}")
+                    
+                    note_val = st.text_input("Notas de Mejora", value=pt.get("feedback_notes", ""), key=f"note_{pt['_doc_id']}")
+                    if st.button("Guardar Nota", key=f"save_note_{pt['_doc_id']}"):
+                        db.collection("game_design_points").document(pt["_doc_id"]).update({"feedback_notes": note_val})
+                        st.success("¡Nota actualizada!")
+                        st.rerun()
+                with c_b:
+                    if st.button("✅ Activar", key=f"act_{pt['_doc_id']}"):
+                        db.collection("game_design_points").document(pt["_doc_id"]).update({"status": "active"})
+                        st.rerun()
+                    if st.button("❌ Descartar", key=f"del_{pt['_doc_id']}"):
+                        db.collection("game_design_points").document(pt["_doc_id"]).update({"status": "deleted"})
+                        st.rerun()
+                    if st.button("🗑️ Borrar", key=f"hard_{pt['_doc_id']}"):
+                        db.collection("game_design_points").document(pt["_doc_id"]).delete()
+                        st.rerun()
+
+# ==========================================
+# TAB 2: HABILIDADES
+# ==========================================
+with tab_skl:
+    st.subheader("Catálogo de Habilidades y Grimorios Elementales")
+    for skl in skills_data:
+        with st.expander(f"✨ [{skl.get('skill_id')}] {skl.get('name')} (Elemento: {skl.get('element')})"):
+            st.write(f"**Tier:** {skl.get('tier')} | **Clases:** {', '.join(skl.get('class_restriction', []))}")
+            if st.button("🗑️ Eliminar Habilidad", key=f"rm_skl_{skl['_doc_id']}"):
+                db.collection("game_skills").document(skl["_doc_id"]).delete()
+                st.rerun()
+
+# ==========================================
+# TAB 3: MISIONES
+# ==========================================
+with tab_qst:
+    st.subheader("Misiones Principales y Secundarias")
+    for qst in quests_data:
+        with st.expander(f"🧭 [{qst.get('type', '').upper()}] {qst.get('title')} ({qst.get('continent')})"):
+            st.write(f"**Otorgada por:** {qst.get('giver')}")
+            rew = qst.get("rewards", {})
+            st.caption(f"Recompensa: {rew.get('amount')} {rew.get('currency')} | Cero Ligado: {rew.get('soulbound_loot')}")
+            if st.button("🗑️ Eliminar Misión", key=f"rm_qst_{qst['_doc_id']}"):
+                db.collection("game_quests").document(qst["_doc_id"]).delete()
+                st.rerun()
+
+# ==========================================
+# TAB 4: ESTADÍSTICAS Y GRÁFICOS
+# ==========================================
+with tab_stats:
+    st.subheader("📊 Analítica del Servidor y Arquitectura")
+    if points_data:
+        df = pd.DataFrame(points_data)
+        col_g1, col_g2 = st.columns(2)
+        with col_g1:
+            st.markdown("#### Puntos por Categoría")
+            if "category" in df.columns:
+                st.bar_chart(df["category"].value_counts())
+        with col_g2:
+            st.markdown("#### Estado de los Registros")
+            if "status" in df.columns:
+                st.bar_chart(df["status"].value_counts())
+    else:
+        st.warning("No hay suficientes datos para generar gráficos.")
