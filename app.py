@@ -6,7 +6,7 @@ import pandas as pd
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Juego MMORPG 3D - Panel de Control",
+    page_title="Juego MMORPG 3D - Panel del Mundo",
     page_icon="⚔️",
     layout="wide"
 )
@@ -16,17 +16,14 @@ st.set_page_config(
 def init_firebase():
     if not firebase_admin._apps:
         try:
-            # Intenta cargar desde los secretos de Streamlit Cloud si están configurados
             if "firebase" in st.secrets:
                 cred_dict = dict(st.secrets["firebase"])
                 cred = credentials.Certificate(cred_dict)
                 firebase_admin.initialize_app(cred)
             else:
-                # Carga local desde el archivo serviceAccountKey.json
                 cred = credentials.Certificate("serviceAccountKey.json")
                 firebase_admin.initialize_app(cred)
         except Exception:
-            # Fallback forzado a archivo local si ocurre cualquier fallo en la nube
             cred = credentials.Certificate("serviceAccountKey.json")
             firebase_admin.initialize_app(cred)
     return firestore.client()
@@ -38,20 +35,20 @@ except Exception as e:
     st.error(f"Error crítico al conectar con Firebase: {e}")
     st.stop()
 
-# Interfaz Principal del Panel de Control
-st.title("⚔️ Panel de Control - MMORPG 3D Sandbox")
+# Interfaz Principal del Panel del Juego
+st.title("⚔️ MMORPG 3D Sandbox - Panel de Control del Mundo")
 st.markdown("---")
 
-# Barra lateral de navegación y estado
-st.sidebar.header("Estado del Sistema")
+# Barra lateral de estado
+st.sidebar.header("Estado del Servidor")
 st.sidebar.success("Base de datos Firestore: Conectada")
-st.sidebar.info("Entorno activo: GitHub Codespaces / Local")
+st.sidebar.info("Modo: Sandbox JRPG en vivo")
 
-# Sección de visualización rápida de datos del juego
-tab1, tab2, tab3 = st.tabs(["🌍 Continentes y Regiones", "⚖️ Economía y Metales", "🤖 Panel de Agentes"])
+# Pestañas principales del juego
+tab1, tab2 = st.tabs(["🌍 Continentes y Geografía", "⚖️ Economía y Metales"])
 
 with tab1:
-    st.subheader("Estructura de Continentes")
+    st.subheader("Estructura de los 7 Continentes")
     continents_data = [
         {"Continente": "El Refugio", "Superficie (km²)": "1,200,000", "Tipo": "Zona Segura / Inicial"},
         {"Continente": "Tierras del Miasma", "Superficie (km²)": "1,450,000", "Tipo": "PvP / Hostil"},
@@ -65,30 +62,23 @@ with tab1:
     st.dataframe(df_continents, use_container_width=True)
 
 with tab2:
-    st.subheader("Economía de 4 Metales")
+    st.subheader("Sistema Económico de 4 Metales")
     st.markdown("""
-    - **Cores**: Fundamento energético y tecnológico.
-    - **Plata**: Estabilidad monetaria y transacciones estándar.
-    - **Oro**: Comercio de alto valor y contratos internacionales.
-    - **Diamante**: Bienes de élite y fortificaciones de clan.
+    - **Cores**: Energía, núcleos tecnológicos y progresión avanzada.
+    - **Plata**: Estabilidad monetaria y transacciones comerciales estándar.
+    - **Oro**: Comercio pesado, rutas de caravanas y contratos de gremios.
+    - **Diamante**: Bienes de élite, posesiones y fortificaciones del mundo.
     """)
-    # Consulta de prueba a Firestore para verificar lectura en tiempo real
+    
     try:
         users_ref = db.collection("users").limit(5)
         docs = list(users_ref.stream())
         if docs:
-            st.success(f"Se han encontrado {len(docs)} registros de usuarios en Firestore.")
+            st.success(f"Se han cargado {len(docs)} perfiles de jugadores desde Firestore.")
         else:
-            st.info("La base de datos está conectada pero la colección de usuarios está vacía o pendiente de poblar.")
+            st.info("Base de datos conectada. Colección de usuarios vacía o lista para inicializar.")
     except Exception as e:
-        st.warning(f"No se pudieron leer colecciones de prueba en este momento: {e}")
-
-with tab3:
-    st.subheader("Estudio de IA y Agentes")
-    st.write("Panel de control multi-agente para la generación de recursos, lore y monitorización.")
-    agent_name = st.selectbox("Seleccionar Agente", ["Hércules (Arte/Generación)", "Cronos (Infraestructura)", "Aura (Narrativa)"])
-    if st.button("Ejecutar Diagnóstico de Agente"):
-        st.success(f"El agente **{agent_name}** se encuentra operativo y sincronizado.")
+        st.warning(f"No se pudieron leer los registros de usuarios: {e}")
 
 st.markdown("---")
-st.caption("MMORPG 3D Sandbox Architecture - Control Panel v2.4")
+st.caption("MMORPG 3D Sandbox Engine v2.4")
