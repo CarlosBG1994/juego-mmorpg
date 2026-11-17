@@ -3,7 +3,7 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Configuración de la página
 st.set_page_config(
@@ -61,7 +61,6 @@ RAZAS_Y_CLASES = {
 
 SUBFORMAS_BESTIA = ["Hombre Lobo", "Hombre Pantera", "Hombre Tigre", "Hombre León", "Hombre Mono", "Hombre Tortuga", "Hombre Panda"]
 
-# --- MAPA GENERAL DE CONTINENTES Y ESTADOS DE DESBLOQUEO ---
 CONTINENTES_OFICIALES = {
     "Imperio Humano (Dividido en 4 Reinos)": {"visible_desde_inicio": True, "tipo": "Facción Humana"},
     "Dominio Silvano de los Elfos": {"visible_desde_inicio": True, "tipo": "Facción Élfica"},
@@ -72,7 +71,6 @@ CONTINENTES_OFICIALES = {
     "El Núcleo Central de Comercio": {"visible_desde_inicio": True, "tipo": "Zona Franca Global"}
 }
 
-# Misiones Ocultas para abrir los continentes secretos
 CATALOGO_OCULTAS = [
     {"id": "abrir_cielos", "nombre": "El Despertar de los Vientos", "continente_premio": "Archipiélago de los Cielos Abiertos", "tier": "Épico (Ultrararo)", "pista": "Reúne 50 de Plata y medita en la cima de la cordillera enana."},
     {"id": "abrir_olvido", "nombre": "El Sello del Vacío", "continente_premio": "Las Fronteras del Olvido", "tier": "Legendario", "pista": "Posee al menos 1 Diamante y derrota a la amenaza local en modo experto."}
@@ -188,8 +186,6 @@ if not st.session_state.has_character:
     with col_c2:
         info_raza = RAZAS_Y_CLASES[st.session_state.raza]
         st.session_state.clase = st.selectbox("Clase Oficial", info_raza["clases"])
-        
-        # Asignación automática del continente de inicio según la facción elegida
         st.session_state.continente = info_raza["continente_inicio"]
         
         st.info(f"🏰 **Territorio de Inicio ({st.session_state.raza}):**\n`{st.session_state.continente}`\n\n*{info_raza['lore']}*")
@@ -227,12 +223,9 @@ if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state.has_character = False
     st.rerun()
 
-# Función para verificar continentes accesibles según Firestore (regla de 1 día para el pionero)
 def obtener_continentes_visibles():
     visibles = []
     ahora = datetime.utcnow()
-    
-    # Consultar estado de continentes en Firebase
     continentes_db = db.collection("world_continents").stream()
     estado_continentes = {doc.id: doc.to_dict() for doc in continentes_db}
     
@@ -244,11 +237,9 @@ def obtener_continentes_visibles():
                 datos_apertura = estado_continentes[cont]
                 descubridor = datos_apertura.get("pionero")
                 fecha_apertura = datos_apertura.get("fecha")
-                
                 if fecha_apertura:
                     fecha_dt = fecha_apertura.replace(tzinfo=None)
                     diferencia_horas = (ahora - fecha_dt).total_seconds() / 3600
-                    
                     if descubridor == st.session_state.hero_name:
                         visibles.append(cont + " 🌟 (Tu Descubrimiento)")
                     elif diferencia_horas >= 24:
@@ -262,7 +253,7 @@ def obtener_continentes_visibles():
 
 # Pestañas principales
 tab_play, tab_skills, tab_world, tab_dungeons, tab_mounts, tab_quests, tab_p2p, tab_market = st.tabs([
-    "🎮 Jugar y Explorar", 
+    "🎮 Mundo Abierto (Canvas)", 
     "⚡ Grimorio (Tiers)", 
     "🌍 Mapa y Continentes", 
     "🏰 Mazmorras",
@@ -273,46 +264,136 @@ tab_play, tab_skills, tab_world, tab_dungeons, tab_mounts, tab_quests, tab_p2p, 
 ])
 
 with tab_play:
-    st.subheader(f"Región Actual: {st.session_state.continente}")
-    if "Imperio Humano" in st.session_state.continente:
-        st.info("🏛️ Te encuentras en el **Imperio Humano**, dividido en 4 reinos soberanos repletos de ciudades, castillos, pueblos, PNJs y tiendas exclusivas.")
-    else:
-        st.info(f"Explora los territorios de tu facción en `{st.session_state.continente}`, enfréntate a amenazas y recolecta recursos.")
+    st.subheader(f"Exploración Activa en: {st.session_state.continente}")
+    st.info("🎮 **Controles:** Muévete con las teclas **WASD** o **Flechas** en tu ordenador. En móvil, utiliza el **Joystick virtual** y los botones de habilidades en pantalla.")
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("⛏️ Explorar y Recolectar", use_container_width=True):
-            metal = random.choice(["Cores", "Plata", "Oro"])
-            cant = random.randint(1, 4)
-            if metal == "Cores": st.session_state.cores += cant
-            elif metal == "Plata": st.session_state.plata += cant
-            elif metal == "Oro": st.session_state.oro += cant
+    # Generamos la lista de habilidades del jugador en formato JS
+    skills_js = str(st.session_state.skills)
+
+    # Componente HTML5 / JS con Canvas interactivo, Joystick móvil y soporte de teclado
+    game_html = f"""
+    <div style="text-align: center; background: #111; padding: 10px; border-radius: 10px; border: 2px solid #ffaa00;">
+        <canvas id="gameCanvas" width="700" height="400" style="background: #222; border-radius: 8px; display: block; margin: 0 auto; max-width: 100%;"></canvas>
+        <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+            <button onclick="usarHabilidad(0)" style="background: #ff4500; color: white; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer;">✨ {st.session_state.skills[0] if len(st.session_state.skills)>0 else 'Ataque'} [1]</button>
+            <button onclick="usarHabilidad(1)" style="background: #1e90ff; color: white; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer;">⚡ {st.session_state.skills[1] if len(st.session_state.skills)>1 else 'Habilidad'} [2]</button>
+        </div>
+        <p id="infoAccion" style="color: #00ffcc; margin-top: 10px; font-weight: bold;"></p>
+    </div>
+
+    <!-- Controles Táctiles (Joystick móvil simulado y botones de movimiento) -->
+    <div style="margin-top: 15px; display: flex; justify-content: space-around; align-items: center;">
+        <div style="display: grid; grid-template-columns: repeat(3, 50px); gap: 5px;">
+            <div></div>
+            <button ontouchstart="moverTouch('W')" onmousedown="moverTouch('W')" style="height: 50px; background: #333; color: #fff; border: 1px solid #777; font-size: 20px;">⬆️</button>
+            <div></div>
+            <button ontouchstart="moverTouch('A')" onmousedown="moverTouch('A')" style="height: 50px; background: #333; color: #fff; border: 1px solid #777; font-size: 20px;">⬅️</button>
+            <button ontouchstart="moverTouch('S')" onmousedown="moverTouch('S')" style="height: 50px; background: #333; color: #fff; border: 1px solid #777; font-size: 20px;">⬇️</button>
+            <button ontouchstart="moverTouch('D')" onmousedown="moverTouch('D')" style="height: 50px; background: #333; color: #fff; border: 1px solid #777; font-size: 20px;">➡️</button>
+        </div>
+        <div style="text-align: left; color: #aaa; font-size: 14px;">
+            <b>Héroe:</b> {st.session_state.hero_name}<br>
+            <b>Clase:</b> {st.session_state.clase}<br>
+            Usa <b>WASD</b> o los botones táctiles para moverte.
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let player = {{
+            x: 350,
+            y: 200,
+            radius: 15,
+            speed: 4,
+            color: "#ffaa00"
+        }};
+
+        let keys = {{}};
+
+        window.addEventListener('keydown', (e) => {{
+            keys[e.key.toLowerCase()] = true;
+            if(e.key === '1') usarHabilidad(0);
+            if(e.key === '2') usarHabilidad(1);
+        }});
+
+        window.addEventListener('keyup', (e) => {{
+            keys[e.key.toLowerCase()] = false;
+        }});
+
+        function moverTouch(dir) {{
+            if(dir === 'W') player.y -= 20;
+            if(dir === 'S') player.y += 20;
+            if(dir === 'A') player.x -= 20;
+            if(dir === 'D') player.x += 20;
+            limites();
+        }}
+
+        function limites() {{
+            if (player.x < player.radius) player.x = player.radius;
+            if (player.x > canvas.width - player.radius) player.x = canvas.width - player.radius;
+            if (player.y < player.radius) player.y = player.radius;
+            if (player.y > canvas.height - player.radius) player.y = canvas.height - player.radius;
+        }}
+
+        function actualizar() {{
+            if (keys['w'] || keys['arrowup']) player.y -= player.speed;
+            if (keys['s'] || keys['arrowdown']) player.y += player.speed;
+            if (keys['a'] || keys['arrowleft']) player.x -= player.speed;
+            if (keys['d'] || keys['arrowright']) player.x += player.speed;
+            limites();
+        }}
+
+        function dibujar() {{
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            st.session_state.hero_xp += 25
-            if st.session_state.hero_xp >= 100:
-                st.session_state.hero_level += 1
-                st.session_state.hero_xp = 0
-                st.balloons()
-            save_user_data()
-            st.success(f"¡Has encontrado `{cant}` de **{metal}**!")
+            // Dibujar fondo de cuadrícula del mundo abierto
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=40) {{
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            }}
+            for(let j=0; j<canvas.height; j+=40) {{
+                ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
+            }}
 
-    with col2:
-        if st.button("⚔️ Enfrentar Amenaza", use_container_width=True):
-            reward = random.randint(25, 60)
-            st.session_state.plata += reward
-            st.session_state.hero_xp += 35
-            if st.session_state.hero_xp >= 100:
-                st.session_state.hero_level += 1
-                st.session_state.hero_xp = 0
-                st.balloons()
-            save_user_data()
-            st.info(f"¡Victoria! Obtuviste `{reward}` de Plata.")
+            // Dibujar al Jugador
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = player.color;
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#fff";
+            ctx.stroke();
+            ctx.closePath();
 
-    with col3:
-        if st.button("🛡️ Descansar y Recuperar", use_container_width=True):
-            st.session_state.hero_hp = 100
-            save_user_data()
-            st.success("Salud restaurada.")
+            // Nombre del Héroe flotante
+            ctx.fillStyle = "#fff";
+            ctx.font = "12px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("{st.session_state.hero_name}", player.x, player.y - 20);
+        }}
+
+        function loop() {{
+            actualizar();
+            dibujar();
+            requestAnimationFrame(loop);
+        }}
+
+        function usarHabilidad(index) {{
+            const skillsList = {skills_js};
+            const skillName = skillsList[index] || "Golpe Base";
+            document.getElementById("infoAccion").innerText = "⚡ ¡Usaste la habilidad: " + skillName + "!";
+            setTimeout(() => {{
+                document.getElementById("infoAccion").innerText = "";
+            }, 3000);
+        }}
+
+        loop();
+    </script>
+    """
+    st.components.v1.html(game_html, height=580)
 
 with tab_skills:
     st.subheader("⚡ Grimorio de Habilidades Activas")
@@ -321,23 +402,19 @@ with tab_skills:
 
 with tab_world:
     st.subheader("🌍 Estado del Mundo y Niebla de Guerra")
-    st.write("Los continentes ocultos solo se revelan a la comunidad cuando un héroe completa las misiones secretas. El descubridor disfruta de **1 día de exclusividad** antes de que se abra para todos.")
-
     lista_viaje = obtener_continentes_visibles()
-    
-    st.markdown("### 🗺️ Selecciona tu Destino de Viaje")
     destino_elegido_raw = st.selectbox("Continentes Accesibles", lista_viaje)
     destino_limpio = destino_elegido_raw.split(" 🌟")[0].split(" 🔓")[0].split(" 🔒")[0]
 
     if st.button("✈️ Viajar a este Continente", use_container_width=True):
         if "🔒 (Exclusivo Pionero" in destino_elegido_raw:
-            st.error("⚠️ Este continente está bajo el periodo de exclusividad de 24 horas de su descubridor. ¡Aún no puedes entrar!")
+            st.error("⚠️ Este continente está bajo el periodo de exclusividad de 24 horas de su descubridor.")
         elif "🔒 (Oculto" in destino_elegido_raw:
-            st.error("🔒 Este continente está oculto por la niebla de guerra. ¡Debes completar las misiones secretas para descubrirlo!")
+            st.error("🔒 Este continente está oculto por la niebla de guerra. ¡Completa las misiones secretas!")
         else:
             st.session_state.continente = destino_limpio
             save_user_data()
-            st.success(f"¡Has viajado con éxito a **{destino_limpio}**!")
+            st.success(f"¡Has viajado a **{destino_limpio}**!")
             st.rerun()
 
 with tab_dungeons:
@@ -362,54 +439,32 @@ with tab_mounts:
 
 with tab_quests:
     st.subheader("📜 Misiones Secretas y Descubrimiento de Continentes")
-    st.info("Completa las misiones secretas para disipar la niebla de guerra y abrir nuevos continentes para el servidor.")
-
     for oculta in CATALOGO_OCULTAS:
         cont_objetivo = oculta["continente_premio"]
-        
         doc_cont = db.collection("world_continents").document(cont_objetivo).get()
         abierto = doc_cont.exists
-        
         estado_txt = f"🔓 Descubierto por: {doc_cont.to_dict().get('pionero')}" if abierto else f"🔒 Continente Oculto | Tier: {oculta['tier']}"
         
         with st.expander(f"Misión Secreta: {oculta['nombre']} ➔ Abre: {cont_objetivo} ({estado_txt})"):
             st.write(f"*Pista:* {oculta['pista']}")
-            
             if not abierto:
-                if st.button(f"Completar Misión Secreta y Descubrir {cont_objetivo}", key=f"abrir_{oculta['id']}"):
+                if st.button(f"Completar y Descubrir {cont_objetivo}", key=f"abrir_{oculta['id']}"):
                     db.collection("world_continents").document(cont_objetivo).set({
                         "pionero": st.session_state.hero_name,
-                        "fecha": firestore.SERVER_TIMESTAMP
+                        "fecha": datetime.utcnow()
                     })
-                    st.success(f"🌟 ¡Felicidades! Has descubierto **{cont_objetivo}**. Tienes 24 horas de exclusividad antes de que el servidor tenga acceso.")
+                    st.success(f"🌟 ¡Has descubierto **{cont_objetivo}**! 24h de exclusividad.")
                     st.balloons()
                     st.rerun()
             else:
-                st.info(f"Este continente ya fue descubierto por **{doc_cont.to_dict().get('pionero')}**.")
-
-    st.markdown("---")
-    st.markdown("### 📋 Contratos Secundarios")
-    for idx_sec, sec in enumerate(POOL_SECUNDARIAS):
-        cols = st.columns([3, 1])
-        with cols[0]:
-            st.markdown(f"**[{sec['tipo']}] {sec['titulo']}**\n- *{sec['desc']}*")
-        with cols[1]:
-            if st.button("Cobrar", key=f"sec_{idx_sec}"):
-                for k, v in sec["recompensa"].items():
-                    if k == "cores": st.session_state.cores += v
-                    elif k == "plata": st.session_state.plata += v
-                save_user_data()
-                st.success("¡Recompensa cobrada!")
-                st.rerun()
+                st.info(f"Descubierto por **{doc_cont.to_dict().get('pionero')}**.")
 
 with tab_p2p:
     st.subheader("🤝 Tablón P2P (Encargos entre Jugadores)")
     with st.form("form_p2p"):
-        st.markdown("### ✍️ Publicar Nuevo Encargo")
         titulo = st.text_input("Qué necesitas (Ej: 'Busco 5 Cores')")
         tipo_meta = st.selectbox("Metal de Recompensa", ["Plata", "Oro", "Cores", "Diamante"])
         cant_meta = st.number_input("Cantidad", min_value=1, value=10)
-        
         if st.form_submit_button("Publicar Encargo") and titulo:
             suficiente = False
             if tipo_meta == "Plata" and st.session_state.plata >= cant_meta:
@@ -422,42 +477,10 @@ with tab_p2p:
                 st.session_state.diamante -= cant_meta; suficiente = True
 
             if suficiente:
-                nuevo_encargo = {
-                    "autor": st.session_state.hero_name,
-                    "titulo": titulo,
-                    "recompensa_tipo": tipo_meta,
-                    "recompensa_cant": cant_meta
-                }
-                db.collection("p2p_quests").add(nuevo_encargo)
+                db.collection("p2p_quests").add({"autor": st.session_state.hero_name, "titulo": titulo, "recompensa_tipo": tipo_meta, "recompensa_cant": cant_meta})
                 save_user_data()
-                st.success("¡Encargo publicado en el servidor!")
+                st.success("¡Publicado!")
                 st.rerun()
-            else:
-                st.error(f"No tienes suficientes {tipo_meta}.")
-
-    st.markdown("---")
-    docs = db.collection("p2p_quests").stream()
-    hay = False
-    for doc in docs:
-        hay = True
-        data = doc.to_dict(); doc_id = doc.id
-        col_p1, col_p2 = st.columns([3, 1])
-        with col_p1:
-            st.markdown(f"**Autor:** `{data.get('autor')}`\n- **Petición:** {data.get('titulo')}\n- **Recompensa:** `{data.get('recompensa_cant')}` de **{data.get('recompensa_tipo')}**")
-        with col_p2:
-            if st.button("Completar", key=f"p2p_{doc_id}"):
-                tipo, cant = data.get('recompensa_tipo'), data.get('recompensa_cant')
-                if tipo == "Plata": st.session_state.plata += cant
-                elif tipo == "Oro": st.session_state.oro += cant
-                elif tipo == "Cores": st.session_state.cores += cant
-                elif tipo == "Diamante": st.session_state.diamante += cant
-                db.collection("p2p_quests").document(doc_id).delete()
-                save_user_data()
-                st.success(f"¡Has recibido `{cant} {tipo}`!")
-                st.rerun()
-        st.markdown("---")
-    if not hay:
-        st.info("No hay encargos activos en este momento.")
 
 with tab_market:
     st.subheader("🏦 Mercado Abierto de Metales")
@@ -467,8 +490,6 @@ with tab_market:
             save_user_data()
             st.success("¡Canje exitoso!")
             st.rerun()
-        else:
-            st.error("Plata insuficiente.")
 
 st.markdown("---")
 st.caption("Snd-Worlds MMORPG Sandbox - Servidor Activo en Firebase Firestore")
