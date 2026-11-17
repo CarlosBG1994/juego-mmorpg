@@ -62,27 +62,25 @@ RAZAS_Y_CLASES = {
 SUBFORMAS_BESTIA = ["Hombre Lobo", "Hombre Pantera", "Hombre Tigre", "Hombre León", "Hombre Mono", "Hombre Tortuga", "Hombre Panda"]
 
 # --- MAPA GENERAL DE CONTINENTES Y ESTADOS DE DESBLOQUEO ---
-# Si un continente está oculto, requiere misión secreta. 
-# Si se abre, Firebase guardará al descubridor y la fecha de apertura.
 CONTINENTES_OFICIALES = {
     "Imperio Humano (Dividido en 4 Reinos)": {"visible_desde_inicio": True, "tipo": "Facción Humana"},
     "Dominio Silvano de los Elfos": {"visible_desde_inicio": True, "tipo": "Facción Élfica"},
     "Cordillera e Imperios Enanos": {"visible_desde_inicio": True, "tipo": "Facción Enana"},
     "Tierras Salvajes de los Hombres Bestia": {"visible_desde_inicio": True, "tipo": "Facción Bestia"},
-    "Archipiélago de los Cielos Abiertos": {"visible_desde_inicio": False, "tipo": "Continente Ocreto / Exploración"},
+    "Archipiélago de los Cielos Abiertos": {"visible_desde_inicio": False, "tipo": "Continente Oculto / Exploración"},
     "Las Fronteras del Olvido": {"visible_desde_inicio": False, "tipo": "Continente Oculto / Incursión"},
     "El Núcleo Central de Comercio": {"visible_desde_inicio": True, "tipo": "Zona Franca Global"}
 }
 
 # Misiones Ocultas para abrir los continentes secretos
 CATALOGO_OCULTAS = [
-    {"id": "abrir_cielos", "nombre": "El Despertar de los Vientos", "continente_premio": "Archipiélago de los Cielos Abiertos", "pista": "Reúne 50 de Plata y medita en la cima de la cordillera enana."},
-    {"id": "abrir_olvido", "nombre": "El Sello del Vacío", "continente_premio": "Las Fronteras del Olvido", "pista": "Posee al menos 1 Diamante y derrota a la amenaza local en modo experto."}
+    {"id": "abrir_cielos", "nombre": "El Despertar de los Vientos", "continente_premio": "Archipiélago de los Cielos Abiertos", "tier": "Épico (Ultrararo)", "pista": "Reúne 50 de Plata y medita en la cima de la cordillera enana."},
+    {"id": "abrir_olvido", "nombre": "El Sello del Vacío", "continente_premio": "Las Fronteras del Olvido", "tier": "Legendario", "pista": "Posee al menos 1 Diamante y derrota a la amenaza local en modo experto."}
 ]
 
 POOL_SECUNDARIAS = [
     {"tipo": "Recolección", "titulo": "Extracción de Minerales en Bruto", "desc": "Recolecta muestras de suelo para los artesanos locales.", "recompensa": {"cores": 4, "plata": 20}},
-    {"tipo": "Caza", "titulo": "Ciber-caza de Bandidos", "desc": "Limpia los caminos comerciales de amenazas hostiles.", "recompensa": {"plata": 40, "xp": 30}}
+    {"tipo": "Caza", "titulo": "Cacería de Bandidos del Páramo", "desc": "Limpia los caminos comerciales de amenazas hostiles.", "recompensa": {"plata": 40, "xp": 30}}
 ]
 
 # --- ESTADO DE SESIÓN ---
@@ -232,7 +230,7 @@ if st.sidebar.button("🚪 Cerrar Sesión"):
 # Función para verificar continentes accesibles según Firestore (regla de 1 día para el pionero)
 def obtener_continentes_visibles():
     visibles = []
-     ahora = datetime.utcnow()
+    ahora = datetime.utcnow()
     
     # Consultar estado de continentes en Firebase
     continentes_db = db.collection("world_continents").stream()
@@ -242,25 +240,20 @@ def obtener_continentes_visibles():
         if info["visible_desde_inicio"]:
             visibles.append(cont)
         else:
-            # Comprobar si ya fue abierto en Firestore
             if cont in estado_continentes:
                 datos_apertura = estado_continentes[cont]
                 descubridor = datos_apertura.get("pionero")
-                fecha_apertura = datos_apertura.get("fecha") # Timestamp de Firestore
+                fecha_apertura = datos_apertura.get("fecha")
                 
                 if fecha_apertura:
-                    # Convertir timestamp a datetime UTC
                     fecha_dt = fecha_apertura.replace(tzinfo=None)
                     diferencia_horas = (ahora - fecha_dt).total_seconds() / 3600
                     
-                    if pionero_es_actual := (descubridor == st.session_state.hero_name):
-                        # El descubridor tiene acceso inmediato
+                    if descubridor == st.session_state.hero_name:
                         visibles.append(cont + " 🌟 (Tu Descubrimiento)")
                     elif diferencia_horas >= 24:
-                        # Ya pasó 1 día real, se abre para todos
                         visibles.append(cont + " 🔓 (Abierto al Servidor)")
                     else:
-                        # Está en el periodo exclusivo de 24h para el pionero
                         horas_restantes = int(24 - diferencia_horas)
                         visibles.append(cont + f" 🔒 (Exclusivo Pionero: {horas_restantes}h restantes)")
             else:
@@ -334,8 +327,6 @@ with tab_world:
     
     st.markdown("### 🗺️ Selecciona tu Destino de Viaje")
     destino_elegido_raw = st.selectbox("Continentes Accesibles", lista_viaje)
-    
-    # Limpiar sufijos visuales para obtener el nombre real del continente
     destino_limpio = destino_elegido_raw.split(" 🌟")[0].split(" 🔓")[0].split(" 🔒")[0]
 
     if st.button("✈️ Viajar a este Continente", use_container_width=True):
@@ -376,18 +367,16 @@ with tab_quests:
     for oculta in CATALOGO_OCULTAS:
         cont_objetivo = oculta["continente_premio"]
         
-        # Verificar en Firestore si ya está abierto
         doc_cont = db.collection("world_continents").document(cont_objetivo).get()
         abierto = doc_cont.exists
         
-        estado_txt = f"🔓 Descubierto por: {doc_cont.to_dict().get('pionero')}" if abierto else "🔒 Continente Oculto"
+        estado_txt = f"🔓 Descubierto por: {doc_cont.to_dict().get('pionero')}" if abierto else f"🔒 Continente Oculto | Tier: {oculta['tier']}"
         
         with st.expander(f"Misión Secreta: {oculta['nombre']} ➔ Abre: {cont_objetivo} ({estado_txt})"):
             st.write(f"*Pista:* {oculta['pista']}")
             
             if not abierto:
                 if st.button(f"Completar Misión Secreta y Descubrir {cont_objetivo}", key=f"abrir_{oculta['id']}"):
-                    # Registrar en Firebase que este usuario es el pionero
                     db.collection("world_continents").document(cont_objetivo).set({
                         "pionero": st.session_state.hero_name,
                         "fecha": firestore.SERVER_TIMESTAMP
@@ -416,13 +405,59 @@ with tab_quests:
 with tab_p2p:
     st.subheader("🤝 Tablón P2P (Encargos entre Jugadores)")
     with st.form("form_p2p"):
+        st.markdown("### ✍️ Publicar Nuevo Encargo")
         titulo = st.text_input("Qué necesitas (Ej: 'Busco 5 Cores')")
         tipo_meta = st.selectbox("Metal de Recompensa", ["Plata", "Oro", "Cores", "Diamante"])
         cant_meta = st.number_input("Cantidad", min_value=1, value=10)
         
-        if st.form_submit_button("Publicar") and titulo:
-            # Lógica de pago y publicación...
-            st.success("¡Publicado!")
+        if st.form_submit_button("Publicar Encargo") and titulo:
+            suficiente = False
+            if tipo_meta == "Plata" and st.session_state.plata >= cant_meta:
+                st.session_state.plata -= cant_meta; suficiente = True
+            elif tipo_meta == "Oro" and st.session_state.oro >= cant_meta:
+                st.session_state.oro -= cant_meta; suficiente = True
+            elif tipo_meta == "Cores" and st.session_state.cores >= cant_meta:
+                st.session_state.cores -= cant_meta; suficiente = True
+            elif tipo_meta == "Diamante" and st.session_state.diamante >= cant_meta:
+                st.session_state.diamante -= cant_meta; suficiente = True
+
+            if suficiente:
+                nuevo_encargo = {
+                    "autor": st.session_state.hero_name,
+                    "titulo": titulo,
+                    "recompensa_tipo": tipo_meta,
+                    "recompensa_cant": cant_meta
+                }
+                db.collection("p2p_quests").add(nuevo_encargo)
+                save_user_data()
+                st.success("¡Encargo publicado en el servidor!")
+                st.rerun()
+            else:
+                st.error(f"No tienes suficientes {tipo_meta}.")
+
+    st.markdown("---")
+    docs = db.collection("p2p_quests").stream()
+    hay = False
+    for doc in docs:
+        hay = True
+        data = doc.to_dict(); doc_id = doc.id
+        col_p1, col_p2 = st.columns([3, 1])
+        with col_p1:
+            st.markdown(f"**Autor:** `{data.get('autor')}`\n- **Petición:** {data.get('titulo')}\n- **Recompensa:** `{data.get('recompensa_cant')}` de **{data.get('recompensa_tipo')}**")
+        with col_p2:
+            if st.button("Completar", key=f"p2p_{doc_id}"):
+                tipo, cant = data.get('recompensa_tipo'), data.get('recompensa_cant')
+                if tipo == "Plata": st.session_state.plata += cant
+                elif tipo == "Oro": st.session_state.oro += cant
+                elif tipo == "Cores": st.session_state.cores += cant
+                elif tipo == "Diamante": st.session_state.diamante += cant
+                db.collection("p2p_quests").document(doc_id).delete()
+                save_user_data()
+                st.success(f"¡Has recibido `{cant} {tipo}`!")
+                st.rerun()
+        st.markdown("---")
+    if not hay:
+        st.info("No hay encargos activos en este momento.")
 
 with tab_market:
     st.subheader("🏦 Mercado Abierto de Metales")
@@ -432,6 +467,8 @@ with tab_market:
             save_user_data()
             st.success("¡Canje exitoso!")
             st.rerun()
+        else:
+            st.error("Plata insuficiente.")
 
 st.markdown("---")
 st.caption("Snd-Worlds MMORPG Sandbox - Servidor Activo en Firebase Firestore")
