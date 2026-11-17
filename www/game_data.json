@@ -1,9 +1,48 @@
 {
-    "descripcion_proyecto": "Snd-Worlds MMORPG Sandbox - Base de Datos Oficial con Clases por Raza y Miasma Humano",
+    "descripcion_proyecto": "Snd-Worlds MMORPG Sandbox - Base de Datos Completa con 7 Continentes y 4 Razas",
     "total_habilidades_registradas": 1870,
-    "lore_especial": {
-        "continente_miasma": "Pertenece al Continente Humano. Se desbloquea mediante misiones ocultas y requiere comprar el objeto de supervivencia en tienda."
+    "escala_mundo": {
+        "tierra_km2": "8.5 Millones",
+        "oceanos_km2": "1.55 Millones",
+        "total_continentes": 7
     },
+    "continentes": [
+        {
+            "id": "cont_1",
+            "nombre": "Continente Humano (Región del Miasma)",
+            "descripcion": "Territorio principal de los humanos, albergando las zonas de Miasma tóxico accesibles mediante misiones ocultas y objetos de supervivencia."
+        },
+        {
+            "id": "cont_2",
+            "nombre": "Dominio Silvano de los Elfos",
+            "descripcion": "Vastas extensiones de bosques ancestrales, arcanos y fronteras naturales."
+        },
+        {
+            "id": "cont_3",
+            "nombre": "Cordillera e Imperios Enanos",
+            "descripcion": "Fortalezas de piedra, montañas de asedio y minas de extracción de metales."
+        },
+        {
+            "id": "cont_4",
+            "nombre": "Tierras Salvajes de los Hombres Bestia",
+            "descripcion": "Ecosistemas hostiles y salvajes adaptados a las 7 sub-formas de bestia."
+        },
+        {
+            "id": "cont_5",
+            "nombre": "Archipiélago de los Cielos Abiertos",
+            "descripcion": "Islas flotantes y rutas comerciales de alta mar y aire."
+        },
+        {
+            "id": "cont_6",
+            "nombre": "Las Fronteras del Olvido",
+            "descripcion": "Territorios inexplorados de incursión y mazmorras de gremio reclamables."
+        },
+        {
+            "id": "cont_7",
+            "nombre": "El Núcleo Central de Comercio",
+            "descripcion": "Zona neutral de libre comercio basada en los 4 metales económicos (Cores, Plata, Oro, Diamante)."
+        }
+    ],
     "estructura_razas_clases": {
         "Humano": [
             "Caballero",
