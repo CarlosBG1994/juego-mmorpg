@@ -124,7 +124,7 @@ if not st.session_state.logged_in:
                     st.session_state.has_character = data.get("has_character", True)
                 else:
                     st.session_state.hero_name = email.split("@")[0]
-                    st.session_state.has_character = False # Forzar creación de personaje si es nuevo
+                    st.session_state.has_character = False
                 
                 st.session_state.logged_in = True
                 st.rerun()
@@ -251,19 +251,29 @@ with tab_skills:
 
 with tab_world:
     st.subheader("🌍 Estado de los 7 Continentes del Mundo Abierto")
-    st.write("Escala global: **8.5M km² de tierra** y **1.55M km² de océanos**.")
+    st.write("Escala global del sandbox: **8.5M km² de tierra** y **1.55M km² de océanos** con economía abierta de 4 metales.")
     
     for idx, cont in enumerate(CONTINENTES_MUNDO, 1):
-        actual = "📍 (Estás aquí)" if cont == st.session_state.continente else ""
-        st.markdown(f"**{idx}. {cont}** {actual}")
+        is_current = (cont == st.session_state.continente)
+        actual_label = "📍 **(Te encuentras aquí)**" if is_current else ""
+        
+        if "Humano" in cont:
+            st.markdown(f"**{idx}. {cont}** {actual_label}\n> *Lore:* Región principal con zonas de Miasma tóxico. Requiere misiones ocultas y objeto de supervivencia.")
+        else:
+            st.markdown(f"**{idx}. {cont}** {actual_label}")
 
     st.markdown("---")
-    nuevo_cont = st.selectbox("Viajar a otro Continente", CONTINENTES_MUNDO)
-    if st.button("✈️ Viajar"):
-        st.session_state.continente = nuevo_cont
-        save_user_data()
-        st.success(f"¡Has viajado a **{nuevo_cont}**!")
-        st.rerun()
+    st.subheader("✈️ Sistema de Viaje Continental")
+    nuevo_cont = st.selectbox("Selecciona el Continente de Destino", CONTINENTES_MUNDO, key="select_viaje")
+    
+    if st.button("✈️ Viajar a este Continente", use_container_width=True):
+        if nuevo_cont != st.session_state.continente:
+            st.session_state.continente = nuevo_cont
+            save_user_data()
+            st.success(f"¡Has viajado con éxito a **{nuevo_cont}**!")
+            st.rerun()
+        else:
+            st.info("Ya te encuentras en este continente.")
 
 with tab_market:
     st.subheader("🏦 Mercado Abierto de 4 Metales")
