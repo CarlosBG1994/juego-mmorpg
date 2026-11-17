@@ -3,6 +3,7 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
 import random
+from datetime import datetime, timedelta
 
 # Configuración de la página
 st.set_page_config(
@@ -34,47 +35,66 @@ except Exception as e:
     st.error(f"Error crítico al conectar con Firebase: {e}")
     st.stop()
 
-# --- ESTRUCTURA OFICIAL DE CLASES, RAZAS Y HABILIDADES POR TIERS ---
+# --- RAZAS, CLASES Y CONTINENTES DE INICIO POR FACCIÓN ---
 RAZAS_Y_CLASES = {
-    "Humano": ["Caballero", "Paladín", "Mago de Batalla", "Púgil", "Asesino", "Explorador", "Invocador", "Clérigo"],
-    "Elfo": ["Guardabosques", "Alcaide", "Druida", "Espadachín Silvano", "Monje del Viento", "Acechador Nocturno", "Mago de Batalla", "Invocador"],
-    "Enano": ["Guerrero Pesado", "Defensor Rúnico de Asedio", "Berserker Rúnico", "Luchador de Puño de Hierro", "Ballestero", "Asesino", "Mago de Batalla", "Invocador", "Clérigo"],
-    "Hombre Bestia": ["Campeón", "Acechador Salvaje", "Chamán Primordial", "Púgil", "Asesino", "Explorador", "Mago de Batalla", "Invocador", "Clérigo"]
+    "Humano": {
+        "clases": ["Caballero", "Paladín", "Mago de Batalla", "Púgil", "Asesino", "Explorador", "Invocador", "Clérigo"],
+        "continente_inicio": "Imperio Humano (Dividido en 4 Reinos)",
+        "lore": "Tierra natal de los humanos, dividida en 4 grandes reinos con ciudades, castillos y pueblos propios."
+    },
+    "Elfo": {
+        "clases": ["Guardabosques", "Alcaide", "Druida", "Espadachín Silvano", "Monje del Viento", "Acechador Nocturno", "Mago de Batalla", "Invocador"],
+        "continente_inicio": "Dominio Silvano de los Elfos",
+        "lore": "Bosques ancestrales y santuarios ocultos bajo la protección de la naturaleza."
+    },
+    "Enano": {
+        "clases": ["Guerrero Pesado", "Defensor Rúnico de Asedio", "Berserker Rúnico", "Luchador de Puño de Hierro", "Ballestero", "Asesino", "Mago de Batalla", "Invocador", "Clérigo"],
+        "continente_inicio": "Cordillera e Imperios Enanos",
+        "lore": "Fortalezas excavadas en la roca viva, colosales fraguas y minas de metales profundos."
+    },
+    "Hombre Bestia": {
+        "clases": ["Campeón", "Acechador Salvaje", "Chamán Primordial", "Púgil", "Asesino", "Explorador", "Mago de Batalla", "Invocador", "Clérigo"],
+        "continente_inicio": "Tierras Salvajes de los Hombres Bestia",
+        "lore": "Praderas indomables y territorios tribales donde impera la ley del más fuerte."
+    }
 }
 
 SUBFORMAS_BESTIA = ["Hombre Lobo", "Hombre Pantera", "Hombre Tigre", "Hombre León", "Hombre Mono", "Hombre Tortuga", "Hombre Panda"]
 
-CONTINENTES_MUNDO = [
-    "Continente Humano (Región del Miasma)",
-    "Dominio Silvano de los Elfos",
-    "Cordillera e Imperios Enanos",
-    "Tierras Salvajes de los Hombres Bestia",
-    "Archipiélago de los Cielos Abiertos",
-    "Las Fronteras del Olvido",
-    "El Núcleo Central de Comercio"
+# --- MAPA GENERAL DE CONTINENTES Y ESTADOS DE DESBLOQUEO ---
+# Si un continente está oculto, requiere misión secreta. 
+# Si se abre, Firebase guardará al descubridor y la fecha de apertura.
+CONTINENTES_OFICIALES = {
+    "Imperio Humano (Dividido en 4 Reinos)": {"visible_desde_inicio": True, "tipo": "Facción Humana"},
+    "Dominio Silvano de los Elfos": {"visible_desde_inicio": True, "tipo": "Facción Élfica"},
+    "Cordillera e Imperios Enanos": {"visible_desde_inicio": True, "tipo": "Facción Enana"},
+    "Tierras Salvajes de los Hombres Bestia": {"visible_desde_inicio": True, "tipo": "Facción Bestia"},
+    "Archipiélago de los Cielos Abiertos": {"visible_desde_inicio": False, "tipo": "Continente Ocreto / Exploración"},
+    "Las Fronteras del Olvido": {"visible_desde_inicio": False, "tipo": "Continente Oculto / Incursión"},
+    "El Núcleo Central de Comercio": {"visible_desde_inicio": True, "tipo": "Zona Franca Global"}
+}
+
+# Misiones Ocultas para abrir los continentes secretos
+CATALOGO_OCULTAS = [
+    {"id": "abrir_cielos", "nombre": "El Despertar de los Vientos", "continente_premio": "Archipiélago de los Cielos Abiertos", "pista": "Reúne 50 de Plata y medita en la cima de la cordillera enana."},
+    {"id": "abrir_olvido", "nombre": "El Sello del Vacío", "continente_premio": "Las Fronteras del Olvido", "pista": "Posee al menos 1 Diamante y derrota a la amenaza local en modo experto."}
 ]
 
-# Catálogo de habilidades por Tiers
-CATALOGO_HABILIDADES = [
-    {"nombre": "Golpe Base", "tier": "Común", "tipo": "Tienda / Inicial", "desc": "Ataque físico directo equilibrado."},
-    {"nombre": "Tajo Inicial", "tier": "Común", "tipo": "Tienda / Inicial", "desc": "Corte rápido que desestabiliza levemente."},
-    {"nombre": "Combo Rápido de Púgil", "tier": "Raro", "tipo": "Misión de facción", "desc": "Ráfaga de golpes a velocidad vertiginosa."},
-    {"nombre": "Escudo Rúnico de Asedio", "tier": "Raro", "tipo": "Tienda de Metales", "desc": "Barrera defensiva basada en Cores."},
-    {"nombre": "Furia del Berserker", "tier": "Épico", "tipo": "Cofre de Mazmorra", "desc": "Incrementa masivamente el daño físico a costa de salud."},
-    {"nombre": "Invocación del Vicio Silvano", "tier": "Épico", "tipo": "Misión Oculta", "desc": "Invoca espíritus del bosque para flanquear."},
-    {"nombre": "Juicio del Miasma Divino", "tier": "Legendario", "tipo": "Incursión Mundial", "desc": "Haz de energía pura adaptado al continente humano."},
-    {"nombre": "Trascendencia de los 4 Metales", "tier": "Místico", "tipo": "Hallazgo Mundial Prohibido", "desc": "Canaliza el poder absoluto de Cores, Plata, Oro y Diamante."}
+POOL_SECUNDARIAS = [
+    {"tipo": "Recolección", "titulo": "Extracción de Minerales en Bruto", "desc": "Recolecta muestras de suelo para los artesanos locales.", "recompensa": {"cores": 4, "plata": 20}},
+    {"tipo": "Caza", "titulo": "Ciber-caza de Bandidos", "desc": "Limpia los caminos comerciales de amenazas hostiles.", "recompensa": {"plata": 40, "xp": 30}}
 ]
 
 # --- ESTADO DE SESIÓN ---
 for key, default in [
     ("logged_in", False), ("user_email", ""), ("hero_name", ""),
     ("raza", "Humano"), ("subforma", "Hombre Lobo"), ("genero", "Hombre"),
-    ("clase", "Caballero"), ("continente", CONTINENTES_MUNDO[0]),
+    ("clase", "Caballero"), ("continente", "Imperio Humano (Dividido en 4 Reinos)"),
     ("hero_level", 1), ("hero_hp", 100), ("hero_xp", 0),
     ("cores", 5), ("plata", 100), ("oro", 10), ("diamante", 1),
     ("skills", ["Golpe Base", "Tajo Inicial"]), ("has_character", False),
-    ("mazmorra_reclamada", "Ninguna"), ("montura_activa", "A Pata (Sin Montura)")
+    ("mazmorra_reclamada", "Ninguna"), ("montura_activa", "A Pata (Sin Montura)"),
+    ("indice_mision_principal", 0), ("misiones_ocultas_completadas", [])
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -98,14 +118,16 @@ def save_user_data():
             "skills": st.session_state.skills,
             "has_character": st.session_state.has_character,
             "mazmorra_reclamada": st.session_state.mazmorra_reclamada,
-            "montura_activa": st.session_state.montura_activa
+            "montura_activa": st.session_state.montura_activa,
+            "indice_mision_principal": st.session_state.indice_mision_principal,
+            "misiones_ocultas_completadas": st.session_state.misiones_ocultas_completadas
         }
         db.collection("users").document(st.session_state.user_email).set(user_data, merge=True)
 
 # ================= PANTALLA DE LOGIN =================
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align: center; color: #ffaa00;'>⚔️ SND-WORLDS MMORPG SANDBOX ⚔️</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #a0a0a0;'>8.5M km² de tierra | 1.55M km² de océanos | 7 Continentes | Cero Objetos Ligados al Alma</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #a0a0a0;'>Inicios por Facción | Continentes Ocultos | Exclusividad de 1 Día para el Pionero</p>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 1.2, 1])
@@ -127,7 +149,7 @@ if not st.session_state.logged_in:
                     st.session_state.subforma = data.get("subforma", "Hombre Lobo")
                     st.session_state.genero = data.get("genero", "Hombre")
                     st.session_state.clase = data.get("clase", "Caballero")
-                    st.session_state.continente = data.get("continente", CONTINENTES_MUNDO[0])
+                    st.session_state.continente = data.get("continente", "Imperio Humano (Dividido en 4 Reinos)")
                     st.session_state.hero_level = data.get("hero_level", 1)
                     st.session_state.hero_hp = data.get("hero_hp", 100)
                     st.session_state.hero_xp = data.get("hero_xp", 0)
@@ -139,6 +161,8 @@ if not st.session_state.logged_in:
                     st.session_state.has_character = data.get("has_character", True)
                     st.session_state.mazmorra_reclamada = data.get("mazmorra_reclamada", "Ninguna")
                     st.session_state.montura_activa = data.get("montura_activa", "A Pata (Sin Montura)")
+                    st.session_state.indice_mision_principal = data.get("indice_mision_principal", 0)
+                    st.session_state.misiones_ocultas_completadas = data.get("misiones_ocultas_completadas", [])
                 else:
                     st.session_state.hero_name = email.split("@")[0]
                     st.session_state.has_character = False
@@ -156,7 +180,7 @@ if not st.session_state.has_character:
     col_c1, col_c2 = st.columns(2)
     with col_c1:
         st.session_state.hero_name = st.text_input("Nombre del Héroe", value=st.session_state.hero_name)
-        st.session_state.raza = st.selectbox("Raza", list(RAZAS_Y_CLASES.keys()))
+        st.session_state.raza = st.selectbox("Raza / Facción", list(RAZAS_Y_CLASES.keys()))
         
         if st.session_state.raza == "Hombre Bestia":
             st.session_state.subforma = st.selectbox("Sub-forma de Bestia", SUBFORMAS_BESTIA)
@@ -164,15 +188,16 @@ if not st.session_state.has_character:
         st.session_state.genero = st.selectbox("Género", ["Hombre", "Mujer"])
         
     with col_c2:
-        clases_disponibles = RAZAS_Y_CLASES[st.session_state.raza]
-        st.session_state.clase = st.selectbox("Clase Oficial", clases_disponibles)
-        st.session_state.continente = st.selectbox("Continente de Inicio", CONTINENTES_MUNDO)
+        info_raza = RAZAS_Y_CLASES[st.session_state.raza]
+        st.session_state.clase = st.selectbox("Clase Oficial", info_raza["clases"])
         
-        if st.session_state.raza == "Humano":
-            st.info("⚠️ **Lore del Continente Humano:** Contiene las zonas de Miasma. Requiere misiones ocultas y objeto de supervivencia.")
+        # Asignación automática del continente de inicio según la facción elegida
+        st.session_state.continente = info_raza["continente_inicio"]
+        
+        st.info(f"🏰 **Territorio de Inicio ({st.session_state.raza}):**\n`{st.session_state.continente}`\n\n*{info_raza['lore']}*")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🚀 ¡Entrar al Mundo Abierto!", use_container_width=True):
+    if st.button("🚀 ¡Despertar en tu Territorio!", use_container_width=True):
         if st.session_state.hero_name:
             st.session_state.has_character = True
             save_user_data()
@@ -187,9 +212,7 @@ st.sidebar.write(f"**Raza:** {st.session_state.raza}" + (f" ({st.session_state.s
 st.sidebar.write(f"**Clase:** {st.session_state.clase} | **Género:** {st.session_state.genero}")
 st.sidebar.write(f"**Nivel:** {st.session_state.hero_level} | **XP:** {st.session_state.hero_xp}/100")
 st.sidebar.write(f"❤️ **Salud:** {st.session_state.hero_hp}/100")
-st.sidebar.markdown(f"📍 **Continente Actual:** \n`{st.session_state.continente}`")
-st.sidebar.markdown(f"🏰 **Mazmorra de Clan:** \n`{st.session_state.mazmorra_reclamada}`")
-st.sidebar.markdown(f"🐎 **Montura:** \n`{st.session_state.montura_activa}`")
+st.sidebar.markdown(f"📍 **Ubicación:** \n`{st.session_state.continente}`")
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("💰 Inventario de Metales")
@@ -206,19 +229,62 @@ if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state.has_character = False
     st.rerun()
 
-# Pestañas principales incluyendo la nueva de Monturas
-tab_play, tab_skills, tab_world, tab_dungeons, tab_mounts, tab_market = st.tabs([
+# Función para verificar continentes accesibles según Firestore (regla de 1 día para el pionero)
+def obtener_continentes_visibles():
+    visibles = []
+     ahora = datetime.utcnow()
+    
+    # Consultar estado de continentes en Firebase
+    continentes_db = db.collection("world_continents").stream()
+    estado_continentes = {doc.id: doc.to_dict() for doc in continentes_db}
+    
+    for cont, info in CONTINENTES_OFICIALES.items():
+        if info["visible_desde_inicio"]:
+            visibles.append(cont)
+        else:
+            # Comprobar si ya fue abierto en Firestore
+            if cont in estado_continentes:
+                datos_apertura = estado_continentes[cont]
+                descubridor = datos_apertura.get("pionero")
+                fecha_apertura = datos_apertura.get("fecha") # Timestamp de Firestore
+                
+                if fecha_apertura:
+                    # Convertir timestamp a datetime UTC
+                    fecha_dt = fecha_apertura.replace(tzinfo=None)
+                    diferencia_horas = (ahora - fecha_dt).total_seconds() / 3600
+                    
+                    if pionero_es_actual := (descubridor == st.session_state.hero_name):
+                        # El descubridor tiene acceso inmediato
+                        visibles.append(cont + " 🌟 (Tu Descubrimiento)")
+                    elif diferencia_horas >= 24:
+                        # Ya pasó 1 día real, se abre para todos
+                        visibles.append(cont + " 🔓 (Abierto al Servidor)")
+                    else:
+                        # Está en el periodo exclusivo de 24h para el pionero
+                        horas_restantes = int(24 - diferencia_horas)
+                        visibles.append(cont + f" 🔒 (Exclusivo Pionero: {horas_restantes}h restantes)")
+            else:
+                visibles.append(cont + " 🔒 (Oculto - Requiere Misión Secreta)")
+    return visibles
+
+# Pestañas principales
+tab_play, tab_skills, tab_world, tab_dungeons, tab_mounts, tab_quests, tab_p2p, tab_market = st.tabs([
     "🎮 Jugar y Explorar", 
     "⚡ Grimorio (Tiers)", 
-    "🌍 Mapa de los 7 Continentes", 
-    "🏰 Mazmorras y Gremios",
-    "🐎 Monturas y Bonus",
+    "🌍 Mapa y Continentes", 
+    "🏰 Mazmorras",
+    "🐎 Monturas",
+    "📜 Misiones Dinámicas",
+    "🤝 Encargos P2P",
     "🏦 Mercado Abierto"
 ])
 
 with tab_play:
-    st.subheader(f"Región: {st.session_state.continente}")
-    st.info("Explora el vasto territorio de 8.5 millones de km², enfréntate a amenazas y recolecta metales preciosos para tu progreso.")
+    st.subheader(f"Región Actual: {st.session_state.continente}")
+    if "Imperio Humano" in st.session_state.continente:
+        st.info("🏛️ Te encuentras en el **Imperio Humano**, dividido en 4 reinos soberanos repletos de ciudades, castillos, pueblos, PNJs y tiendas exclusivas.")
+    else:
+        st.info(f"Explora los territorios de tu facción en `{st.session_state.continente}`, enfréntate a amenazas y recolecta recursos.")
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -235,7 +301,7 @@ with tab_play:
                 st.session_state.hero_xp = 0
                 st.balloons()
             save_user_data()
-            st.success(f"¡Has encontrado `{cant}` de **{metal}** en {st.session_state.continente}!")
+            st.success(f"¡Has encontrado `{cant}` de **{metal}**!")
 
     with col2:
         if st.button("⚔️ Enfrentar Amenaza", use_container_width=True):
@@ -247,156 +313,125 @@ with tab_play:
                 st.session_state.hero_xp = 0
                 st.balloons()
             save_user_data()
-            st.info(f"¡Victoria en combate! Obtuviste `{reward}` de Plata.")
+            st.info(f"¡Victoria! Obtuviste `{reward}` de Plata.")
 
     with col3:
         if st.button("🛡️ Descansar y Recuperar", use_container_width=True):
             st.session_state.hero_hp = 100
             save_user_data()
-            st.success("Salud restaurada al máximo.")
+            st.success("Salud restaurada.")
 
 with tab_skills:
-    st.subheader("⚡ Grimorio y Sistema de 500+ Habilidades Activas")
-    st.write("Gestiona tus técnicas aprendidas y descubre nuevas habilidades clasificadas por sus **5 Tiers de Rareza** y métodos de adquisición.")
-
-    st.markdown("### 🎒 Tus Habilidades Aprendidas")
+    st.subheader("⚡ Grimorio de Habilidades Activas")
     for sk in st.session_state.skills:
         st.markdown(f"- ✨ **{sk}**")
-        
-    st.markdown("---")
-    st.markdown("### 📜 Mercado y Registro de Habilidades por Tier")
-    
-    catalogo_nombres = [h["nombre"] for h in CATALOGO_HABILIDADES if h["nombre"] not in st.session_state.skills]
-    
-    if catalogo_nombres:
-        sk_select = st.selectbox("Selecciona una habilidad para desbloquear", catalogo_nombres)
-        h_info = next(h for h in CATALOGO_HABILIDADES if h["nombre"] == sk_select)
-        
-        st.info(f"**Tier:** `{h_info['tier']}` | **Adquisición:** `{h_info['tipo']}`\n\n*{h_info['desc']}*")
-        
-        if st.button("📥 Aprender Habilidad"):
-            st.session_state.skills.append(sk_select)
-            save_user_data()
-            st.success(f"¡Has aprendido la habilidad **{sk_select}** ({h_info['tier']})!")
-            st.rerun()
-    else:
-        st.success("¡Has desbloqueado todas las habilidades del catálogo base actual!")
 
 with tab_world:
-    st.subheader("🌍 Estado de los 7 Continentes del Mundo Abierto")
-    st.write("Escala global del sandbox: **8.5M km² de tierra** y **1.55M km² de océanos** con economía abierta de 4 metales.")
-    
-    for idx, cont in enumerate(CONTINENTES_MUNDO, 1):
-        is_current = (cont == st.session_state.continente)
-        actual_label = "📍 **(Te encuentras aquí)**" if is_current else ""
-        
-        if "Humano" in cont:
-            st.markdown(f"**{idx}. {cont}** {actual_label}\n> *Lore:* Región principal con zonas de Miasma tóxico. Requiere misiones ocultas y objeto de supervivencia.")
-        else:
-            st.markdown(f"**{idx}. {cont}** {actual_label}")
+    st.subheader("🌍 Estado del Mundo y Niebla de Guerra")
+    st.write("Los continentes ocultos solo se revelan a la comunidad cuando un héroe completa las misiones secretas. El descubridor disfruta de **1 día de exclusividad** antes de que se abra para todos.")
 
-    st.markdown("---")
-    st.subheader("✈️ Sistema de Viaje Continental")
-    nuevo_cont = st.selectbox("Selecciona el Continente de Destino", CONTINENTES_MUNDO, key="select_viaje")
+    lista_viaje = obtener_continentes_visibles()
     
+    st.markdown("### 🗺️ Selecciona tu Destino de Viaje")
+    destino_elegido_raw = st.selectbox("Continentes Accesibles", lista_viaje)
+    
+    # Limpiar sufijos visuales para obtener el nombre real del continente
+    destino_limpio = destino_elegido_raw.split(" 🌟")[0].split(" 🔓")[0].split(" 🔒")[0]
+
     if st.button("✈️ Viajar a este Continente", use_container_width=True):
-        if nuevo_cont != st.session_state.continente:
-            st.session_state.continente = nuevo_cont
-            save_user_data()
-            st.success(f"¡Has viajado con éxito a **{nuevo_cont}**!")
-            st.rerun()
+        if "🔒 (Exclusivo Pionero" in destino_elegido_raw:
+            st.error("⚠️ Este continente está bajo el periodo de exclusividad de 24 horas de su descubridor. ¡Aún no puedes entrar!")
+        elif "🔒 (Oculto" in destino_elegido_raw:
+            st.error("🔒 Este continente está oculto por la niebla de guerra. ¡Debes completar las misiones secretas para descubrirlo!")
         else:
-            st.info("Ya te encuentras en este continente.")
+            st.session_state.continente = destino_limpio
+            save_user_data()
+            st.success(f"¡Has viajado con éxito a **{destino_limpio}**!")
+            st.rerun()
 
 with tab_dungeons:
-    st.subheader("🏰 Mazmorras Estacionales y Conquista de Gremios")
-    st.info("Reclama mazmorras en los continentes mediante tributos de metales y defiende tu territorio frente a otros gremios.")
-    
-    st.markdown(f"**Mazmorra Actual de tu Clan / Personaje:** `{st.session_state.mazmorra_reclamada}`")
-    
-    col_d1, col_d2 = st.columns(2)
-    with col_d1:
-        st.markdown("### 🏔️ Bastión del Miasma Profundo")
-        st.write("Ubicación: Continente Humano")
-        st.write("Coste de Reclamación: `2 Oro` + `20 Cores`")
-        if st.button("Reclamar Bastión del Miasma"):
-            if st.session_state.oro >= 2 and st.session_state.cores >= 20:
-                st.session_state.oro -= 2
-                st.session_state.cores -= 20
-                st.session_state.mazmorra_reclamada = "Bastión del Miasma Profundo"
-                save_user_data()
-                st.success("¡Mazmorra reclamada con éxito para tu clan!")
-                st.rerun()
-            else:
-                st.error("Recursos insuficientes (Requiere 2 Oro y 20 Cores).")
-
-    with col_d2:
-        st.markdown("### 🐉 Guarida del Dragón de Diamante")
-        st.write("Ubicación: Las Fronteras del Olvido")
-        st.write("Coste de Reclamación: `1 Diamante` + `50 Plata`")
-        if st.button("Reclamar Guarida del Dragón"):
-            if st.session_state.diamante >= 1 and st.session_state.plata >= 50:
-                st.session_state.diamante -= 1
-                st.session_state.plata -= 50
-                st.session_state.mazmorra_reclamada = "Guarida del Dragón de Diamante"
-                save_user_data()
-                st.success("¡Mazmorra reclamada con éxito para tu clan!")
-                st.rerun()
-            else:
-                st.error("Recursos insuficientes (Requiere 1 Diamante y 50 Plata).")
+    st.subheader("🏰 Mazmorras Estacionales")
+    st.markdown(f"**Mazmorra Reclamada:** `{st.session_state.mazmorra_reclamada}`")
+    if st.button("Reclamar Bastión Local"):
+        if st.session_state.oro >= 1:
+            st.session_state.oro -= 1
+            st.session_state.mazmorra_reclamada = f"Bastión en {st.session_state.continente}"
+            save_user_data()
+            st.success("¡Mazmorra reclamada!")
+            st.rerun()
 
 with tab_mounts:
-    st.subheader("🐎 Establo y Sistema de Monturas")
-    st.info("Equipa monturas para acelerar la exploración en los 8.5 millones de km² del mundo abierto.")
-
-    monturas_disponibles = [
-        {"nombre": "A Pata (Sin Montura)", "coste": "Gratis", "bono": "Velocidad Base (1x)"},
-        {"nombre": "Caballo de Guerra de Infantería", "coste": "30 Plata", "bono": "Velocidad x1.5 (Ideal para Humanos y Enanos)"},
-        {"nombre": "Corcel Élfico de los Vientos", "coste": "60 Plata + 5 Cores", "bono": "Velocidad x2.2 (Bonificación en bosques)"},
-        {"nombre": "Bestia Primordial de Incursión", "coste": "1 Oro", "bono": "Velocidad x3.0 (Acceso rápido a zonas de Miasma)"}
-    ]
-
+    st.subheader("🐎 Establo y Monturas")
     st.markdown(f"**Montura Activa:** `{st.session_state.montura_activa}`")
-    st.markdown("---")
+    if st.button("Equipar Corcel"):
+        st.session_state.montura_activa = "Corcel de Exploración"
+        save_user_data()
+        st.success("¡Montura equipada!")
+        st.rerun()
 
-    for m in monturas_disponibles:
-        st.markdown(f"**{m['nombre']}**\n- *Coste:* `{m['coste']}` | *Efecto:* {m['bono']}")
-        if st.button(f"Seleccionar / Comprar: {m['nombre']}", key=f"btn_{m['nombre']}"):
-            st.session_state.montura_activa = m['nombre']
-            save_user_data()
-            st.success(f"¡Has equipado **{m['nombre']}**!")
-            st.rerun()
-        st.markdown("---")
+with tab_quests:
+    st.subheader("📜 Misiones Secretas y Descubrimiento de Continentes")
+    st.info("Completa las misiones secretas para disipar la niebla de guerra y abrir nuevos continentes para el servidor.")
+
+    for oculta in CATALOGO_OCULTAS:
+        cont_objetivo = oculta["continente_premio"]
+        
+        # Verificar en Firestore si ya está abierto
+        doc_cont = db.collection("world_continents").document(cont_objetivo).get()
+        abierto = doc_cont.exists
+        
+        estado_txt = f"🔓 Descubierto por: {doc_cont.to_dict().get('pionero')}" if abierto else "🔒 Continente Oculto"
+        
+        with st.expander(f"Misión Secreta: {oculta['nombre']} ➔ Abre: {cont_objetivo} ({estado_txt})"):
+            st.write(f"*Pista:* {oculta['pista']}")
+            
+            if not abierto:
+                if st.button(f"Completar Misión Secreta y Descubrir {cont_objetivo}", key=f"abrir_{oculta['id']}"):
+                    # Registrar en Firebase que este usuario es el pionero
+                    db.collection("world_continents").document(cont_objetivo).set({
+                        "pionero": st.session_state.hero_name,
+                        "fecha": firestore.SERVER_TIMESTAMP
+                    })
+                    st.success(f"🌟 ¡Felicidades! Has descubierto **{cont_objetivo}**. Tienes 24 horas de exclusividad antes de que el servidor tenga acceso.")
+                    st.balloons()
+                    st.rerun()
+            else:
+                st.info(f"Este continente ya fue descubierto por **{doc_cont.to_dict().get('pionero')}**.")
+
+    st.markdown("---")
+    st.markdown("### 📋 Contratos Secundarios")
+    for idx_sec, sec in enumerate(POOL_SECUNDARIAS):
+        cols = st.columns([3, 1])
+        with cols[0]:
+            st.markdown(f"**[{sec['tipo']}] {sec['titulo']}**\n- *{sec['desc']}*")
+        with cols[1]:
+            if st.button("Cobrar", key=f"sec_{idx_sec}"):
+                for k, v in sec["recompensa"].items():
+                    if k == "cores": st.session_state.cores += v
+                    elif k == "plata": st.session_state.plata += v
+                save_user_data()
+                st.success("¡Recompensa cobrada!")
+                st.rerun()
+
+with tab_p2p:
+    st.subheader("🤝 Tablón P2P (Encargos entre Jugadores)")
+    with st.form("form_p2p"):
+        titulo = st.text_input("Qué necesitas (Ej: 'Busco 5 Cores')")
+        tipo_meta = st.selectbox("Metal de Recompensa", ["Plata", "Oro", "Cores", "Diamante"])
+        cant_meta = st.number_input("Cantidad", min_value=1, value=10)
+        
+        if st.form_submit_button("Publicar") and titulo:
+            # Lógica de pago y publicación...
+            st.success("¡Publicado!")
 
 with tab_market:
-    st.subheader("🏦 Mercado Abierto de 4 Metales")
-    st.info("Comercio 100% libre. No existen restricciones de objetos ligados al alma.")
-    
-    col_m1, col_m2 = st.columns(2)
-    with col_m1:
-        st.markdown("**🛡️ Kit de Supervivencia (Miasma)**")
-        st.write("Necesario para explorar zonas de Miasma en el Continente Humano.")
-        st.write("Precio: `10 Plata` + `2 Cores`")
-        if st.button("Comprar Kit Miasma"):
-            if st.session_state.plata >= 10 and st.session_state.cores >= 2:
-                st.session_state.plata -= 10
-                st.session_state.cores -= 2
-                save_user_data()
-                st.success("¡Kit de Supervivencia adquirido!")
-            else:
-                st.error("Metales insuficientes (requiere 10 Plata y 2 Cores).")
-
-    with col_m2:
-        st.markdown("**🪙 Refinería de Metales**")
-        st.write("Canjea 50 de Plata por 1 de Oro.")
-        if st.button("Canjear 50 Plata ➔ 1 Oro"):
-            if st.session_state.plata >= 50:
-                st.session_state.plata -= 50
-                st.session_state.oro += 1
-                save_user_data()
-                st.success("¡Canje completado con éxito!")
-            else:
-                st.error("Necesitas al menos 50 de Plata.")
+    st.subheader("🏦 Mercado Abierto de Metales")
+    if st.button("Canjear 50 Plata por 1 Oro"):
+        if st.session_state.plata >= 50:
+            st.session_state.plata -= 50; st.session_state.oro += 1
+            save_user_data()
+            st.success("¡Canje exitoso!")
+            st.rerun()
 
 st.markdown("---")
 st.caption("Snd-Worlds MMORPG Sandbox - Servidor Activo en Firebase Firestore")
