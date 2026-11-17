@@ -34,7 +34,7 @@ except Exception as e:
     st.error(f"Error crítico al conectar con Firebase: {e}")
     st.stop()
 
-# --- ESTRUCTURA OFICIAL DE CLASES Y RAZAS ---
+# --- ESTRUCTURA OFICIAL DE CLASES, RAZAS Y HABILIDADES POR TIERS ---
 RAZAS_Y_CLASES = {
     "Humano": ["Caballero", "Paladín", "Mago de Batalla", "Púgil", "Asesino", "Explorador", "Invocador", "Clérigo"],
     "Elfo": ["Guardabosques", "Alcaide", "Druida", "Espadachín Silvano", "Monje del Viento", "Acechador Nocturno", "Mago de Batalla", "Invocador"],
@@ -52,6 +52,18 @@ CONTINENTES_MUNDO = [
     "Archipiélago de los Cielos Abiertos",
     "Las Fronteras del Olvido",
     "El Núcleo Central de Comercio"
+]
+
+# Base de datos simulada de habilidades de los 500+ activos distribuidos por Tiers y Adquisición
+CATALOGO_HABILIDADES = [
+    {"nombre": "Golpe Base", "tier": "Común", "tipo": "Tienda / Inicial", "desc": "Ataque físico directo equilibrado."},
+    {"nombre": "Tajo Inicial", "tier": "Común", "tipo": "Tienda / Inicial", "desc": "Corte rápido que desestabiliza levemente."},
+    {"nombre": "Combo Rápido de Púgil", "tier": "Raro", "tipo": "Misión de facción", "desc": "Ráfaga de golpes a velocidad vertiginosa."},
+    {"nombre": "Escudo Rúnico de Asedio", "tier": "Raro", "tipo": "Tienda de Metales", "desc": "Barrera defensiva basada en Cores."},
+    {"nombre": "Furia del Berserker", "tier": "Épico", "tipo": "Cofre de Mazmorra", "desc": "Incrementa masivamente el daño físico a costa de salud."},
+    {"nombre": "Invocación del Vicio Silvano", "tier": "Épico", "tipo": "Misión Oculta", "desc": "Invoca espíritus del bosque para flanquear."},
+    {"nombre": "Juicio del Miasma Divino", "tier": "Legendario", "tipo": "Incursión Mundial", "desc": "Haz de energía pura adaptado al continente humano."},
+    {"nombre": "Trascendencia de los 4 Metales", "tier": "Místico", "tipo": "Hallazgo Mundial Prohibido", "desc": "Canaliza el poder absoluto de Cores, Plata, Oro y Diamante."}
 ]
 
 # --- ESTADO DE SESIÓN ---
@@ -190,7 +202,7 @@ if st.sidebar.button("🚪 Cerrar Sesión"):
 # Pestañas principales
 tab_play, tab_skills, tab_world, tab_market = st.tabs([
     "🎮 Jugar y Explorar", 
-    "⚡ Habilidades", 
+    "⚡ Grimorio y Habilidades (Tiers)", 
     "🌍 Mapa de los 7 Continentes", 
     "🏦 Mercado Abierto"
 ])
@@ -235,19 +247,32 @@ with tab_play:
             st.success("Salud restaurada al máximo.")
 
 with tab_skills:
-    st.subheader("⚡ Grimorio de Habilidades")
-    st.write(f"Habilidades disponibles para tu clase **{st.session_state.clase}**:")
+    st.subheader("⚡ Grimorio y Sistema de 500+ Habilidades Activas")
+    st.write("Gestiona tus técnicas aprendidas y descubre nuevas habilidades clasificadas por sus **5 Tiers de Rareza** y métodos de adquisición.")
+
+    st.markdown("### 🎒 Tus Habilidades Aprendidas")
     for sk in st.session_state.skills:
-        st.markdown(f"- ✨ `{sk}`")
+        st.markdown(f"- ✨ **{sk}**")
         
     st.markdown("---")
-    new_sk = st.text_input("Aprender nueva habilidad o técnica oculta")
-    if st.button("Registrar en el Grimorio"):
-        if new_sk and new_sk not in st.session_state.skills:
-            st.session_state.skills.append(new_sk)
+    st.markdown("### 📜 Mercado y Registro de Habilidades por Tier")
+    
+    # Selector de habilidades del catálogo general para aprender
+    catalogo_nombres = [h["nombre"] for h in CATALOGO_HABILIDADES if h["nombre"] not in st.session_state.skills]
+    
+    if catalogo_nombres:
+        sk_select = st.selectbox("Selecciona una habilidad para desbloquear", catalogo_nombres)
+        h_info = next(h for h in CATALOGO_HABILIDADES if h["nombre"] == sk_select)
+        
+        st.info(f"**Tier:** `{h_info['tier']}` | **Adquisición:** `{h_info['tipo']}`\n\n*{h_info['desc']}*")
+        
+        if st.button("📥 Aprender Habilidad"):
+            st.session_state.skills.append(sk_select)
             save_user_data()
-            st.success(f"¡Técnica **{new_sk}** añadida con éxito!")
+            st.success(f"¡Has aprendido la habilidad **{sk_select}** ({h_info['tier']})!")
             st.rerun()
+    else:
+        st.success("¡Has desbloqueado todas las habilidades del catálogo base actual!")
 
 with tab_world:
     st.subheader("🌍 Estado de los 7 Continentes del Mundo Abierto")
