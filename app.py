@@ -54,7 +54,7 @@ CONTINENTES_MUNDO = [
     "El Núcleo Central de Comercio"
 ]
 
-# Base de datos simulada de habilidades de los 500+ activos distribuidos por Tiers y Adquisición
+# Catálogo de habilidades por Tiers
 CATALOGO_HABILIDADES = [
     {"nombre": "Golpe Base", "tier": "Común", "tipo": "Tienda / Inicial", "desc": "Ataque físico directo equilibrado."},
     {"nombre": "Tajo Inicial", "tier": "Común", "tipo": "Tienda / Inicial", "desc": "Corte rápido que desestabiliza levemente."},
@@ -73,7 +73,8 @@ for key, default in [
     ("clase", "Caballero"), ("continente", CONTINENTES_MUNDO[0]),
     ("hero_level", 1), ("hero_hp", 100), ("hero_xp", 0),
     ("cores", 5), ("plata", 100), ("oro", 10), ("diamante", 1),
-    ("skills", ["Golpe Base", "Tajo Inicial"]), ("has_character", False)
+    ("skills", ["Golpe Base", "Tajo Inicial"]), ("has_character", False),
+    ("mazmorra_reclamada", "Ninguna"), ("montura_activa", "A Pata (Sin Montura)")
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -95,7 +96,9 @@ def save_user_data():
             "oro": st.session_state.oro,
             "diamante": st.session_state.diamante,
             "skills": st.session_state.skills,
-            "has_character": st.session_state.has_character
+            "has_character": st.session_state.has_character,
+            "mazmorra_reclamada": st.session_state.mazmorra_reclamada,
+            "montura_activa": st.session_state.montura_activa
         }
         db.collection("users").document(st.session_state.user_email).set(user_data, merge=True)
 
@@ -134,6 +137,8 @@ if not st.session_state.logged_in:
                     st.session_state.diamante = data.get("diamante", 1)
                     st.session_state.skills = data.get("skills", ["Golpe Base"])
                     st.session_state.has_character = data.get("has_character", True)
+                    st.session_state.mazmorra_reclamada = data.get("mazmorra_reclamada", "Ninguna")
+                    st.session_state.montura_activa = data.get("montura_activa", "A Pata (Sin Montura)")
                 else:
                     st.session_state.hero_name = email.split("@")[0]
                     st.session_state.has_character = False
@@ -183,6 +188,8 @@ st.sidebar.write(f"**Clase:** {st.session_state.clase} | **Género:** {st.sessio
 st.sidebar.write(f"**Nivel:** {st.session_state.hero_level} | **XP:** {st.session_state.hero_xp}/100")
 st.sidebar.write(f"❤️ **Salud:** {st.session_state.hero_hp}/100")
 st.sidebar.markdown(f"📍 **Continente Actual:** \n`{st.session_state.continente}`")
+st.sidebar.markdown(f"🏰 **Mazmorra de Clan:** \n`{st.session_state.mazmorra_reclamada}`")
+st.sidebar.markdown(f"🐎 **Montura:** \n`{st.session_state.montura_activa}`")
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("💰 Inventario de Metales")
@@ -199,11 +206,13 @@ if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state.has_character = False
     st.rerun()
 
-# Pestañas principales
-tab_play, tab_skills, tab_world, tab_market = st.tabs([
+# Pestañas principales incluyendo la nueva de Monturas
+tab_play, tab_skills, tab_world, tab_dungeons, tab_mounts, tab_market = st.tabs([
     "🎮 Jugar y Explorar", 
-    "⚡ Grimorio y Habilidades (Tiers)", 
+    "⚡ Grimorio (Tiers)", 
     "🌍 Mapa de los 7 Continentes", 
+    "🏰 Mazmorras y Gremios",
+    "🐎 Monturas y Bonus",
     "🏦 Mercado Abierto"
 ])
 
@@ -257,7 +266,6 @@ with tab_skills:
     st.markdown("---")
     st.markdown("### 📜 Mercado y Registro de Habilidades por Tier")
     
-    # Selector de habilidades del catálogo general para aprender
     catalogo_nombres = [h["nombre"] for h in CATALOGO_HABILIDADES if h["nombre"] not in st.session_state.skills]
     
     if catalogo_nombres:
@@ -299,6 +307,66 @@ with tab_world:
             st.rerun()
         else:
             st.info("Ya te encuentras en este continente.")
+
+with tab_dungeons:
+    st.subheader("🏰 Mazmorras Estacionales y Conquista de Gremios")
+    st.info("Reclama mazmorras en los continentes mediante tributos de metales y defiende tu territorio frente a otros gremios.")
+    
+    st.markdown(f"**Mazmorra Actual de tu Clan / Personaje:** `{st.session_state.mazmorra_reclamada}`")
+    
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
+        st.markdown("### 🏔️ Bastión del Miasma Profundo")
+        st.write("Ubicación: Continente Humano")
+        st.write("Coste de Reclamación: `2 Oro` + `20 Cores`")
+        if st.button("Reclamar Bastión del Miasma"):
+            if st.session_state.oro >= 2 and st.session_state.cores >= 20:
+                st.session_state.oro -= 2
+                st.session_state.cores -= 20
+                st.session_state.mazmorra_reclamada = "Bastión del Miasma Profundo"
+                save_user_data()
+                st.success("¡Mazmorra reclamada con éxito para tu clan!")
+                st.rerun()
+            else:
+                st.error("Recursos insuficientes (Requiere 2 Oro y 20 Cores).")
+
+    with col_d2:
+        st.markdown("### 🐉 Guarida del Dragón de Diamante")
+        st.write("Ubicación: Las Fronteras del Olvido")
+        st.write("Coste de Reclamación: `1 Diamante` + `50 Plata`")
+        if st.button("Reclamar Guarida del Dragón"):
+            if st.session_state.diamante >= 1 and st.session_state.plata >= 50:
+                st.session_state.diamante -= 1
+                st.session_state.plata -= 50
+                st.session_state.mazmorra_reclamada = "Guarida del Dragón de Diamante"
+                save_user_data()
+                st.success("¡Mazmorra reclamada con éxito para tu clan!")
+                st.rerun()
+            else:
+                st.error("Recursos insuficientes (Requiere 1 Diamante y 50 Plata).")
+
+with tab_mounts:
+    st.subheader("🐎 Establo y Sistema de Monturas")
+    st.info("Equipa monturas para acelerar la exploración en los 8.5 millones de km² del mundo abierto.")
+
+    monturas_disponibles = [
+        {"nombre": "A Pata (Sin Montura)", "coste": "Gratis", "bono": "Velocidad Base (1x)"},
+        {"nombre": "Caballo de Guerra de Infantería", "coste": "30 Plata", "bono": "Velocidad x1.5 (Ideal para Humanos y Enanos)"},
+        {"nombre": "Corcel Élfico de los Vientos", "coste": "60 Plata + 5 Cores", "bono": "Velocidad x2.2 (Bonificación en bosques)"},
+        {"nombre": "Bestia Primordial de Incursión", "coste": "1 Oro", "bono": "Velocidad x3.0 (Acceso rápido a zonas de Miasma)"}
+    ]
+
+    st.markdown(f"**Montura Activa:** `{st.session_state.montura_activa}`")
+    st.markdown("---")
+
+    for m in monturas_disponibles:
+        st.markdown(f"**{m['nombre']}**\n- *Coste:* `{m['coste']}` | *Efecto:* {m['bono']}")
+        if st.button(f"Seleccionar / Comprar: {m['nombre']}", key=f"btn_{m['nombre']}"):
+            st.session_state.montura_activa = m['nombre']
+            save_user_data()
+            st.success(f"¡Has equipado **{m['nombre']}**!")
+            st.rerun()
+        st.markdown("---")
 
 with tab_market:
     st.subheader("🏦 Mercado Abierto de 4 Metales")
