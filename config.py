@@ -18,43 +18,23 @@ DATOS_MUNDO = {
                 "Puertas del Eón",
                 "Archipiélago y Mazmorras del Mar Abierto"
             ]
-        },
-        {
-            "nombre": "Continente II: Tierras de Raid y Santuarios Superiores",
-            "niveles": "101 - 250",
-            "zonas": ["Santuario Celestial", "Abismo Demoníaco", "Islas Brumas del Dragón"]
         }
     ],
     "clases_personaje": [
-        {"nombre": "Púgil", "rol": "Combate cuerpo a cuerpo / Artes marciales a tiempo real", "ataque_base": "Físico"},
-        {"nombre": "Guerrero", "rol": "Tanque / Armaduras pesadas y espada", "ataque_base": "Físico"},
-        {"nombre": "Mago", "rol": "Daño mágico a distancia / Hechizos", "ataque_base": "Mágico"},
-        {"nombre": "Asesino", "rol": "Agilidad / Críticos y sigilo", "ataque_base": "Físico"}
+        {"nombre": "Púgil", "rol": "Combate cuerpo a cuerpo / Artes marciales", "ataque_base": "Físico"},
+        {"nombre": "Guerrero", "rol": "Tanque / Armaduras pesadas", "ataque_base": "Físico"},
+        {"nombre": "Mago", "rol": "Daño mágico a distancia", "ataque_base": "Mágico"},
+        {"nombre": "Asesino", "rol": "Agilidad y sigilo", "ataque_base": "Físico"}
     ],
+    "opciones_personalizacion": {
+        "cabello": ["Rubio Legendario", "Castaño Oscuro", "Pelirrojo Fuego", "Platino Arcano", "Negro Sombra"],
+        "armadura_color": ["Azul Real (Valoria)", "Rojo Sangre", "Verde Esmeralda", "Dorado Divino", "Oscuro Abisal"],
+        "casco": ["Diadema de Oro", "Casco con Cuernos", "Capucha de Asesino", "Ninguno (Cabello al aire)"]
+    },
     "monturas_disponibles": [
-        {
-            "nombre": "A Pie (Velocidad Base)", 
-            "bonus_velocidad": 1.0, 
-            "coste": 0, 
-            "requisito": "Ninguno (Por defecto)"
-        },
-        {
-            "nombre": "Caballo de Guerra Blindado", 
-            "bonus_velocidad": 1.6, 
-            "coste": 2500, 
-            "requisito": "Nivel 25 + Reputación en Aurelia Capital"
-        },
-        {
-            "nombre": "Lobo Huargo del Norte", 
-            "bonus_velocidad": 1.9, 
-            "coste": 6000, 
-            "requisito": "Completar Misión de Caza en el Bosque Ancestral"
-        },
-        {
-            "nombre": "Grifo de los Cielos (Vuelo)", 
-            "bonus_velocidad": 2.5, 
-            "coste": 25000, 
-            "requisito": "Nivel 80 + Misión Mítica de las Puertas del Eón"
-        }
+        {"nombre": "A Pie (Velocidad Base)", "bonus_velocidad": 1.0, "coste": 0, "requisito": "Ninguno"},
+        {"nombre": "Caballo de Guerra Blindado", "bonus_velocidad": 1.6, "coste": 2500, "requisito": "Nivel 25"},
+        {"nombre": "Lobo Huargo del Norte", "bonus_velocidad": 1.9, "coste": 6000, "requisito": "Nivel 50"},
+        {"nombre": "Grifo de los Cielos (Vuelo)", "bonus_velocidad": 2.5, "coste": 25000, "requisito": "Nivel 80"}
     ]
 }
