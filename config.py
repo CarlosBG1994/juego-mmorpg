@@ -3,9 +3,10 @@
 DATOS_MUNDO = {
     "nombre_mundo": "Snd-Worlds (Guerra de los Eones)",
     "superficie_km2": 1500000,
-    "escala_niveles": "1 - 100 (Continente I: Reinos Fundacionales y Zonas Neutras)",
+    "escala_niveles": "1 - 300+ (Sistema Multicontinente)",
     "continentes": [
         {
+            "id": "c1",
             "nombre": "Continente I: Reinos Fundacionales y Zonas Neutras",
             "niveles": "1 - 100",
             "reinos": [
@@ -18,6 +19,25 @@ DATOS_MUNDO = {
                 "Puertas del Eón",
                 "Archipiélago y Mazmorras del Mar Abierto"
             ]
+        },
+        {
+            "id": "c2",
+            "nombre": "Continente II: Tierras de Ceniza y Abismos Antiguos",
+            "niveles": "101 - 200",
+            "reinos": [
+                {"nombre": "Desierto de Obsidiana", "niveles": "101 - 130", "capital": "Ciudadela del Sol Negro"},
+                {"nombre": "Cavernas del Dragón", "niveles": "131 - 160", "capital": "Guarida de Escamas"}
+            ],
+            "zonas_neutras": ["Fosas Abisales del Titán", "Picos de los Vientos Eternos"]
+        },
+        {
+            "id": "c3",
+            "nombre": "Continente III: El Dominio Celestial y Grietas del Vacío",
+            "niveles": "201 - 300",
+            "reinos": [
+                {"nombre": "Santuario Estelar", "niveles": "201 - 250", "capital": "Catedral del Creador"}
+            ],
+            "zonas_neutras": ["Grieta Cuántica del Eón"]
         }
     ],
     "clases_personaje": [
