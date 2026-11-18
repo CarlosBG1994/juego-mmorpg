@@ -357,4 +357,3 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
         </script>
     </body>
     </html>
-    """
