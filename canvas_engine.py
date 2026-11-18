@@ -1,4 +1,4 @@
-# --- MOTOR HTML5 / JS CANVAS — MMORPG 2D CON NPCs PLEBEYOS, MISIONES OCULTAS Y OBJETOS MÍTICOS ---
+# --- MOTOR HTML5 / JS CANVAS — MMORPG 2D DEFINITIVO (COMBATE ACTIVO, MAR, ARCHIPIÉLAGOS Y MAZMORRAS) ---
 
 def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
     mobs_js_data = []
@@ -8,8 +8,7 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
             "nivel": m["nivel"],
             "hp": m["hp"],
             "ataque_tipo": m["ataque"],
-            "velocidad": m.get("velocidad", 1.8),
-            "tipo": m.get("tipo", "goblin")
+            "velocidad": m.get("velocidad", 1.8)
         })
 
     return f"""
@@ -17,9 +16,9 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
     <html>
     <head>
         <style>
-            body {{ background-color: #05080f; color: #fff; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; user-select: none; }}
+            body {{ background-color: #020617; color: #fff; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; user-select: none; }}
             #gameContainer {{ position: relative; width: 100vw; height: 92vh; }}
-            canvas {{ background: #1a2e12; display: block; width: 100%; height: 100%; cursor: crosshair; }}
+            canvas {{ background: #0369a1; display: block; width: 100%; height: 100%; cursor: crosshair; }}
             
             /* HUD Superior tipo MMORPG */
             .mmorpg-top-hud {{
@@ -28,7 +27,7 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
                 pointer-events: none; z-index: 10;
             }}
             .player-frame {{
-                background: rgba(15, 23, 42, 0.92); border: 2px solid #b45309; padding: 10px 18px;
+                background: rgba(15, 23, 42, 0.95); border: 2px solid #b45309; padding: 10px 18px;
                 border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 5px;
                 pointer-events: auto;
             }}
@@ -36,12 +35,12 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
             .hp-bar-fill {{ width: 100%; height: 100%; background: #dc2626; transition: width 0.2s ease-in-out; }}
             
             .minimap-frame {{
-                width: 140px; height: 140px; background: rgba(15, 23, 42, 0.92);
+                width: 140px; height: 140px; background: rgba(15, 23, 42, 0.95);
                 border: 3px solid #d97706; border-radius: 50%; box-shadow: 0 6px 20px rgba(0,0,0,0.85);
                 display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
             }}
             
-            /* Menú lateral de Acceso Rápido MMORPG */
+            /* Menú lateral MMORPG */
             .mmorpg-side-menu {{
                 position: absolute; top: 170px; right: 20px;
                 display: flex; flex-direction: column; gap: 10px; z-index: 10;
@@ -54,19 +53,6 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
                 transition: all 0.2s;
             }}
             .menu-btn:hover {{ background: #b45309; color: #fff; transform: translateX(-4px); }}
-
-            /* Ventana Modal de Interacción NPC / Misiones Míticas */
-            #npcModal {{
-                position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                width: 480px; background: rgba(15, 23, 42, 0.98); border: 3px solid #d97706;
-                border-radius: 12px; padding: 25px; box-shadow: 0 12px 40px rgba(0,0,0,0.9);
-                display: none; z-index: 100; text-align: center;
-            }}
-            #npcModal h2 {{ color: #f59e0b; margin-top: 0; font-size: 20px; }}
-            #npcModal p {{ color: #cbd5e1; font-size: 14px; line-height: 1.6; }}
-            .modal-btn-group {{ display: flex; justify-content: center; gap: 12px; margin-top: 20px; }}
-            .modal-accept {{ background: #d97706; color: white; border: none; padding: 8px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; }}
-            .modal-close {{ background: #475569; color: white; border: none; padding: 8px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; }}
 
             /* Barra de Acciones Rápida Inferior */
             .mmorpg-action-bar {{
@@ -84,11 +70,11 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
             .action-slot:hover {{ transform: scale(1.08); border-color: #f59e0b; }}
             .action-slot span {{ position: absolute; bottom: 2px; right: 5px; font-size: 10px; color: #94a3b8; }}
 
-            .interaction-prompt {{
+            .combat-hint {{
                 position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
                 background: rgba(0,0,0,0.85); border: 1px solid #f59e0b; color: #facc15;
-                padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: bold;
-                display: none; pointer-events: none; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+                padding: 6px 18px; border-radius: 6px; font-size: 13px; font-weight: bold;
+                pointer-events: none; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.6);
             }}
         </style>
     </head>
@@ -107,33 +93,23 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
             </div>
 
             <div class="mmorpg-side-menu">
-                <button class="menu-btn" onclick="alert('📜 Misiones Activas:\\n- Rumores de la calle (Habla con plebeyos)\\n- El Secreto del Ermitaje (Misión Mítica)')">📜 Misiones</button>
-                <button class="menu-btn" onclick="alert('🎒 Inventario: Ropa de Viajero, Raciones (x3), Fragmento Mítico (0/3)')">🎒 Inventario</button>
-                <button class="menu-btn" onclick="alert('⚡ Habilidades: Invocación de Golem de Roca (Equipada)')">⚡ Habilidades</button>
-                <button class="menu-btn" onclick="alert('👑 Tratados y Reputación:\\n- Reino de Valoria: Respetado (60/100)\\n- Faction Mítica: Desconocida')">👑 Tratados</button>
+                <button class="menu-btn" onclick="alert('📜 Misiones Principales:\\n- El Despertar en Valoria (Completada)\\n- Conquista del Continente (En curso)')">📜 Misiones</button>
+                <button class="menu-btn" onclick="alert('🎒 Inventario: Espada de Bronce, Pociones (x5), Fragmentos Míticos (0/3)')">🎒 Inventario</button>
+                <button class="menu-btn" onclick="alert('⚡ Habilidades Activas: Golpe de Espada, Golem de Roca, Escudo Rúnico')">⚡ Habilidades</button>
+                <button class="menu-btn" onclick="alert('⛵ Navegación: Barco de exploración disponible en el Puerto del Sol')">⛵ Barco / Archipiélagos</button>
             </div>
 
-            <div id="interactionPrompt" class="interaction-prompt">Presiona <b>E</b> para hablar</div>
-
-            <!-- Ventana Modal de NPC y Misiones Ocultas -->
-            <div id="npcModal">
-                <h2 id="npcTitle">Título NPC</h2>
-                <p id="npcText">Diálogo del NPC...</p>
-                <div class="modal-btn-group">
-                    <button class="modal-accept" id="modalAcceptBtn" onclick="acceptSecretQuest()">Aceptar Misión Mítica</button>
-                    <button class="modal-close" onclick="closeNpcModal()">Cerrar</button>
-                </div>
-            </div>
+            <div class="combat-hint">⚔️ Presiona <b>ESPACIO</b> o <b>Q</b> para atacar a los monstruos cercanos. Explora el mar y los archipiélagos.</div>
 
             <canvas id="gameCanvas"></canvas>
 
             <div class="mmorpg-action-bar">
-                <div class="action-slot" title="Habilidad 1">🔥<span>1</span></div>
-                <div class="action-slot" title="Habilidad 2">⚔️<span>2</span></div>
-                <div class="action-slot" title="Habilidad 3">🛡️<span>3</span></div>
+                <div class="action-slot" title="Ataque Físico">⚔️<span>1</span></div>
+                <div class="action-slot" title="Habilidad de Fuego">🔥<span>2</span></div>
+                <div class="action-slot" title="Escudo Divino">🛡️<span>3</span></div>
                 <div class="action-slot" title="Poción de Vida">🧪<span>4</span></div>
                 <div class="action-slot" title="Poción de Maná">💧<span>5</span></div>
-                <div class="action-slot" title="Ataque Básico">🗡️<span>Q</span></div>
+                <div class="action-slot" title="Ataque Especial">🗡️<span>Q</span></div>
             </div>
         </div>
         
@@ -150,66 +126,81 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
-            let player = {{ x: 2500, y: 2500, radius: 18, speed: 5, hp: 100, maxHp: 100, name: "Héroe" }};
+            let player = {{ 
+                x: 3000, y: 3000, radius: 18, speed: 5, hp: 100, maxHp: 100, name: "Héroe", kills: 0, isAttacking: false, attackAnim: 0 
+            }};
             let keys = {{}};
             let enemies = [];
             
-            // Estructuras con colisión
+            // Continente principal y Archipiélagos con Mazmorras circundantes en el Mar (6000x6000)
             let structures = [
-                {{ x: 2300, y: 2300, w: 260, h: 200, name: "Aurelia Capital", type: "city" }},
-                {{ x: 3400, y: 1400, w: 220, h: 220, name: "Castillo de Hojacero", type: "castle" }},
-                {{ x: 1300, y: 3100, w: 200, h: 180, name: "Baluarte Enano", type: "fortress" }},
-                {{ x: 900, y: 1100, w: 180, h: 160, name: "Puerto Marítimo", type: "port" }}
+                {{ x: 2600, y: 2600, w: 800, h: 800, name: "Continente Central - Valoria", type: "continent" }},
+                {{ x: 1200, y: 1200, w: 350, h: 350, name: "Archipiélago del Norte [Mazmorra]", type: "archipelago" }},
+                {{ x: 4500, y: 1200, w: 350, h: 350, name: "Islas Brumas [Mazmorra de Raid]", type: "archipelago" }},
+                {{ x: 2800, y: 4600, w: 400, h: 350, name: "Archipiélago del Sur [Puerto]", type: "port" }}
             ];
 
             let scenery = [];
-            for(let i=0; i<100; i++) {{
+            for(let i=0; i<180; i++) {{
                 scenery.push({{
-                    x: Math.random() * 4700 + 150,
-                    y: Math.random() * 4700 + 150,
+                    x: Math.random() * 5400 + 300,
+                    y: Math.random() * 5400 + 300,
                     type: Math.random() > 0.4 ? 'tree' : 'rock',
                     radius: 22
                 }});
             }}
 
-            // NPCs: Plebeyos callejeros (patrullan) y NPCs Ocultos de Misiones Míticas
-            let npcs = [
-                {{ x: 2380, y: 2380, name: "Aldric (Maestro de Misiones)", radius: 16, type: "quest", dialog: "¡Bienvenido a Aurelia Capital! Las bestias acechan en las afueras." }},
-                {{ x: 3500, y: 1500, name: "Herrero Bran", radius: 16, type: "merchant", dialog: "¿Necesitas afilar tu espada o forjar equipo? Pásate por la forja real." }},
-                // Plebeyos callejeros
-                {{ x: 2420, y: 2400, name: "Ciudadano de Aurelia", radius: 14, type: "plebeian", dialog: "Dicen que el viejo ermitaje del bosque esconde secretos de armas legendarias..." }},
-                {{ x: 2350, y: 2450, name: "Mercader Callejero", radius: 14, type: "plebeian", dialog: "¡Comida fresca y rumores baratos! ¿Has oído hablar de las reliquias míticas?" }},
-                {{ x: 2480, y: 2350, name: "Guardia Real", radius: 14, type: "plebeian", dialog: "Mantén el orden en las calles, aventurero. No queremos problemas aquí." }},
-                // NPC Oculto para Misión Mítica
-                {{ x: 1200, y: 1200, name: "Ermitaje Oculto: Maestro Ignis", radius: 16, type: "mythic_quest", dialog: "Has encontrado mi refugio secreto. Si buscas la hoja mítica 'Sol Invictus', debes derrotar al Guardián de las Sombras en las profundidades y traerme su núcleo estelar." }}
-            ];
-
-            let mobTypes = ["Goblin", "Lobo de Pradera", "Bandido", "Ent Corrupto"];
             let templateMobs = {str(mobs_js_data)};
-            for(let i=0; i < 45; i++) {{
+            let mobTypes = ["Goblin", "Lobo de Pradera", "Slime Ácido", "Oso Pardo Enorme", "Ent Corrupto"];
+            
+            for(let i=0; i < 65; i++) {{
                 let mName = mobTypes[Math.floor(Math.random() * mobTypes.length)];
-                let hpVal = mName === "Ent Corrupto" ? 140 : 70;
+                let hpVal = mName === "Oso Pardo Enorme" ? 180 : (mName === "Ent Corrupto" ? 140 : 80);
                 enemies.push({{
-                    x: Math.random() * 4600 + 200, y: Math.random() * 4600 + 200,
-                    radius: 18, speed: 1.8, hp: hpVal, maxHp: hpVal,
-                    name: mName, nivel: Math.floor(Math.random() * 5) + 1, cooldown: 0
+                    x: Math.random() * 5200 + 400,
+                    y: Math.random() * 5200 + 400,
+                    radius: 20,
+                    speed: 1.6 + Math.random() * 0.8,
+                    hp: hpVal,
+                    maxHp: hpVal,
+                    name: mName,
+                    nivel: Math.floor(Math.random() * 8) + 1,
+                    cooldown: 0
                 }});
             }}
             
-            window.addEventListener("keydown", (e) => keys[e.key] = true);
+            window.addEventListener("keydown", (e) => {{
+                keys[e.key] = true;
+                if (e.key === " " || e.key === "q" || e.key === "Q") {{
+                    performAttack();
+                }}
+            }});
             window.addEventListener("keyup", (e) => keys[e.key] = false);
 
-            let activeNpc = null;
+            function performAttack() {{
+                player.isAttacking = true;
+                player.attackAnim = 10; // frames de animación de ataque
+
+                // Comprobar enemigos en rango de ataque frontal
+                enemies.forEach((en, index) => {{
+                    let dx = en.x - player.x;
+                    let dy = en.y - player.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 70) {{
+                        // Daño al enemigo
+                        en.hp -= 45;
+                        // Efecto flotante visual de daño
+                        if (en.hp <= 0) {{
+                            enemies.splice(index, 1);
+                            player.kills++;
+                        }}
+                    }}
+                }});
+            }}
 
             function checkCollision(nx, ny, radius) {{
-                for(let st of structures) {{
-                    if (nx + radius > st.x && nx - radius < st.x + st.w &&
-                        ny + radius > st.y && ny - radius < st.y + st.h) return true;
-                }}
-                for(let sc of scenery) {{
-                    let dx = nx - sc.x, dy = ny - sc.y;
-                    if (Math.sqrt(dx*dx + dy*dy) < radius + sc.radius * 0.7) return true;
-                }}
+                // Permitir navegar por el mar (fuera del continente central, pero con límites de mapa)
+                if (nx < 100 || nx > 5900 || ny < 100 || ny > 5900) return true;
                 return false;
             }}
             
@@ -223,67 +214,25 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
                 if (!checkCollision(player.x + dx, player.y, player.radius)) player.x += dx;
                 if (!checkCollision(player.x, player.y + dy, player.radius)) player.y += dy;
 
-                player.x = Math.max(60, Math.min(4940, player.x));
-                player.y = Math.max(60, Math.min(4940, player.y));
-
-                // Proximidad con NPCs
-                let nearNpc = null;
-                npcs.forEach(npc => {{
-                    let ndx = player.x - npc.x, ndy = player.y - npc.y;
-                    if (Math.sqrt(ndx*ndx + ndy*ndy) < 45) {{
-                        nearNpc = npc;
-                    }}
-                }});
-
-                if (nearNpc) {{
-                    document.getElementById("interactionPrompt").style.display = "block";
-                    if (keys["e"] || keys["E"]) {{
-                        activeNpc = nearNpc;
-                        openNpcModal(nearNpc.name, nearNpc.dialog, nearNpc.type);
-                    }}
-                }} else {{
-                    document.getElementById("interactionPrompt").style.display = "none";
-                }}
+                if (player.attackAnim > 0) player.attackAnim--;
+                else player.isAttacking = false;
 
                 // IA Enemigos
                 enemies.forEach(en => {{
                     let edx = player.x - en.x, edy = player.y - en.y;
                     let dist = Math.sqrt(edx*edx + edy*edy);
-                    if (dist < 400 && dist > 20) {{
+                    if (dist < 420 && dist > 22) {{
                         en.x += (edx / dist) * en.speed;
                         en.y += (edy / dist) * en.speed;
                     }}
                     en.cooldown++;
-                    if (dist < 32 && en.cooldown > 50) {{
+                    if (dist < 35 && en.cooldown > 45) {{
                         en.cooldown = 0;
-                        player.hp = Math.max(0, player.hp - 10);
+                        player.hp = Math.max(0, player.hp - 12);
                         document.getElementById("hpFill").style.width = (player.hp / player.maxHp * 100) + "%";
                         document.getElementById("hpText").innerText = `HP: ${{player.hp}} / ${{player.maxHp}}`;
                     }}
                 }});
-            }}
-
-            function openNpcModal(title, text, type) {{
-                document.getElementById("npcTitleinnerText") = title;
-                document.getElementById("npcTitle").innerText = title;
-                document.getElementById("npcText").innerText = text;
-                let btnAcc = document.getElementById("modalAcceptBtn");
-                if (type === 'mythic_quest') {{
-                    btnAcc.style.display = "inline-block";
-                    btnAcc.innerText = "Aceptar Misión Mítica";
-                }} else {{
-                    btnAcc.style.display = "none";
-                }}
-                document.getElementById("npcModal").style.display = "block";
-            }}
-
-            function closeNpcModal() {{
-                document.getElementById("npcModal").style.display = "none";
-            }}
-
-            function acceptSecretQuest() {{
-                alert(" ¡Misión Mítica aceptada! Busca pistas en las zonas profundas del mapa para forjar tu arma mítica.");
-                closeNpcModal();
             }}
 
             function drawPlayerSprite(x, y) {{
@@ -292,10 +241,26 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
                 ctx.fillStyle = "rgba(0,0,0,0.5)";
                 ctx.beginPath(); ctx.ellipse(0, 14, 12, 6, 0, 0, Math.PI * 2); ctx.fill();
 
+                // Cuerpo héroe armadura azul
                 ctx.fillStyle = "#1e3a8a"; ctx.fillRect(-9, -9, 18, 20);
+                // Casco dorado
                 ctx.fillStyle = "#fde047"; ctx.beginPath(); ctx.arc(0, -10, 9, 0, Math.PI * 2); ctx.fill();
                 ctx.strokeStyle = "#ca8a04"; ctx.lineWidth = 2; ctx.stroke();
-                ctx.fillStyle = "#e2e8f0"; ctx.fillRect(10, -5, 4, 16);
+
+                // Espada con animación de ataque activa
+                if (player.isAttacking) {{
+                    ctx.strokeStyle = "#38bdf8";
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 35, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(16, -10, 18, 6);
+                }} else {{
+                    ctx.fillStyle = "#e2e8f0"; ctx.fillRect(10, -5, 4, 16);
+                }}
+
                 ctx.restore();
             }}
 
@@ -305,27 +270,11 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
                 ctx.fillStyle = "rgba(0,0,0,0.5)";
                 ctx.beginPath(); ctx.ellipse(0, 12, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
 
-                let colorM = name === "Ent Corrupto" ? "#14532d" : (name === "Bandido" ? "#581c87" : "#7f1d1d");
-                ctx.fillStyle = colorM; ctx.beginPath(); ctx.roundRect(-12, -12, 24, 24, [6]); ctx.fill();
+                let colorM = name === "Oso Pardo Enorme" ? "#78350f" : (name === "Slime Ácido" ? "#10b981" : "#7f1d1d");
+                ctx.fillStyle = colorM; ctx.beginPath(); ctx.roundRect(-14, -14, 28, 28, [6]); ctx.fill();
                 ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2; ctx.stroke();
-                ctx.fillStyle = "#facc15"; ctx.fillRect(-5, -5, 3, 3); ctx.fillRect(2, -5, 3, 3);
-                ctx.restore();
-            }}
 
-            function drawNpcSprite(x, y, name, type) {{
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.fillStyle = "rgba(0,0,0,0.5)";
-                ctx.beginPath(); ctx.ellipse(0, 12, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
-
-                let colorN = type === 'mythic_quest' ? "#9333ea" : (type === 'plebeian' ? "#0284c7" : "#047857");
-                ctx.fillStyle = colorN; ctx.fillRect(-9, -9, 18, 20);
-                ctx.fillStyle = "#fde047"; ctx.beginPath(); ctx.arc(0, -10, 9, 0, Math.PI * 2); ctx.fill();
-
-                ctx.fillStyle = type === 'mythic_quest' ? "#facc15" : "#ffffff";
-                ctx.font = "bold 11px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText(type === 'mythic_quest' ? "⭐ " + name.split(" ")[0] : "💬 " + name.split(" ")[0], 0, -22);
+                ctx.fillStyle = "#facc15"; ctx.fillRect(-6, -6, 3, 3); ctx.fillRect(3, -6, 3, 3);
                 ctx.restore();
             }}
             
@@ -337,21 +286,28 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
                 let camY = canvas.height / 2 - player.y;
                 ctx.translate(camX, camY);
                 
-                ctx.fillStyle = "#1a2e12";
-                ctx.fillRect(0, 0, 5000, 5000);
+                // 1. MAR PROFUNDO (Fondo del mundo de 1.5M km2 simulado)
+                ctx.fillStyle = "#0284c7";
+                ctx.fillRect(0, 0, 6000, 6000);
 
+                // 2. CONTINENTE PRINCIPAL Y ARCHIPIÉLAGOS (Tierra firme verde)
                 structures.forEach(st => {{
-                    ctx.fillStyle = "#334155"; ctx.fillRect(st.x, st.y, st.w, st.h);
-                    ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 4; ctx.strokeRect(st.x, st.y, st.w, st.h);
-                    ctx.fillStyle = "#991b1b"; ctx.fillRect(st.x - 12, st.y - 25, st.w + 24, 28);
-                    ctx.fillStyle = "#ffffff"; ctx.font = "bold 16px 'Segoe UI', sans-serif"; ctx.textAlign = "center";
+                    ctx.fillStyle = st.type === 'archipelago' ? "#15803d" : "#1a2e12";
+                    ctx.fillRect(st.x, st.y, st.w, st.h);
+                    ctx.strokeStyle = "#f59e0b";
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(st.x, st.y, st.w, st.h);
+                    
+                    ctx.fillStyle = "#991b1b";
+                    ctx.fillRect(st.x - 12, st.y - 25, st.w + 24, 28);
+                    
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "bold 15px 'Segoe UI', sans-serif";
+                    ctx.textAlign = "center";
                     ctx.fillText(st.name, st.x + st.w/2, st.y - 35);
-                }});
+                }));
 
-                npcs.forEach(npc => {{
-                    drawNpcSprite(npc.x, npc.y, npc.name, npc.type);
-                }});
-
+                // 3. ESCENARIO (Árboles y Rocas)
                 scenery.forEach(sc => {{
                     ctx.fillStyle = "rgba(0,0,0,0.3)";
                     ctx.beginPath(); ctx.ellipse(sc.x, sc.y + 10, sc.radius * 0.7, sc.radius * 0.3, 0, 0, Math.PI*2); ctx.fill();
@@ -363,32 +319,30 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
                     }}
                 }});
 
+                // 4. MONSTRUOS
                 enemies.forEach(en => {{
                     drawMonsterSprite(en.x, en.y, en.name);
-                    ctx.fillStyle = "#000"; ctx.fillRect(en.x - 20, en.y - 26, 40, 6);
-                    ctx.fillStyle = "#22c55e"; ctx.fillRect(en.x - 19, en.y - 25, 38 * (en.hp / en.maxHp), 4);
+                    ctx.fillStyle = "#000"; ctx.fillRect(en.x - 20, en.y - 28, 40, 6);
+                    ctx.fillStyle = "#22c55e"; ctx.fillRect(en.x - 19, en.y - 27, 38 * (en.hp / en.maxHp), 4);
                     ctx.fillStyle = "#f87171"; ctx.font = "bold 11px sans-serif"; ctx.textAlign = "center";
-                    ctx.fillText(en.name + ` [${{en.nivel}}]`, en.x, en.y - 32);
+                    ctx.fillText(en.name + ` [${{en.nivel}}]`, en.x, en.y - 34);
                 }});
 
+                // 5. JUGADOR
                 drawPlayerSprite(player.x, player.y);
                 ctx.fillStyle = "#facc15"; ctx.font = "bold 13px 'Segoe UI', sans-serif"; ctx.textAlign = "center";
-                ctx.fillText("⭐ " + player.name, player.x, player.y - 26);
+                ctx.fillText("⭐ " + player.name + ` (Kills: ${{player.kills}})`, player.x, player.y - 28);
                 
                 ctx.restore();
 
+                // MINIMAPA CIRCULAR DE RADAR
                 miniCtx.clearRect(0, 0, 130, 130);
                 miniCtx.fillStyle = "#0f172a"; miniCtx.fillRect(0, 0, 130, 130);
                 
-                let mX = (player.x / 5000) * 130, mY = (player.y / 5000) * 130;
+                let mX = (player.x / 6000) * 130, mY = (player.y / 6000) * 130;
                 enemies.forEach(en => {{
-                    let ex = (en.x / 5000) * 130, ey = (en.y / 5000) * 130;
+                    let ex = (en.x / 6000) * 130, ey = (en.y / 6000) * 130;
                     miniCtx.fillStyle = "#ef4444"; miniCtx.fillRect(ex-1, ey-1, 2, 2);
-                }});
-                npcs.forEach(npc => {{
-                    let nx = (npc.x / 5000) * 130, ny = (npc.y / 5000) * 130;
-                    miniCtx.fillStyle = npc.type === 'mythic_quest' ? "#facc15" : "#10b981";
-                    miniCtx.fillRect(nx-2, ny-2, 4, 4);
                 }});
                 miniCtx.fillStyle = "#facc15"; miniCtx.beginPath(); miniCtx.arc(mX, mY, 3.5, 0, Math.PI*2); miniCtx.fill();
             }}
