@@ -2,261 +2,193 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor de Mapas y Facciones - MMORPG Sandbox</title>
+    <title>Snd-Worlds - Editor de Mapas y Mundos MMORPG</title>
     <style>
-        body { margin: 0; background: #0b0f19; color: #f8fafc; font-family: system-ui, sans-serif; overflow: hidden; display: flex; height: 100vh; }
-        
-        #sidebar { width: 300px; background: #1e293b; border-right: 2px solid #334155; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; z-index: 10; overflow-y: auto; }
-        h1 { font-size: 18px; color: #38bdf8; margin-top: 0; margin-bottom: 5px; }
-        p { font-size: 13px; color: #94a3b8; margin-bottom: 20px; }
-        
-        .tool-group { margin-bottom: 20px; }
-        .tool-group label { font-size: 12px; font-weight: bold; color: #cbd5e1; display: block; margin-bottom: 8px; text-transform: uppercase; }
-        
-        .btn-tool { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; margin-bottom: 6px; background: #334155; border: 1px solid #475569; color: white; border-radius: 6px; cursor: pointer; font-size: 13px; transition: background 0.2s, transform 0.1s; text-align: left; }
-        .btn-tool:hover { background: #475569; }
-        .btn-tool.active { background: #0284c7; border-color: #38bdf8; font-weight: bold; }
-        
-        .color-indicator { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
-
-        .actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
-        .btn-action { padding: 10px; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
-        .btn-action:hover { background: #ef4444; }
-        
-        .instructions { font-size: 11px; color: #64748b; background: #0f172a; padding: 10px; border-radius: 6px; margin-top: 15px; line-height: 1.4; }
-
-        #canvas-container { flex-grow: 1; position: relative; background: #0f172a; cursor: grab; overflow: hidden; }
-        #canvas-container:active { cursor: grabbing; }
-        canvas { display: block; }
-
-        #hud { position: absolute; top: 15px; right: 15px; background: rgba(30, 41, 59, 0.85); padding: 10px 15px; border-radius: 8px; border: 1px solid #334155; font-size: 12px; pointer-events: none; backdrop-filter: blur(4px); }
+        body { margin: 0; background-color: #0b1017; color: #fff; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden; display: flex; height: 100vh; }
+        #sidebar { width: 320px; background: rgba(15, 23, 42, 0.95); border-right: 2px solid #b45309; padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 10; box-shadow: 4px 0 20px rgba(0,0,0,0.8); overflow-y: auto; }
+        h1 { font-size: 18px; color: #facc15; margin: 0 0 10px 0; border-bottom: 2px solid #b45309; padding-bottom: 8px; }
+        .tool-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 13px; color: #cbd5e1; font-weight: bold; }
+        select, button { background: #1e293b; color: #fff; border: 1px solid #475569; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.2s; }
+        button:hover { background: #b45309; border-color: #f59e0b; }
+        .btn-action { background: #047857; border-color: #059669; }
+        .btn-action:hover { background: #059669; }
+        #canvasContainer { flex-grow: 1; position: relative; background: #0284c7; overflow: hidden; }
+        canvas { display: block; cursor: crosshair; }
+        .coords-hud { position: absolute; bottom: 15px; left: 15px; background: rgba(15, 23, 42, 0.9); border: 1px solid #b45309; padding: 8px 15px; border-radius: 6px; font-family: monospace; font-size: 13px; color: #facc15; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
-        <h1>🗺️ Constructor de Mundos</h1>
-        <p>Diseña tu mapa, expande territorios y ubica tus ciudades y mazmorras.</p>
+        <h1>🗺️ Editor de Mundos Snd-Worlds</h1>
+        
+        <div class="tool-group">
+            <label>Herramienta / Objeto a Pintar:</label>
+            <select id="toolSelect">
+                <option value="continent">🟢 Continente / Tierra Firme</option>
+                <option value="archipelago">🏝️ Archipiélago / Isla Navegable</option>
+                <option value="city">🏛️ Ciudad / Capital (Valoria)</option>
+                <option value="castle">🏰 Castillo / Fortaleza</option>
+                <option value="dungeon">🕳️ Entrada de Mazmorra</option>
+                <option value="tree">🌲 Bosque / Árboles</option>
+                <option value="rock">🪨 Cantera / Rocas</option>
+                <option value="npc_plebeian">💬 Plebeyo Callejero</option>
+                <option value="npc_mythic">⭐ NPC Ermitaño (Misión Mítica)</option>
+                <option value="mob">👹 Mob / Monstruo</option>
+                <option value="eraser">🧹 Borrar Elemento</option>
+            </select>
+        </div>
 
         <div class="tool-group">
-            <label>Seleccionar Elemento a Colocar:</label>
-            <button class="btn-tool active" onclick="setTool('city', this)"><span class="color-indicator" style="background:#b45309;"></span> Ciudad Principal</button>
-            <button class="btn-tool" onclick="setTool('port', this)"><span class="color-indicator" style="background:#1e40af;"></span> Puerto Marítimo</button>
-            <button class="btn-tool" onclick="setTool('dungeon', this)"><span class="color-indicator" style="background:#7f1d1d;"></span> Mazmorra PvP (1h)</button>
-            <button class="btn-tool" onclick="setTool('ruins', this)"><span class="color-indicator" style="background:#581c87;"></span> Ruinas Antiguas</button>
-            <button class="btn-tool" onclick="setTool('forest', this)"><span class="color-indicator" style="background:#166534;"></span> Bosque / Zona Recolección</button>
-            <button class="btn-tool" onclick="setTool('mountain', this)"><span class="color-indicator" style="background:#475569;"></span> Montaña / Minerales</button>
+            <label>Zona de Destino / Escala:</label>
+            <select id="zoneSelect">
+                <option value="Continente I">Continente I (Niveles 1-100)</option>
+                <option value="Continente II">Continente II (Raid & Mazmorras)</option>
+                <option value="Oceano Abierto">Océano y Archipiélagos</option>
+            </select>
         </div>
 
         <div class="tool-group">
             <label>Acciones de Mapa:</label>
-            <button class="btn-tool" onclick="resetZoom()" style="justify-content: center; background: #1e293b;">🔍 Centrar / Restablecer Vista</button>
+            <button class="btn-action" onclick="exportMapData()">💾 Exportar Mapa (JSON)</button>
+            <button onclick="clearMap()">🗑️ Limpiar Todo</button>
         </div>
 
-        <div class="instructions">
-            💡 <b>Controles:</b><br>
-            • <b>Clic Izquierdo:</b> Colocar elemento.<br>
-            • <b>Rueda del Ratón:</b> Alejar / Agrandar mapa (Zoom).<br>
-            • <b>Clic y Arrastrar:</b> Moverse por el mundo.
-        </div>
-
-        <div class="actions">
-            <button class="btn-action" onclick="clearMap()">🗑️ Borrar Todo el Mapa</button>
+        <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; margin-top: auto;">
+            <b>Instrucciones:</b> Selecciona una herramienta, haz clic en el mapa para colocar estructuras, NPCs o monstruos en el mundo abierto de 1.5M km². Usa W, A, S, D o arrastra para moverte.
         </div>
     </div>
 
-    <div id="canvas-container">
-        <div id="hud">Zoom: 100% | Elementos: 0</div>
-        <canvas id="worldMap"></canvas>
+    <div id="canvasContainer">
+        <canvas id="editorCanvas"></canvas>
+        <div id="coordsHUD" class="coords-hud">X: 3000 | Y: 3000 | Zoom: 1.0x</div>
     </div>
 
-<script>
-    const canvas = document.getElementById('worldMap');
-    const ctx = canvas.getContext('2d');
-    const container = document.getElementById('canvas-container');
-    const hud = document.getElementById('hud');
+    <script>
+        const canvas = document.getElementById("editorCanvas");
+        const ctx = canvas.getContext("2d");
+        const coordsHUD = document.getElementById("coordsHUD");
 
-    const WORLD_WIDTH = 4000;
-    const WORLD_HEIGHT = 4000;
-
-    let currentTool = 'city';
-    let elements = [];
-
-    let camera = {
-        x: WORLD_WIDTH / 2 - 400,
-        y: WORLD_HEIGHT / 2 - 300,
-        zoom: 1,
-        isDragging: false,
-        startX: 0,
-        startY: 0
-    };
-
-    const toolConfig = {
-        city: { name: 'Ciudad', color: '#b45309', size: 50, icon: '🏛️' },
-        port: { name: 'Puerto', color: '#1e40af', size: 40, icon: '⚓' },
-        dungeon: { name: 'Mazmorra', color: '#7f1d1d', size: 45, icon: '🔥' },
-        ruins: { name: 'Ruinas', color: '#581c87', size: 40, icon: '🗿' },
-        forest: { name: 'Bosque', color: '#166534', size: 60, icon: '🌲' },
-        mountain: { name: 'Montaña', color: '#475569', size: 55, icon: '⛰️' }
-    };
-
-    function resizeCanvas() {
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    function setTool(tool, btn) {
-        currentTool = tool;
-        document.querySelectorAll('.btn-tool').forEach(b => b.classList.remove('active'));
-        if(btn) btn.classList.add('active');
-    }
-
-    function clearMap() {
-        if(confirm('¿Seguro que quieres borrar todos los elementos del mapa?')) {
-            elements = [];
+        function resizeCanvas() {
+            canvas.width = document.getElementById("canvasContainer").clientWidth;
+            canvas.height = document.getElementById("canvasContainer").clientHeight;
         }
-    }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-    function resetZoom() {
-        camera.zoom = 1;
-        camera.x = WORLD_WIDTH / 2 - canvas.width / 2;
-        camera.y = WORLD_HEIGHT / 2 - canvas.height / 2;
-    }
-    resetZoom();
+        let camera = { x: 3000, y: 3000, zoom: 1.0 };
+        let isDragging = false;
+        let startX, startY;
 
-    container.addEventListener('mousedown', (e) => {
-        if (e.button === 0) {
-            camera.isDragging = true;
-            camera.startX = e.clientX;
-            camera.startY = e.clientY;
-            camera.hasMoved = false;
-        }
-    });
+        // Elementos editables del mundo
+        let worldEntities = [
+            { x: 2600, y: 2600, type: "continent", name: "Valoria Central" },
+            { x: 1200, y: 1200, type: "archipelago", name: "Archipiélago Norte" },
+            { x: 4500, y: 1200, type: "archipelago", name: "Islas Brumas" },
+            { x: 2300, y: 2300, type: "city", name: "Aurelia Capital" },
+            { x: 1200, y: 1200, type: "npc_mythic", name: "Maestro Ignis (Ermitaño)" }
+        ];
 
-    container.addEventListener('mousemove', (e) => {
-        if (camera.isDragging) {
-            const dx = e.clientX - camera.startX;
-            const dy = e.clientY - camera.startY;
-            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-                camera.hasMoved = true;
+        window.addEventListener("mousedown", (e) => {
+            if (e.button === 1 || e.shiftKey) { // Botón central o Shift + Clic para mover cámara
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+            } else if (e.button === 0) { // Clic izquierdo para pintar
+                let rect = canvas.getBoundingClientRect();
+                let mouseX = (e.clientX - rect.left - canvas.width / 2) / camera.zoom + camera.x;
+                let mouseY = (e.clientY - rect.top - canvas.height / 2) / camera.zoom + camera.y;
+                
+                let selectedTool = document.getElementById("toolSelect").value;
+                if (selectedTool === "eraser") {
+                    worldEntities = worldEntities.filter(en => Math.hypot(en.x - mouseX, en.y - mouseY) > 30);
+                } else {
+                    worldEntities.push({ x: mouseX, y: mouseY, type: selectedTool, name: selectedTool.toUpperCase() });
+                }
             }
-            camera.x -= dx / camera.zoom;
-            camera.y -= dy / camera.zoom;
-            camera.startX = e.clientX;
-            camera.startY = e.clientY;
-        }
-    });
-
-    container.addEventListener('mouseup', (e) => {
-        if (camera.isDragging && !camera.hasMoved && e.button === 0) {
-            const rect = canvas.getBoundingClientRect();
-            const clickScreenX = e.clientX - rect.left;
-            const clickScreenY = e.clientY - rect.top;
-
-            const worldX = clickScreenX / camera.zoom + camera.x;
-            const worldY = clickScreenY / camera.zoom + camera.y;
-
-            elements.push({
-                type: currentTool,
-                x: worldX,
-                y: worldY
-            });
-        }
-        camera.isDragging = false;
-    });
-
-    container.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const zoomFactor = 1.1;
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        const worldX = mouseX / camera.zoom + camera.x;
-        const worldY = mouseY / camera.zoom + camera.y;
-
-        if (e.deltaY < 0) {
-            camera.zoom *= zoomFactor;
-        } else {
-            camera.zoom /= zoomFactor;
-        }
-
-        camera.zoom = Math.max(0.3, Math.min(3, camera.zoom));
-
-        camera.x = worldX - mouseX / camera.zoom;
-        camera.y = worldY - mouseY / camera.zoom;
-    }, { passive: false });
-
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        ctx.save();
-        ctx.scale(camera.zoom, camera.zoom);
-        ctx.translate(-camera.x, -camera.y);
-
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-
-        ctx.strokeStyle = '#1e293b';
-        ctx.lineWidth = 2;
-        const gridSize = 100;
-        for (let x = 0; x <= WORLD_WIDTH; x += gridSize) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, WORLD_HEIGHT);
-            ctx.stroke();
-        }
-        for (let y = 0; y <= WORLD_HEIGHT; y += gridSize) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(WORLD_WIDTH, y);
-            ctx.stroke();
-        }
-
-        ctx.strokeStyle = '#334155';
-        ctx.lineWidth = 6;
-        ctx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-
-        elements.forEach(el => {
-            const cfg = toolConfig[el.type];
-            if (!cfg) return;
-
-            ctx.save();
-            ctx.translate(el.x, el.y);
-
-            ctx.fillStyle = 'rgba(0,0,0,0.4)';
-            ctx.beginPath();
-            ctx.arc(0, cfg.size/2, cfg.size/2, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = cfg.color;
-            ctx.beginPath();
-            ctx.arc(0, 0, cfg.size/2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            ctx.font = '20px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(cfg.icon, 0, 0);
-
-            ctx.restore();
         });
 
-        ctx.restore();
+        window.addEventListener("mousemove", (e) => {
+            let rect = canvas.getBoundingClientRect();
+            let mouseX = Math.round((e.clientX - rect.left - canvas.width / 2) / camera.zoom + camera.x);
+            let mouseY = Math.round((e.clientY - rect.top - canvas.height / 2) / camera.zoom + camera.y);
+            coordsHUD.innerText = `X: ${mouseX} | Y: ${mouseY} | Zoom: ${camera.zoom.toFixed(1)}x`;
 
-        hud.innerText = `Zoom: ${Math.round(camera.zoom * 100)}% | Elementos: ${elements.length}`;
+            if (isDragging) {
+                camera.x -= (e.clientX - startX) / camera.zoom;
+                camera.y -= (e.clientY - startY) / camera.zoom;
+                startX = e.clientX;
+                startY = e.clientY;
+            }
+        });
 
-        requestAnimationFrame(draw);
-    }
+        window.addEventListener("mouseup", () => isDragging = false);
+        window.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            if (e.deltaY < 0) camera.zoom = Math.min(camera.zoom * 1.1, 2.5);
+            else camera.zoom = Math.max(camera.zoom / 1.1, 0.4);
+        }, { passive: false });
 
-    draw();
-</script>
+        function drawWorld() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(camera.zoom, camera.zoom);
+            ctx.translate(-camera.x, -camera.y);
 
+            // 1. Océano infinito de fondo
+            ctx.fillStyle = "#0284c7";
+            ctx.fillRect(0, 0, 6000, 6000);
+
+            // 2. Dibujar Entidades del Mapa
+            worldEntities.forEach(en => {
+                ctx.save();
+                ctx.translate(en.x, en.y);
+                if (en.type === 'continent') {
+                    ctx.fillStyle = "#1a2e12"; ctx.fillRect(-400, -400, 800, 800);
+                    ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 4; ctx.strokeRect(-400, -400, 800, 800);
+                } else if (en.type === 'archipelago') {
+                    ctx.fillStyle = "#15803d"; ctx.fillRect(-180, -180, 360, 360);
+                    ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 3; ctx.strokeRect(-180, -180, 360, 360);
+                } else if (en.type === 'city') {
+                    ctx.fillStyle = "#334155"; ctx.fillRect(-90, -70, 180, 140);
+                    ctx.strokeStyle = "#eab308"; ctx.lineWidth = 3; ctx.strokeRect(-90, -70, 180, 140);
+                } else if (en.type === 'npc_mythic') {
+                    ctx.fillStyle = "#9333ea"; ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI*2); ctx.fill();
+                } else if (en.type === 'mob') {
+                    ctx.fillStyle = "#dc2626"; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
+                } else {
+                    ctx.fillStyle = "#475569"; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI*2); ctx.fill();
+                }
+                
+                ctx.fillStyle = "#fff"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText(en.name, 0, -22);
+                ctx.restore();
+            });
+
+            ctx.restore();
+            requestAnimationFrame(drawWorld);
+        }
+
+        function exportMapData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(worldEntities, null, 4));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "snd_worlds_map_data.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function clearMap() {
+            if (confirm("¿Estás seguro de borrar todos los elementos del mapa?")) {
+                worldEntities = [];
+            }
+        }
+
+        drawWorld();
+    </script>
 </body>
 </html>
