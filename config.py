@@ -108,6 +108,3 @@ ESTADISTICAS_BASE_CLASES = {
     "Templario Celestial": {"str": 16, "int": 10, "agi": 8, "vit": 18, "luk": 10, "hp": 150},
     "Brujo del Caos": {"str": 8, "int": 19, "agi": 10, "vit": 10, "luk": 13, "hp": 100}
 }
-```[cite: 5]
-
-¿Deseas que te envíe el siguiente (`bestiario.py`)?
