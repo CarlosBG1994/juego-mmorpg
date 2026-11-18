@@ -5,7 +5,7 @@ from canvas_engine import generar_canvas_html
 
 st.set_page_config(page_title="Snd-Worlds MMORPG", page_icon="⚔️", layout="wide")
 
-# Inicialización de estados de sesión
+# Inicialización segura de estados de sesión
 if "zona_actual" not in st.session_state:
     st.session_state.zona_actual = "Reino Humano de Valoria"
 if "clase_pj" not in st.session_state:
@@ -51,7 +51,7 @@ with st.sidebar:
                 if m["nombre"] in st.session_state.monturas_desbloqueadas:
                     st.success(f"✅ {m['nombre']}")
                 else:
-                    if st.button(f"Comprar {m['nombre']} ({m['coste']} oro)"):
+                    if st.button(f"Comprar {m['nombre']} ({m['coste']} oro)", key=f"buy_{m['nombre']}"):
                         if st.session_state.oro_jugador >= m["coste"]:
                             st.session_state.oro_jugador -= m["coste"]
                             st.session_state.monturas_desbloqueadas.append(m["nombre"])
@@ -93,4 +93,4 @@ with tab_misiones:
 
 with tab_lore:
     st.subheader("👑 Lore de Snd-Worlds")
-    st.write("Un mundo masivo de 1.500.000 km² con reinos fundacionales, mazmorras y comercio marítimo en tiempo real.")
+    st.write("Un mundo masivo de 1.500.000 km² con reinos fundacionales, mazmorras y combate activo en tiempo real.")
