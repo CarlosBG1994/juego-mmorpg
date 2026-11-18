@@ -5,6 +5,13 @@ from firebase_admin import credentials, firestore
 import random
 from datetime import datetime
 
+# Importar módulos de Snd-Worlds
+from config import CONTINENTE_INICIAL, RAZAS_Y_CLASSES, ESTADISTICAS_BASE_CLASES, SUBFORMAS_BESTIA, CONTINENTES_OFICIALES
+from bestiario import BESTIARIO_ZONAS
+from habilidades import CATALOGO_HABILIDADES_GLOBAL, CATALOGO_EDIFICIOS, CATALOGO_OCULTAS
+from canvas_engine import generar_canvas_html
+from crafting_talleres import TALLERES_OFICIOS, simular_crafteo
+
 # Configuración de la página
 st.set_page_config(
     page_title="Snd-Worlds MMORPG Sandbox",
@@ -35,202 +42,6 @@ except Exception as e:
     st.error(f"Error crítico al conectar con Firebase: {e}")
     st.stop()
 
-# --- LORE, CLASES, ESTADÍSTICAS Y MONTURAS NATIVAS POR RAZA ---
-CONTINENTE_INICIAL = "Continente Primordial (Cuna de las 4 Razas)"
-
-RAZAS_Y_CLASSES = {
-    "Humano": {
-        "clases": ["Caballero", "Paladín", "Mago de Batalla", "Púgil", "Asesino", "Explorador", "Invocador", "Clérigo"],
-        "reino_inicio": "Reino Humano de Valoria",
-        "bioma": "Llanuras Centrales, Puertos Pesqueros y Colinas",
-        "lore": "Gobiernan las llanuras fértiles y la costa comercial de Valoria.",
-        "monturas": ["Caballo de Guerra de Valoria", "Carromato Mercante Ligeramente Blindado", "Destrero Real de Jousting"]
-    },
-    "Elfo": {
-        "clases": ["Guardabosques", "Alcaide", "Druida", "Espadachín Silvano", "Monje del Viento", "Acechador Nocturno", "Mago de Batalla", "Invocador"],
-        "reino_inicio": "Reino Silvano de Lothar",
-        "bioma": "Bosques Milenarios, Ríos Místicos y Arboledas",
-        "lore": "Habitan los bosques milenarios protegidos por la naturaleza.",
-        "monturas": ["Ciervo Albino de la Aurora", "Pantera Silvana", "Alce Titán de los Ancestros"]
-    },
-    "Enano": {
-        "clases": ["Guerrero Pesado", "Defensor Rúnico de Asedio", "Berserker Rúnico", "Luchador de Puño de Hierro", "Ballestero", "Asesino", "Mago de Batalla", "Invocador"],
-        "reino_inicio": "Reino Enano de Khazad",
-        "bioma": "Cordilleras Rocosas, Minas Profundas y Fraguas",
-        "lore": "Dominan las cumbres montañosas y los yacimientos de metal puro.",
-        "monturas": ["Jabalí Acorazado de Runa", "Oso de las Cavernas Profundas", "Carro de Asedio Mecánico a Vapor"]
-    },
-    "Hombre Bestia": {
-        "clases": ["Campeón", "Acechador Salvaje", "Chamán Primordial", "Púgil", "Asesino", "Explorador", "Invocador"],
-        "reino_inicio": "Reino Tribal de las Estepas",
-        "bioma": "Estepas Indómitas, Cañones y Sabanas",
-        "lore": "Controlan las vastas sabanas y estepas donde rige la ley del clan.",
-        "monturas": ["Huargo Alfa de la Estepa", "León de Guerra de las Sabanas", "Rinoceronte Acorazado Tribal"]
-    }
-}
-
-ESTADISTICAS_BASE_CLASES = {
-    "Caballero": {"str": 15, "int": 5, "agi": 8, "vit": 15, "luk": 5, "hp": 120},
-    "Paladín": {"str": 14, "int": 8, "agi": 6, "vit": 16, "luk": 6, "hp": 130},
-    "Mago de Batalla": {"str": 4, "int": 18, "agi": 7, "vit": 8, "luk": 8, "hp": 90},
-    "Invocador": {"str": 5, "int": 16, "agi": 6, "vit": 10, "luk": 10, "hp": 100},
-    "Asesino": {"str": 10, "int": 4, "agi": 18, "vit": 8, "luk": 12, "hp": 95},
-    "Explorador": {"str": 9, "int": 6, "agi": 16, "vit": 9, "luk": 10, "hp": 100},
-    "Púgil": {"str": 14, "int": 5, "agi": 12, "vit": 12, "luk": 5, "hp": 110},
-    "Clérigo": {"str": 8, "int": 14, "agi": 5, "vit": 14, "luk": 9, "hp": 115},
-    "Guardabosques": {"str": 10, "int": 6, "agi": 15, "vit": 10, "luk": 9, "hp": 105},
-    "Druida": {"str": 6, "int": 15, "agi": 8, "vit": 12, "luk": 9, "hp": 105},
-    "Guerrero Pesado": {"str": 18, "int": 4, "agi": 5, "vit": 18, "luk": 5, "hp": 140},
-    "Campeón": {"str": 16, "int": 6, "agi": 10, "vit": 14, "luk": 8, "hp": 125},
-    "Chamán Primordial": {"str": 6, "int": 16, "agi": 7, "vit": 11, "luk": 10, "hp": 100}
-}
-
-SUBFORMAS_BESTIA = ["Hombre Lobo", "Hombre Pantera", "Hombre Tigre", "Hombre León", "Hombre Mono", "Hombre Tortuga", "Hombre Panda"]
-
-# --- BASE DE DATOS DE HABILIDADES Y TIERS ---
-CATALOGO_HABILIDADES_GLOBAL = {
-    "Invocación de Golem de Roca": {
-        "clase": "Invocador", "tipo": "Invocación Tanque",
-        "tier1": "Invoca un pequeño gólem de piedra.",
-        "tier2": "Gólem de Granito Rúnico (Provoca a los enemigos).",
-        "tier3": "Titán de Obsidiana Viviente (Escudo masivo)."
-    },
-    "Espíritu Feral de Manada": {
-        "clase": "Invocador", "tipo": "Invocación Ofensiva",
-        "tier1": "Invoca 1 lobo espiritual de apoyo.",
-        "tier2": "Manada Espectral de 3 lobos veloces.",
-        "tier3": "Jauría del Dios Salvaje (Desgarra armadura)."
-    },
-    "Tótem de Rayo Primordial": {
-        "clase": "Invocador", "tipo": "Invocación Elemental",
-        "tier1": "Tótem estático de descargas débiles.",
-        "tier2": "Tótem de Tormenta Feral (Multiobjetivo).",
-        "tier3": "Núcleo del Trueno Ancestral (Tormenta permanente)."
-    },
-    "Bola de Fuego": {
-        "clase": "Mago de Batalla", "tipo": "Magia de Fuego",
-        "tier1": "Proyectil ígneo básico.",
-        "tier2": "Gran Esfera Ígnea con daño en área (AoE).",
-        "tier3": "Meteorito Menor (Incinera la zona)."
-    },
-    "Muro de Fuego": {
-        "clase": "Mago de Batalla", "tipo": "Control de Masas",
-        "tier1": "Barrera corta de llamas.",
-        "tier2": "Muro circular impenetrable.",
-        "tier3": "Muralla Infernal (Quema y paraliza)."
-    },
-    "Tajo Inicial": {
-        "clase": "Caballero / Guerrero", "tipo": "Combate Físico",
-        "tier1": "Corte rápido con arma.",
-        "tier2": "Doble Tajo Cruzado con sangrado.",
-        "tier3": "Corte Ciclón (Golpea en área)."
-    }
-}
-
-# --- BESTIARIO MASIVO Y JEFES DE ZONA POR REINOS (1 A 60) + ZONA CENTRAL ---
-BESTIARIO_ZONAS = {
-    "Reino Humano de Valoria": {
-        "mobs": [
-            {"nombre": "Slime de Rocío", "nivel": 3, "grupo": 5, "hp": 50, "drop": "Gelatina Elemental"},
-            {"nombre": "Lobos Esteparios", "nivel": 7, "grupo": 4, "hp": 80, "drop": "Colmillo de Lobo"},
-            {"nombre": "Goblins Exploradores", "nivel": 15, "grupo": 5, "hp": 130, "drop": "Daga Herrumbrosa"},
-            {"nombre": "Bandidos de los Caminos", "nivel": 22, "grupo": 4, "hp": 180, "drop": "Moneda Oxidada"},
-            {"nombre": "Orcos Merodeadores", "nivel": 32, "grupo": 3, "hp": 300, "drop": "Hacha de Orco Tosca"},
-            {"nombre": "Plantas Carnívoras Gigantes", "nivel": 38, "grupo": 2, "hp": 380, "drop": "Espora Venenosa"},
-            {"nombre": "Ogros de las Colinas", "nivel": 48, "grupo": 2, "hp": 600, "drop": "Garrote de Ogro"},
-            {"nombre": "Wyverns de la Cresta", "nivel": 57, "grupo": 1, "hp": 850, "drop": "Aguijón de Wyvern"}
-        ],
-        "jefes": [
-            {"nombre": "Barón Zarek (Forajido)", "nivel": 25, "hp": 450, "drop": "Espada de Oro del Forajido"},
-            {"nombre": "Gorthor el Rompecráneos", "nivel": 45, "hp": 900, "drop": "Maza de Guerra Gigante"},
-            {"nombre": "Valerius, el Caballero Caído", "nivel": 60, "hp": 1600, "drop": "Coraza de Luz Negra (Jefe Zona)"}
-        ]
-    },
-    "Reino Silvano de Lothar": {
-        "mobs": [
-            {"nombre": "Slime Musgoso", "nivel": 3, "grupo": 5, "hp": 50, "drop": "Núcleo de Musgo"},
-            {"nombre": "Lobos Sombra", "nivel": 8, "grupo": 4, "hp": 90, "drop": "Piel de Sombra"},
-            {"nombre": "Plantas Carnívoras Devoradoras", "nivel": 16, "grupo": 3, "hp": 150, "drop": "Liana Resistente"},
-            {"nombre": "Goblins del Bosque", "nivel": 24, "grupo": 5, "hp": 200, "drop": "Dardo Envenenado"},
-            {"nombre": "Osos Grizzly Silvanos", "nivel": 34, "grupo": 2, "hp": 400, "drop": "Piel de Oso Milenario"},
-            {"nombre": "Orcos Cazadores", "nivel": 40, "grupo": 3, "hp": 500, "drop": "Arco de Hueso"},
-            {"nombre": "Treants Corruptos", "nivel": 50, "grupo": 2, "hp": 750, "drop": "Madera Ancestral Pura"},
-            {"nombre": "Wyverns de las Copas", "nivel": 58, "grupo": 1, "hp": 900, "drop": "Garra de Wyvern Silvano"}
-        ],
-        "jefes": [
-            {"nombre": "Arachne (Madre de Sombras)", "nivel": 28, "hp": 500, "drop": "Diadema de Seda Venenosa"},
-            {"nombre": "Karnak (Chamán Orco)", "nivel": 48, "hp": 950, "drop": "Bastón de Huesos Ancestrales"},
-            {"nombre": "Malacor (Ent Corrompido)", "nivel": 60, "hp": 1700, "drop": "Núcleo de Madera Eterna (Jefe Zona)"}
-        ]
-    },
-    "Reino Enano de Khazad": {
-        "mobs": [
-            {"nombre": "Murciélagos de Caverna", "nivel": 4, "grupo": 6, "hp": 60, "drop": "Ala Quiróptera"},
-            {"nombre": "Slimes de Mineral", "nivel": 9, "grupo": 4, "hp": 95, "drop": "Residuo Metálico"},
-            {"nombre": "Goblins Mineros", "nivel": 18, "grupo": 5, "hp": 170, "drop": "Piqueta Rota"},
-            {"nombre": "Huargos de las Cavernas", "nivel": 26, "grupo": 3, "hp": 240, "drop": "Colmillo de Huargo"},
-            {"nombre": "Orcos Berserkers", "nivel": 35, "grupo": 3, "hp": 450, "drop": "Mineral de Hierro Bruto"},
-            {"nombre": "Plantas Subterráneas Luz", "nivel": 42, "grupo": 3, "hp": 520, "drop": "Bulbo Luminoso"},
-            {"nombre": "Ogros de Profundidad", "nivel": 52, "grupo": 1, "hp": 800, "drop": "Núcleo de Granito"},
-            {"nombre": "Dragones Menores de Magma", "nivel": 59, "grupo": 1, "hp": 1000, "drop": "Escama de Magma"}
-        ],
-        "jefes": [
-            {"nombre": "Grimgor Manoférrea", "nivel": 30, "hp": 550, "drop": "Casco Rúnico de Cobalto"},
-            {"nombre": "Vrakthor el Desollador", "nivel": 50, "hp": 1100, "drop": "Piel de Huargo Alfa"},
-            {"nombre": "Ignisara (Madre del Magma)", "nivel": 60, "hp": 1800, "drop": "Escama de Magma Pura (Jefe Zona)"}
-        ]
-    },
-    "Reino Tribal de las Estepas": {
-        "mobs": [
-            {"nombre": "Hienas de la Sabana", "nivel": 5, "grupo": 5, "hp": 70, "drop": "Piel Desértica"},
-            {"nombre": "Slimes de Polvo", "nivel": 10, "grupo": 4, "hp": 100, "drop": "Residuo Arenoso"},
-            {"nombre": "Goblins Jinetes", "nivel": 20, "grupo": 4, "hp": 190, "drop": "Látigo de Cuero"},
-            {"nombre": "Bandidos Nómadas", "nivel": 27, "grupo": 3, "hp": 260, "drop": "Cuchillo Nómada"},
-            {"nombre": "Huargos de la Estepa", "nivel": 36, "grupo": 4, "hp": 480, "drop": "Piel de Huargo Veloz"},
-            {"nombre": "Orcos Jinetes de Guerra", "nivel": 44, "grupo": 2, "hp": 600, "drop": "Insignia Orca"},
-            {"nombre": "Ogros Nómadas", "nivel": 54, "grupo": 2, "hp": 850, "drop": "Maza de Pedernal"},
-            {"nombre": "Wyverns de Tormenta", "nivel": 60, "grupo": 1, "hp": 1100, "drop": "Núcleo Eléctrico"}
-        ],
-        "jefes": [
-            {"nombre": "Kesh Corazón de León", "nivel": 32, "hp": 600, "drop": "Garras de Acero Tribal"},
-            {"nombre": "Thorgar Rompehuesos", "nivel": 52, "hp": 1200, "drop": "Maza del Gigante"},
-            {"nombre": "Typhón (Señor Tormentas)", "nivel": 60, "hp": 1900, "drop": "Núcleo de Tormenta (Jefe Zona)"}
-        ]
-    },
-    "Zona Central Unificada (Nivel 60+ / Confluencia Global)": {
-        "mobs": [
-            {"nombre": "Titán del Nexo Primordial", "nivel": 65, "grupo": 3, "hp": 1500, "drop": "Fragmento de Núcleo Puro"},
-            {"nombre": "Avatar del Vacío Abisal", "nivel": 70, "grupo": 1, "hp": 2500, "drop": "Esencia de Vacío (Diamante)"}
-        ],
-        "jefes": [
-            {"nombre": "SND-OVERLORD (Jefe Supremo)", "nivel": 75, "hp": 4000, "drop": "Corona del Nexo Primordial"}
-        ]
-    }
-}
-
-CONTINENTES OFICIALES = {
-    CONTINENTE_INICIAL: {"visible_desde_inicio": True, "tipo": "Continente Inicial (Límite Niv. 100)", "max_nivel": 100},
-    "Archipiélago de los Vientos": {"visible_desde_inicio": False, "tipo": "Continente Oculto (Límite Niv. 150)", "max_nivel": 150},
-    "Continente Abisal de los Demonios": {"visible_desde_inicio": False, "tipo": "Continente Oculto (Límite Niv. 200)", "max_nivel": 200},
-    "El Núcleo Central de Comercio": {"visible_desde_inicio": False, "tipo": "Nexo Global (Límite Niv. 300)", "max_nivel": 300}
-}
-
-CATALOGO_EDIFICIOS = {
-    "Gremio de Aventureros": {
-        "desc": "Tablón oficial de contratos, misiones secundarias de caza de jefes y grimorios.",
-        "items": [
-            {"id": "inv_golem", "nombre": "Grimorio: Invocación de Golem de Roca", "tipo": "Habilidad Invocador", "tier": "Raro", "metal": "Cores", "precio": 4},
-            {"id": "inv_lobo", "nombre": "Grimorio: Espíritu Feral de Manada", "tipo": "Habilidad Invocador", "tier": "Raro", "metal": "Plata", "precio": 50},
-            {"id": "muro_fuego", "nombre": "Grimorio: Muro de Fuego", "tipo": "Habilidad Mago", "tier": "Épico", "metal": "Oro", "precio": 5}
-        ]
-    }
-}
-
-CATALOGO_OCULTAS = [
-    {"id": "abrir_vientos", "nombre": "La Brújula de las Tormentas", "continente_premio": "Archipiélago de los Vientos", "tier": "Raro", "pista": "Explora las costas del Continente Primordial."},
-    {"id": "abrir_demonios", "nombre": "El Portal del Abismo", "continente_premio": "Continente Abisal de los Demonios", "tier": "Épico", "pista": "Reúne Cores oscuros y rompe el sello volcánico."}
-]
-
 # --- ESTADO DE SESIÓN ---
 for key, default in [
     ("logged_in", False), ("user_email", ""), ("hero_name", ""),
@@ -245,7 +56,7 @@ for key, default in [
     ("habilidades_equipadas", ["Invocación de Golem de Roca", "Bola de Fuego", "Tajo Inicial", "", ""]),
     ("grimorio_inventario", ["Invocación de Golem de Roca", "Bola de Fuego", "Tajo Inicial", "Muro de Fuego"]),
     ("habilidades_fusionadas", []),
-    ("inventario", ["Ropa de Viajero", "Raciones de Pan"]),
+    ("inventario", ["Ropa de Viajero", "Raciones de Pan", "Escama de Magma", "Mineral de Hierro Bruto", "Piel Desértica", "Bulbo Luminoso"]),
     ("montura_activa", "Ninguna"),
     ("has_character", False)
 ]:
@@ -287,7 +98,7 @@ def save_user_data():
 # ================= PANTALLA DE LOGIN =================
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align: center; color: #ffaa00;'>⚔️ SND-WORLDS MMORPG SANDBOX ⚔️</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #a0a0a0;'>Bestiario 1-60 | Monturas por Raza | Atributos Libres | Fusión Nivel 40+</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #a0a0a0;'>Arquitectura Modular | Bestiario 1-60 | Omni-Oficios | Canvas PvE</p>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 1.2, 1])
@@ -323,6 +134,7 @@ if not st.session_state.logged_in:
                     st.session_state.habilidades_equipadas = data.get("habilidades_equipadas", ["Invocación de Golem de Roca", "Bola de Fuego", "Tajo Inicial", "", ""])
                     st.session_state.grimorio_inventario = data.get("grimorio_inventario", ["Invocación de Golem de Roca", "Bola de Fuego"])
                     st.session_state.habilidades_fusionadas = data.get("habilidades_fusionadas", [])
+                    st.session_state.inventario = data.get("inventario", ["Ropa de Viajero", "Raciones de Pan"])
                     st.session_state.montura_activa = data.get("montura_activa", "Ninguna")
                     st.session_state.has_character = data.get("has_character", True)
                 else:
@@ -372,7 +184,7 @@ st.sidebar.write(f"**Raza:** {st.session_state.raza} | **Clase:** {st.session_st
 st.sidebar.write(f"⭐ **Nivel:** {st.session_state.hero_level} | ❤️ **HP:** {st.session_state.hero_hp}/{st.session_state.max_hp}")
 st.sidebar.write(f"🐎 **Montura:** `{st.session_state.montura_activa}`")
 st.sidebar.markdown(f"🌍 **Continente:** `{st.session_state.continente}`")
-st.sidebar.markdown(f"🏰 **Reino:** `{st.session_state.reino_actual}`")
+st.sidebar.markdown(f"🏰 **Reino / Asentamiento:** `{st.session_state.asentamiento_actual}`")
 
 if st.sidebar.button("🚪 Cerrar Sesión"):
     save_user_data()
@@ -380,9 +192,10 @@ if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state.has_character = False
     st.rerun()
 
-# Pestañas principales
-tab_canvas, tab_stats, tab_skills, tab_edificio, tab_viaje_local, tab_bag, tab_world, tab_quests, tab_p2p = st.tabs([
+# Pestañas principales (Incluyendo Talleres y Oficios)
+tab_canvas, tab_craft, tab_stats, tab_skills, tab_edificio, tab_viaje_local, tab_bag, tab_world, tab_quests, tab_p2p = st.tabs([
     "🎮 Motor PvE & Canvas",
+    "🛠️ Talleres & Oficios",
     "📊 Atributos & Nivel",
     "✨ Grimorio & Fusión",
     "🏪 Tienda & Caza",
@@ -420,88 +233,49 @@ with tab_canvas:
             else:
                 st.button(f"[{i+1}] Vacío", disabled=True, key=f"btn_sk_empty_{i}")
 
-    # Renderizador visual en Canvas
-    es_caza = "true" if "Caza" in st.session_state.plano_vista else "false"
+    es_caza = "Caza" in st.session_state.plano_vista
     reino_actual_str = st.session_state.reino_actual
-    hero_name_str = st.session_state.hero_name
-    hero_level_val = st.session_state.hero_level
-
     datos_reino_actual = BESTIARIO_ZONAS.get(reino_actual_str, BESTIARIO_ZONAS["Reino Humano de Valoria"])
-    mobs_reino_list = datos_reino_actual["mobs"]
-    jefes_reino_list = datos_reino_actual["jefes"]
+    
+    html_code = generar_canvas_html(es_caza, reino_actual_str, datos_reino_actual["mobs"], datos_reino_actual["jefes"])
+    st.components.v1.html(html_code, height=520)
 
-    mobs_js_list = str([{
-        "nombre": m["nombre"], "nivel": m["nivel"], "grupo": m["grupo"], 
-        "hp": m["hp"], "drop": m["drop"], "tipo": "mob"
-    } for m in mobs_reino_list] + [{
-        "nombre": j["nombre"], "nivel": j["nivel"], "grupo": 1, 
-        "hp": j["hp"], "drop": j["drop"], "tipo": "jefe"
-    } for j in jefes_reino_list])
+# ================= PESTAÑA 2: TALLERES Y OFICIOS (OMNI-OFICIOS) =================
+with tab_craft:
+    st.subheader("🛠️ Centro General de Talleres y Oficios (Acceso Universal)")
+    st.write("Bienvenido al gremio de artesanía unificado de la ciudad. Bajo el sistema de **Omni-Oficios**, puedes acceder a cualquiera de los 10 talleres y fabricar equipo 100% libre de ataduras (*0% Soul-Bound*) utilizando los materiales obtenidos en el bestiario.")
+    
+    taller_sel = st.selectbox("Selecciona el Taller / Profesión", list(TALLERES_OFICIOS.keys()))
+    info_taller = TALLERES_OFICIOS[taller_sel]
+    st.info(info_taller["descripcion"])
 
-    game_html = f"""
-    <div style="text-align: center; background: #111; padding: 10px; border-radius: 10px; border: 2px solid #ffaa00;">
-        <canvas id="gameCanvas" width="820" height="480" style="background: #152216; border-radius: 8px; display: block; margin: 0 auto; max-width: 100%;"></canvas>
-        <p id="hudInfo" style="color: #ffd700; margin-top: 8px; font-weight: bold; font-size: 14px;">Explora el terreno o enfréntate a las manadas y Jefes de Zona.</p>
-    </div>
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const esCaza = {es_caza};
-        const worldW = esCaza ? 1600 : 820;
-        const worldH = esCaza ? 1200 : 480;
-        let player = {{ x: worldW / 2, y: worldH / 2, radius: 14, speed: 5, color: "#ffaa00" }};
-        let keys = {{}};
-        const entities = {mobs_js_list};
+    st.markdown("### 📋 Recetas Disponibles")
+    for receta in info_taller["recetas"]:
+        with st.expander(f"✨ {receta['nombre']} — Tier: {receta['tier']} ({receta['tipo']})"):
+            st.write(f"**Materiales requeridos:**")
+            for mat, cant in receta["materiales"].items():
+                en_inventario = st.session_state.inventario.count(mat)
+                color_mat = "green" if en_inventario >= cant else "red"
+                st.markdown(f"- :{color_mat}[{cant}x {mat}] (Tienes en mochila: {en_inventario})")
+            
+            st.write(f"**Bonificación de Stats:** {receta['stats_bonus']}")
+            
+            if st.button(f"🔨 Fabricar {receta['nombre']}", key=f"craft_{receta['id']}"):
+                exito, msg = simular_crafteo(taller_sel, receta["id"], st.session_state.inventario)
+                if exito:
+                    # Consumir materiales
+                    for mat, cant in receta["materiales"].items():
+                        for _ in range(cant):
+                            st.session_state.inventario.remove(mat)
+                    # Añadir resultado
+                    st.session_state.inventario.append(receta['nombre'])
+                    save_user_data()
+                    st.success(f"¡Has fabricado con éxito **{receta['nombre']}**! Se ha guardado en tu mochila.")
+                    st.rerun()
+                else:
+                    st.error(f"No se pudo fabricar: {msg}")
 
-        window.addEventListener('keydown', (e) => {{ keys[e.key.toLowerCase()] = true; }});
-        window.addEventListener('keyup', (e) => {{ keys[e.key.toLowerCase()] = false; }});
-
-        function actualizar() {{
-            if (keys['w'] || keys['arrowup']) player.y -= player.speed;
-            if (keys['s'] || keys['arrowdown']) player.y += player.speed;
-            if (keys['a'] || keys['arrowleft']) player.x -= player.speed;
-            if (keys['d'] || keys['arrowright']) player.x += player.speed;
-            if (player.x < player.radius) player.x = player.radius;
-            if (player.x > worldW - player.radius) player.x = worldW - player.radius;
-            if (player.y < player.radius) player.y = player.radius;
-            if (player.y > worldH - player.radius) player.y = worldH - player.radius;
-        }}
-
-        function dibujar() {{
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            if (esCaza) {{
-                let camX = Math.max(0, Math.min(player.x - canvas.width / 2, worldW - canvas.width));
-                let camY = Math.max(0, Math.min(player.y - canvas.height / 2, worldH - canvas.height));
-                ctx.translate(-camX, -camY);
-                ctx.fillStyle = "#1e3020";
-                ctx.fillRect(0, 0, worldW, worldH);
-            }} else {{
-                ctx.fillStyle = "#1b3a24";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }}
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-            ctx.fillStyle = player.color;
-            ctx.fill();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = "#fff";
-            ctx.stroke();
-            ctx.closePath();
-            ctx.restore();
-        }}
-
-        function loop() {{
-            actualizar();
-            dibujar();
-            requestAnimationFrame(loop);
-        }}
-        loop();
-    </script>
-    """
-    st.components.v1.html(game_html, height=520)
-
-# ================= PESTAÑA 2: ATRIBUTOS, PUNTOS LIBRES Y NIVELES =================
+# ================= PESTAÑA 3: ATRIBUTOS, PUNTOS LIBRES Y NIVELES =================
 with tab_stats:
     st.subheader("📊 Panel de Atributos y Progresión de Nivel")
     st.write(f"⭐ **Nivel Actual:** `{st.session_state.hero_level}` | 🎁 **Puntos Libres Disponibles:** `{st.session_state.puntos_libres}`")
@@ -547,7 +321,7 @@ with tab_stats:
             st.success(f"¡Has subido al **Nivel {st.session_state.hero_level}**! Has ganado 5 puntos libres y +10 HP.")
             st.rerun()
 
-# ================= PESTAÑA 3: GRIMORIO Y FUSIÓN (NIVEL 40+) =================
+# ================= PESTAÑA 4: GRIMORIO Y FUSIÓN (NIVEL 40+) =================
 with tab_skills:
     st.subheader("✨ Sistema de Habilidades (1,870 Skills) y Fusión Nivel 40+")
     col_s1, col_s2 = st.columns(2)
@@ -586,7 +360,7 @@ with tab_skills:
         else:
             st.warning(f"🔒 Se desbloquea al **Nivel 40**. (Tu nivel: {st.session_state.hero_level})")
 
-# ================= PESTAÑA 4: TIENDA =================
+# ================= PESTAÑA 5: TIENDA =================
 with tab_edificio:
     st.subheader("🏪 Gremio de Aventureros — Grimorios")
     for item in CATALOGO_EDIFICIOS["Gremio de Aventureros"]["items"]:
@@ -602,7 +376,7 @@ with tab_edificio:
                     st.success(f"¡Aprendido **{sk_limpia}**!")
                     st.rerun()
 
-# ================= PESTAÑA 5: BESTIARIO 1-60 =================
+# ================= PESTAÑA 6: BESTIARIO 1-60 =================
 with tab_viaje_local:
     st.subheader("🗺️ Bestiario Masivo y Jefes de Zona (Niveles 1 a 60)")
     reino_sel = st.selectbox("Selecciona Reino / Región", list(BESTIARIO_ZONAS.keys()))
@@ -623,7 +397,7 @@ with tab_viaje_local:
         st.success(f"Te has desplazado a **{reino_sel}**.")
         st.rerun()
 
-# ================= PESTAÑA 6: MOCHILA Y MONTURAS =================
+# ================= PESTAÑA 7: MOCHILA Y MONTURAS =================
 with tab_bag:
     st.subheader("🎒 Mochila, Inventario y Sistema de Monturas")
     col_m1, col_m2 = st.columns(2)
@@ -641,23 +415,22 @@ with tab_bag:
                 st.rerun()
 
     with col_m2:
-        st.markdown("### 📦 Objetos y Grimorios")
-        st.write("Inventario:", st.session_state.inventario)
-        st.write("Grimorios:", st.session_state.grimorio_inventario)
+        st.markdown("### 📦 Objetos y Materiales en Mochila")
+        st.write(st.session_state.inventario)
 
-# ================= PESTAÑA 7: CONTINENTES Y LÍMITES DE NIVEL =================
+# ================= PESTAÑA 8: CONTINENTES Y LÍMITES DE NIVEL =================
 with tab_world:
     st.subheader("🌍 Los Continentes y Escalado (+50 Niveles por Continente)")
     for cont, info in CONTINENTES_OFICIALES.items():
         st.markdown(f"- **{cont}** — *{info['tipo']}*")
 
-# ================= PESTAÑA 8: MISIONES SECRETAS =================
+# ================= PESTAÑA 9: MISIONES SECRETAS =================
 with tab_quests:
     st.subheader("📜 Misiones Secretas")
     for oculta in CATALOGO_OCULTAS:
         st.markdown(f"**{oculta['nombre']}** ➔ Abre: `{oculta['continente_premio']}` (*{oculta['pista']}*)")
 
-# ================= PESTAÑA 9: ENCARGOS P2P =================
+# ================= PESTAÑA 10: ENCARGOS P2P =================
 with tab_p2p:
     st.subheader("🤝 Tablón P2P entre Jugadores")
     docs = db.collection("p2p_quests").stream()
@@ -666,4 +439,4 @@ with tab_p2p:
         st.markdown(f"**Autor:** `{data.get('autor')}` — **{data.get('titulo')}** (Premio: `{data.get('recompensa_cant')} {data.get('recompensa_tipo')}`)")
 
 st.markdown("---")
-st.caption("Snd-Worlds MMORPG Sandbox - Versión Masiva Completa")
+st.caption("Snd-Worlds MMORPG Sandbox - Arquitectura Modular Definitiva")
