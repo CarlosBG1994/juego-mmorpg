@@ -26,11 +26,6 @@ DATOS_MUNDO = {
         {"nombre": "Mago", "rol": "Daño mágico a distancia", "ataque_base": "Mágico"},
         {"nombre": "Asesino", "rol": "Agilidad y sigilo", "ataque_base": "Físico"}
     ],
-    "opciones_personalizacion": {
-        "cabello": ["Rubio Legendario", "Castaño Oscuro", "Pelirrojo Fuego", "Platino Arcano", "Negro Sombra"],
-        "armadura_color": ["Azul Real (Valoria)", "Rojo Sangre", "Verde Esmeralda", "Dorado Divino", "Oscuro Abisal"],
-        "casco": ["Diadema de Oro", "Casco con Cuernos", "Capucha de Asesino", "Ninguno (Cabello al aire)"]
-    },
     "monturas_disponibles": [
         {"nombre": "A Pie (Velocidad Base)", "bonus_velocidad": 1.0, "coste": 0, "requisito": "Ninguno"},
         {"nombre": "Caballo de Guerra Blindado", "bonus_velocidad": 1.6, "coste": 2500, "requisito": "Nivel 25"},
