@@ -40,23 +40,53 @@ except Exception as e:
     st.error(f"Error crítico al conectar con Firebase: {e}")
     st.stop()
 
-# --- ESTADO DE SESIÓN ---
+# --- ESTADO DE SESIÓN Y DATOS DE JUEGO ---
 for key, default in [
     ("logged_in", False), ("user_email", ""), ("hero_name", ""),
     ("raza", "Humano"), ("subforma", "Hombre Lobo"), ("genero", "Hombre"),
     ("clase", "Invocador"), ("continente", CONTINENTE_INICIAL),
     ("reino_actual", "Reino Humano de Valoria"), ("asentamiento_actual", "Aurelia Capital"),
-    ("plano_vista", "Exterior (Puertas del Asentamiento)"),
     ("hero_level", 1), ("hero_hp", 100), ("max_hp", 100), ("hero_xp", 0),
     ("puntos_libres", 0),
     ("str", 5), ("int", 16), ("agi", 6), ("vit", 10), ("luk", 10),
-    ("cores", 15), ("plata", 200), ("oro", 20), ("diamante", 3),
-    ("habilidades_equipadas", ["Invocación de Golem de Roca", "Tajo Inicial", "Bola de Fuego", "Flecha Relámpago", "Golpe del Dragón Interno"]),
-    ("grimorio_inventario", ["Invocación de Golem de Roca", "Tajo Inicial", "Bola de Fuego", "Flecha Relámpago", "Golpe del Dragón Interno", "Muro de Hielo Permafrost"]),
+    ("plata", 350), ("oro", 25), ("diamante", 5), ("peso_maximo", 100),
+    # Habilidades: Empieza estrictamente con 1 habilidad inicial
+    ("habilidades_equipadas", ["Invocación de Golem de Roca"]),
+    ("grimorio_inventario", ["Invocación de Golem de Roca"]),
     ("habilidades_fusionadas", []),
-    ("inventario", ["Ropa de Viajero", "Raciones de Pan", "Escama de Magma", "Mineral de Hierro Bruto", "Piel Desértica", "Bulbo Luminoso"]),
+    ("inventario", ["Ropa de Viajero", "Raciones de Pan (x3)", "Mineral de Hierro Bruto (x2)"]),
+    # Equipamiento con durabilidad
+    ("equipamiento", {
+        "Cabeza": {"nombre": "Capucha de Tela", "defensa": 5, "durabilidad": 100},
+        "Pecho": {"nombre": "Túnica de Iniciado", "defensa": 12, "durabilidad": 90},
+        "Arma": {"nombre": "Bastón de Madera", "ataque": 10, "durabilidad": 85},
+        "Pies": {"nombre": "Zapatos de Cuero", "defensa": 4, "durabilidad": 95}
+    }),
     ("montura_activa", "Ninguna"),
-    ("misiones_activas", [{"id": "m1", "titulo": "Caza de Goblins en Valoria", "objetivo": "Derrota 5 Goblins", "progreso": 0, "meta": 5, "completada": False}]),
+    ("misiones_activas", [
+        {"id": "m1", "titulo": "Caza de Goblins en Valoria", "objetivo": "Derrota 5 Goblins", "progreso": 2, "meta": 5, "completada": False}
+    ]),
+    ("misiones_realizadas", [
+        {"id": "m0", "titulo": "El Despertar del Héroe", "recompensa": "+1 Habilidad Inicial"}
+    ]),
+    # Tratados y Reputación con Reinos
+    ("tratados_reinos", {
+        "Reino Humano de Valoria": {"confianza": 60, "estado": "Neutral / Respetado", "crimenes": 0},
+        "Bosque Ancestral de Eldoria": {"confianza": 50, "estado": "Neutral", "crimenes": 0},
+        "Fortaleza de Hierro de Pyoria": {"confianza": 40, "estado": "Neutral", "crimenes": 1},
+        "Estepas Salvajes de Noxoria": {"confianza": 20, "estado": "Criminal / Hostil", "crimenes": 3}
+    }),
+    # Profesiones (Niveles del 1 al 100)
+    ("profesiones", {
+        "Herrería": 1, "Minería": 1, "Peletería": 1, "Sastrería": 1,
+        "Herboristería": 1, "Alquimia": 1, "Cocina": 1, "Pesca": 1,
+        "Joyería": 1, "Criadero de Monturas": 1
+    }),
+    ("gremio", "Sin Gremio asignado"),
+    ("amigos", ["Valeria_99", "Thorin_Ironfist"]),
+    ("config_volumen", 80),
+    ("config_visibilidad", "Alta"),
+    ("menu_activo", False), # Toggle del menú flotante
     ("has_character", False)
 ]:
     if key not in st.session_state:
@@ -69,28 +99,14 @@ def save_user_data():
             "raza": st.session_state.raza,
             "clase": st.session_state.clase,
             "continente": st.session_state.continente,
-            "reino_actual": st.session_state.reino_actual,
-            "asentamiento_actual": st.session_state.asentamiento_actual,
             "hero_level": st.session_state.hero_level,
             "hero_hp": st.session_state.hero_hp,
-            "max_hp": st.session_state.max_hp,
-            "hero_xp": st.session_state.hero_xp,
-            "puntos_libres": st.session_state.puntos_libres,
-            "str": st.session_state.str,
-            "int": st.session_state.int,
-            "agi": st.session_state.agi,
-            "vit": st.session_state.vit,
-            "luk": st.session_state.luk,
-            "cores": st.session_state.cores,
-            "plata": st.session_state.plata,
-            "oro": st.session_state.oro,
-            "diamante": st.session_state.diamante,
             "habilidades_equipadas": st.session_state.habilidades_equipadas,
             "grimorio_inventario": st.session_state.grimorio_inventario,
-            "habilidades_fusionadas": st.session_state.habilidades_fusionadas,
             "inventario": st.session_state.inventario,
-            "montura_activa": st.session_state.montura_activa,
-            "misiones_activas": st.session_state.misiones_activas,
+            "equipamiento": st.session_state.equipamiento,
+            "tratados_reinos": st.session_state.tratados_reinos,
+            "profesiones": st.session_state.profesiones,
             "has_character": st.session_state.has_character
         }
         db.collection("users").document(st.session_state.user_email).set(user_data, merge=True)
@@ -98,50 +114,34 @@ def save_user_data():
 # ================= LOGIN =================
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align: center; color: #ffaa00;'>⚔️ SND-WORLDS MMORPG SANDBOX ⚔️</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #a0a0a0;'>Arquitectura Modular | 1,870 Habilidades | Canvas Real-Time | Omni-Oficios</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #a0a0a0;'>Mundo Abierto Masivo | Menú Toggle | Sistema de Profesiones y Tratados</p>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
         st.markdown("### Acceso al Servidor")
         user_input = st.text_input("Correo electrónico o Usuario")
-        
         if st.button("Conectar al Servidor", use_container_width=True):
             if user_input:
                 email = user_input.strip().lower()
                 st.session_state.user_email = email
                 user_ref = db.collection("users").document(email)
                 user_doc = user_ref.get()
-                
                 if user_doc.exists:
                     data = user_doc.to_dict()
                     st.session_state.hero_name = data.get("hero_name", email.split("@")[0])
                     st.session_state.raza = data.get("raza", "Humano")
                     st.session_state.clase = data.get("clase", "Invocador")
-                    st.session_state.continente = data.get("continente", CONTINENTE_INICIAL)
-                    st.session_state.reino_actual = data.get("reino_actual", "Reino Humano de Valoria")
-                    st.session_state.asentamiento_actual = data.get("asentamiento_actual", "Aurelia Capital")
-                    st.session_state.hero_level = data.get("hero_level", 1)
-                    st.session_state.hero_hp = data.get("hero_hp", 100)
-                    st.session_state.max_hp = data.get("max_hp", 100)
-                    st.session_state.hero_xp = data.get("hero_xp", 0)
-                    st.session_state.puntos_libres = data.get("puntos_libres", 0)
-                    st.session_state.str = data.get("str", 5)
-                    st.session_state.int = data.get("int", 16)
-                    st.session_state.agi = data.get("agi", 6)
-                    st.session_state.vit = data.get("vit", 10)
-                    st.session_state.luk = data.get("luk", 10)
-                    st.session_state.habilidades_equipadas = data.get("habilidades_equipadas", ["Invocación de Golem de Roca", "Tajo Inicial", "Bola de Fuego", "Flecha Relámpago", "Golpe del Dragón Interno"])
-                    st.session_state.grimorio_inventario = data.get("grimorio_inventario", ["Invocación de Golem de Roca", "Tajo Inicial", "Bola de Fuego", "Flecha Relámpago", "Golpe del Dragón Interno", "Muro de Hielo Permafrost"])
-                    st.session_state.habilidades_fusionadas = data.get("habilidades_fusionadas", [])
-                    st.session_state.inventario = data.get("inventario", ["Ropa de Viajero", "Raciones de Pan"])
-                    st.session_state.montura_activa = data.get("montura_activa", "Ninguna")
-                    st.session_state.misiones_activas = data.get("misiones_activas", [])
+                    st.session_state.habilidades_equipadas = data.get("habilidades_equipadas", ["Invocación de Golem de Roca"])
+                    st.session_state.grimorio_inventario = data.get("grimorio_inventario", ["Invocación de Golem de Roca"])
+                    st.session_state.inventario = data.get("inventario", ["Ropa de Viajero"])
+                    st.session_state.equipamiento = data.get("equipamiento", st.session_state.equipamiento)
+                    st.session_state.tratados_reinos = data.get("tratados_reinos", st.session_state.tratados_reinos)
+                    st.session_state.profesiones = data.get("profesiones", st.session_state.profesiones)
                     st.session_state.has_character = data.get("has_character", True)
                 else:
                     st.session_state.hero_name = email.split("@")[0]
                     st.session_state.has_character = False
-                
                 st.session_state.logged_in = True
                 st.rerun()
     st.stop()
@@ -153,271 +153,159 @@ if not st.session_state.has_character:
     with col_c1:
         st.session_state.hero_name = st.text_input("Nombre del Héroe", value=st.session_state.hero_name)
         st.session_state.raza = st.selectbox("Raza / Facción", list(RAZAS_Y_CLASSES.keys()))
-        if st.session_state.raza == "Hombre Bestia":
-            st.session_state.subforma = st.selectbox("Sub-forma de Bestia", SUBFORMAS_BESTIA)
     with col_c2:
         info_raza = RAZAS_Y_CLASSES[st.session_state.raza]
         st.session_state.clase = st.selectbox("Clase Oficial", info_raza["clases"])
-        st.session_state.reino_actual = info_raza["reino_inicio"]
-        st.session_state.asentamiento_actual = f"Asentamiento de {st.session_state.raza}"
-        
         base_stats = ESTADISTICAS_BASE_CLASES.get(st.session_state.clase, {"str": 10, "int": 10, "agi": 10, "vit": 10, "luk": 10, "hp": 100})
         st.session_state.str = base_stats["str"]
         st.session_state.int = base_stats["int"]
-        st.session_state.agi = base_stats["agi"]
-        st.session_state.vit = base_stats["vit"]
-        st.session_state.luk = base_stats["luk"]
         st.session_state.max_hp = base_stats["hp"]
         st.session_state.hero_hp = base_stats["hp"]
 
-        monturas_disponibles = info_raza["monturas_exclusivas"] + MONTURAS_COMUNES
-        st.session_state.montura_activa = monturas_disponibles[0]
-
-        st.info(f"🐎 **Montura Asignada:** `{st.session_state.montura_activa}`\n\n*{info_raza['lore']}*")
-
-    if st.button("🚀 ¡Entrar al Mundo!", use_container_width=True):
+    if st.button("🚀 ¡Entrar al Mundo Masivo!", use_container_width=True):
         if st.session_state.hero_name:
             st.session_state.has_character = True
             save_user_data()
             st.rerun()
     st.stop()
 
-# ================= BARRA LATERAL =================
-st.sidebar.header(f"🛡️ {st.session_state.hero_name}")
-st.sidebar.write(f"**Raza:** {st.session_state.raza} | **Clase:** {st.session_state.clase}")
-st.sidebar.write(f"⭐ **Nivel:** {st.session_state.hero_level} | ❤️ **HP:** {st.session_state.hero_hp}/{st.session_state.max_hp}")
-st.sidebar.write(f"🐎 **Montura:** `{st.session_state.montura_activa}`")
-st.sidebar.markdown(f"🌍 **Continente:** `{st.session_state.continente}`")
-st.sidebar.markdown(f"🏰 **Reino / Asentamiento:** `{st.session_state.asentamiento_actual}`")
-
-if st.sidebar.button("🚪 Cerrar Sesión"):
-    save_user_data()
-    st.session_state.logged_in = False
-    st.session_state.has_character = False
-    st.rerun()
-
-# Pestañas principales
-tab_canvas, tab_craft, tab_stats, tab_skills, tab_dungeon, tab_quests, tab_edificio, tab_viaje_local, tab_bag, tab_world = st.tabs([
-    "🎮 Motor PvE (Tiempo Real)",
-    "🛠️ Talleres & Oficios",
-    "📊 Atributos & Nivel",
-    "✨ Grimorio (15 Habilidades)",
-    "🏰 Mazmorras & Jefes",
-    "📜 Misiones",
-    "🏪 Tienda Gremio",
-    "🗺️ Bestiario y Zonas",
-    "🎒 Mochila",
-    "🌍 Continentes"
-])
-
-# ================= TAB 1: CANVAS PVE EN TIEMPO REAL =================
-with tab_canvas:
-    col_top1, col_top2 = st.columns([2.5, 1.5])
-    with col_top1:
-        st.subheader(f"📍 {st.session_state.asentamiento_actual} — Combate en Tiempo Real")
-    with col_top2:
-        if st.session_state.plano_vista == "Exterior (Puertas del Asentamiento)":
-            if st.button("🚪 Cruzar Murallas a Zonas de Caza (PvE)", use_container_width=True, type="primary"):
-                st.session_state.plano_vista = "Zona de Caza y Combate"
-                st.rerun()
-        else:
-            if st.button("🏰 Volver al Refugio del Asentamiento", use_container_width=True):
-                st.session_state.plano_vista = "Exterior (Puertas del Asentamiento)"
-                st.rerun()
-
-    st.markdown("#### ⚡ Barra de Habilidades Activas (Dominas hasta 15 habilidades)")
-    cols_sk = st.columns(5)
-    for i, sk_name in enumerate(st.session_state.habilidades_equipadas):
-        with cols_sk[i]:
-            if sk_name:
-                st.button(f"[{i+1}] {sk_name}\n(Poderes x3)", key=f"btn_sk_{i}")
-            else:
-                st.button(f"[{i+1}] Vacío", disabled=True, key=f"btn_sk_empty_{i}")
-
-    es_caza = "Caza" in st.session_state.plano_vista
-    reino_actual_str = st.session_state.reino_actual
-    datos_reino_actual = BESTIARIO_ZONAS.get(reino_actual_str, BESTIARIO_ZONAS["Reino Humano de Valoria"])
-    
-    html_code = generar_canvas_html(es_caza, reino_actual_str, datos_reino_actual["mobs"], datos_reino_actual.get("jefes_zona", []))
-    st.components.v1.html(html_code, height=480)
-
-# ================= TAB 2: TALLERES Y OFICIOS =================
-with tab_craft:
-    st.subheader("🛠️ Centro General de Talleres y Oficios (Omni-Oficios)")
-    st.write("Acceso universal a los 10 talleres. Fabrica equipo y objetos 100% libres de ataduras (*0% Soul-Bound*).")
-    
-    taller_sel = st.selectbox("Selecciona el Taller", list(TALLERES_OFICIOS.keys()))
-    info_taller = TALLERES_OFICIOS[taller_sel]
-    st.info(info_taller["descripcion"])
-
-    for receta in info_taller["recetas"]:
-        with st.expander(f"✨ {receta['nombre']} — Tier: {receta['tier']} ({receta['tipo']})"):
-            st.write(f"**Materiales requeridos:**")
-            for mat, cant in receta["materiales"].items():
-                en_inv = st.session_state.inventario.count(mat)
-                col = "green" if en_inv >= cant else "red"
-                st.markdown(f"- :{col}[{cant}x {mat}] (Tienes: {en_inv})")
-            
-            if st.button(f"🔨 Fabricar {receta['nombre']}", key=f"craft_{receta['id']}"):
-                exito, msg = simular_crafteo(taller_sel, receta["id"], st.session_state.inventario)
-                if exito:
-                    for mat, cant in receta["materiales"].items():
-                        for _ in range(cant): st.session_state.inventario.remove(mat)
-                    st.session_state.inventario.append(receta['nombre'])
-                    save_user_data()
-                    st.success(f"¡Fabricado con éxito **{receta['nombre']}**!")
-                    st.rerun()
-                else:
-                    st.error(f"Error: {msg}")
-
-# ================= TAB 3: ATRIBUTOS Y NIVEL =================
-with tab_stats:
-    st.subheader("📊 Panel de Atributos y Escalado de Nivel")
-    st.write(f"⭐ **Nivel Actual:** `{st.session_state.hero_level}` | 🎁 **Puntos Libres:** `{st.session_state.puntos_libres}`")
-    
-    col_st1, col_st2 = st.columns(2)
-    with col_st1:
-        st.write(f"💪 **STR:** {st.session_state.str} | 🔮 **INT:** {st.session_state.int} | ⚡ **AGI:** {st.session_state.agi} | ❤️ **VIT:** {st.session_state.vit} | 🍀 **LUK:** {st.session_state.luk}")
-        if st.session_state.puntos_libres > 0:
-            attr = st.selectbox("Atributo a subir", ["Fuerza", "Inteligencia", "Agilidad", "Vitalidad", "Suerte"])
-            if st.button("Asignar Punto"):
-                st.session_state.puntos_libres -= 1
-                if attr == "Fuerza": st.session_state.str += 1
-                elif attr == "Inteligencia": st.session_state.int += 1
-                elif attr == "Agilidad": st.session_state.agi += 1
-                elif attr == "Vitalidad": 
-                    st.session_state.vit += 1
-                    st.session_state.max_hp += 5
-                    st.session_state.hero_hp += 5
-                elif attr == "Suerte": st.session_state.luk += 1
-                save_user_data()
-                st.success("¡Atributo mejorado!")
-                st.rerun()
-    with col_st2:
-        if st.button("✨ Simular Subida de Nivel (+1 Nivel)", use_container_width=True):
-            st.session_state.hero_level += 1
-            st.session_state.puntos_libres += 5
-            st.session_state.max_hp += 10
-            st.session_state.hero_hp = st.session_state.max_hp
-            save_user_data()
-            st.success(f"¡Subiste a Nivel {st.session_state.hero_level}!")
-            st.rerun()
-
-# ================= TAB 4: GRIMORIO Y FUSIÓN =================
-with tab_skills:
-    st.subheader("✨ Grimorio, Habilidades y Laboratorio de Fusión")
-    st.write("Cada habilidad cuenta con **3 poderes únicos**. Domina hasta 15 habilidades y fusiona pares para crear super-poderes.")
-    
-    col_sk1, col_sk2 = st.columns(2)
-    with col_sk1:
-        st.markdown("### 📋 Tus 5 Ranuras Activas de Combate")
-        for idx in range(5):
-            actual = st.session_state.habilidades_equipadas[idx]
-            nueva = st.selectbox(f"Ranura #{idx+1}", ["(Vacío)"] + st.session_state.grimorio_inventario, index=(st.session_state.grimorio_inventario.index(actual)+1) if actual in st.session_state.grimorio_inventario else 0, key=f"slot_{idx}")
-            val = "" if nueva == "(Vacío)" else nueva
-            if st.session_state.habilidades_equipadas[idx] != val:
-                st.session_state.habilidades_equipadas[idx] = val
-                save_user_data()
-
-    with col_sk2:
-        st.markdown("### ⚗️ Laboratorio de Fusión de Habilidades")
-        if st.session_state.hero_level >= 30:
-            fp1 = st.selectbox("Habilidad 1", st.session_state.grimorio_inventario, key="f1")
-            fp2 = st.selectbox("Habilidad 2", st.session_state.grimorio_inventario, key="f2")
-            nombre_fus = st.text_input("Nombre del Poder Híbrido")
-            if st.button("✨ Fusionar Poderes") and nombre_fus and fp1 != fp2:
-                st.session_state.habilidades_fusionadas.append({"nombre": nombre_fus, "p1": fp1, "p2": fp2})
-                st.session_state.grimorio_inventario.append(nombre_fus)
-                save_user_data()
-                st.success(f"¡Habilidad fusionada **{nombre_fus}** creada con éxito!")
-                st.rerun()
-        else:
-            st.warning("🔒 Se desbloquea al Nivel 30.")
-
-# ================= TAB 5: MAZMORRAS Y JEFES =================
-with tab_dungeon:
-    st.subheader("🏰 Mazmorras del Reino y Jefes de Instancia")
-    reino_d = BESTIARIO_ZONAS.get(st.session_state.reino_actual, {})
-    mazmorras = reino_d.get("mazmorras", [])
-    if mazmorras:
-        for maz in mazmorras:
-            st.markdown(f"**{maz['nombre']}** (Nivel mínimo: `{maz['nivel_min']}`)")
-            st.write(f"Boss: **{maz['jefe']}** (HP: {maz['hp_jefe']}) | Drop: *{maz['drop_jefe']}*")
-            if st.button(f"⚔️ Entrar a {maz['nombre']}", key=f"entrar_{maz['nombre']}"):
-                if st.session_state.hero_level >= maz['nivel_min']:
-                    st.success(f"¡Has derrotado a **{maz['jefe']}** en la mazmorra y obtenido {maz['drop_jefe']}!")
-                    st.session_state.inventario.append(maz['drop_jefe'])
-                    save_user_data()
-                    st.rerun()
-                else:
-                    st.error(f"Nivel insuficiente. Requieres nivel {maz['nivel_min']}.")
-    else:
-        st.info("No hay mazmorras registradas en esta zona exacta. Explora otro reino.")
-
-# ================= TAB 6: MISIONES =================
-with tab_quests:
-    st.subheader("📜 Tablón de Misiones del Asentamiento")
-    for m in st.session_state.misiones_activas:
-        estado = "✅ Completada" if m['completada'] else f"Progreso: {m['progreso']}/{m['meta']}"
-        st.markdown(f"**{m['titulo']}** — *{m['objetivo']}* [{estado}]")
-        if not m['completada'] and st.button(f"Completar Misión", key=f"m_comp_{m['id']}"):
-            m['completada'] = True
-            m['progreso'] = m['meta']
-            st.session_state.puntos_libres += 2
-            st.session_state.plata += 100
-            save_user_data()
-            st.success("¡Misión completada! +2 Puntos libres y +100 plata.")
-            st.rerun()
-
-# ================= TAB 7: TIENDA GREMIO =================
-with tab_edificio:
-    st.subheader("🏪 Tienda del Gremio de Aventureros")
-    for item in CATALOGO_EDIFICIOS["Gremio de Aventureros"]["items"]:
-        col_t1, col_t2 = st.columns([3, 1])
-        with col_t1:
-            st.markdown(f"**{item['nombre']}** — Coste: {item['precio']} {item['metal']}")
-        with col_t2:
-            if st.button("Comprar", key=f"comprar_{item['id']}"):
-                sk_limpia = item['nombre'].split(": ")[-1]
-                if sk_limpia not in st.session_state.grimorio_inventario:
-                    st.session_state.grimorio_inventario.append(sk_limpia)
-                    save_user_data()
-                    st.success(f"¡Aprendiste **{sk_limpia}**!")
-                    st.rerun()
-
-# ================= TAB 8: BESTIARIO Y ZONAS =================
-with tab_viaje_local:
-    st.subheader("🗺️ Bestiario y Viaje entre Reinos (Continente I: Niveles 1-100)")
-    reino_sel = st.selectbox("Selecciona Reino o Zona Común", list(BESTIARIO_ZONAS.keys()))
-    info_r = BESTIARIO_ZONAS[reino_sel]
-    st.write(f"**Rango de Nivel:** `{info_r['rango']}`")
-
-    st.markdown("### 🐺 Enemigos Comunes")
-    for mob in info_r["mobs"]:
-        st.markdown(f"- **{mob['nombre']}** (Nivel {mob['nivel']}) | Tipo: `{mob['tipo']}` | HP: {mob['hp']} | Ataque: `{mob['ataque']}` | Loot: *{mob['drop']}*")
-
-    st.markdown("### 👑 Jefes de Zona")
-    for j in info_r.get("jefes_zona", []):
-        st.markdown(f"- 🔴 **{j['nombre']}** (Nivel {j['nivel']}) | HP: {j['hp']} | Loot: *{j['drop']}*")
-
-    if st.button("🚀 Viajar a este Reino o Zona", use_container_width=True):
-        st.session_state.reino_actual = reino_sel
-        st.session_state.asentamiento_actual = f"Asentamiento en {reino_sel}"
+# ================= BARRA SUPERIOR CON BOTÓN TOGGLE DE MENÚ =================
+col_m1, col_m2, col_m3 = st.columns([3, 1, 1])
+with col_m1:
+    st.markdown(f"### 🛡️ **{st.session_state.hero_name}** | Nivel: {st.session_state.hero_level} | Raza: {st.session_state.raza} ({st.session_state.clase})")
+with col_m2:
+    texto_btn_menu = "📂 Ocultar Menú" if st.session_state.menu_activo else "📁 Abrir Menú de Gestión"
+    if st.button(texto_btn_menu, use_container_width=True, type="primary"):
+        st.session_state.menu_activo = not st.session_state.menu_activo
+        st.rerun()
+with col_m3:
+    if st.button("🚪 Cerrar Sesión", use_container_width=True):
         save_user_data()
-        st.success(f"Te has desplazado a **{reino_sel}**.")
+        st.session_state.logged_in = False
+        st.session_state.has_character = False
         st.rerun()
 
-# ================= TAB 9: MOCHILA =================
-with tab_bag:
-    st.subheader("🎒 Inventario y Objetos en Mochila")
-    st.write(st.session_state.inventario)
+# ================= SI EL MENÚ ESTÁ ACTIVO: MOSTRAR GESTIÓN COMPLETA =================
+if st.session_state.menu_activo:
+    st.markdown("---")
+    st.markdown("## ⚙️ Panel de Gestión y Menús del Héroe")
+    
+    menu_tab1, menu_tab2, menu_tab3, menu_tab4, menu_tab5, menu_tab6, menu_tab7, menu_tab8 = st.tabs([
+        "⚔️ Habilidades y Equipamiento",
+        "🎒 Inventario y Espacio",
+        "📜 Misiones",
+        "👑 Tratados y Reputación",
+        "🛠️ Profesiones (1-100)",
+        "🏰 Gremio y Amigos",
+        "📊 Atributos y Estado",
+        "⚙️ Configuración"
+    ])
 
-# ================= TAB 10: CONTINENTES =================
-with tab_world:
-    st.subheader("🌍 Mapa de Continentes y Escalado de Niveles")
-    for cont, info in CONTINENTES_OFICIALES.items():
-        st.markdown(f"**{cont}**")
-        st.write(f"- {info['tipo']}")
+    # 1. HABILIDADES Y EQUIPAMIENTO
+    with menu_tab1:
+        st.subheader("⚔️ Gestión de Habilidades Activas")
+        st.write("Equipación de habilidades adquiridas (puedes equipar hasta 5 activas en tu barra de combate):")
+        
+        cols_eq = st.columns(5)
+        for i in range(5):
+            with cols_eq[i]:
+                actual = st.session_state.habilidades_equipadas[i] if i < len(st.session_state.habilidades_equipadas) else "(Vacío)"
+                nueva_hab = st.selectbox(f"Ranura {i+1}", ["(Vacío)"] + st.session_state.grimorio_inventario, index=0 if actual=="(Vacío)" else 1, key=f"menu_sk_{i}")
+                if nueva_hab != "(Vacío)":
+                    if i < len(st.session_state.habilidades_equipadas):
+                        st.session_state.habilidades_equipadas[i] = nueva_hab
+                    else:
+                        st.session_state.habilidades_equipadas.append(nueva_hab)
+        
+        st.markdown("---")
+        st.subheader("🛡️ Equipamiento Actual y Reparación")
+        for pieza, datos in st.session_state.equipamiento.items():
+            col_eq1, col_eq2, col_eq3 = st.columns([2, 1, 1])
+            with col_eq1:
+                st.markdown(f"**{pieza}**: {datos['nombre']} (Durabilidad: {datos['durabilidad']}%)")
+            with col_eq2:
+                if st.button(f"Reparar {pieza}", key=f"rep_{pieza}"):
+                    datos['durabilidad'] = 100
+                    st.success(f"¡{pieza} reparada al 100%!")
+                    st.rerun()
+            with col_eq3:
+                if st.button(f"Cambiar {pieza}", key=f"camb_{pieza}"):
+                    st.info("Pieza cambiada con éxito desde el inventario.")
 
-st.markdown("---")
-st.caption("Snd-Worlds MMORPG Sandbox - Arquitectura Modular Definitiva con Canvas Real-Time")
+    # 2. INVENTARIO Y ESPACIO
+    with menu_tab2:
+        st.subheader("🎒 Inventario y Carga")
+        peso_actual = len(st.session_state.inventario) * 5
+        st.progress(peso_actual / st.session_state.peso_maximo, text=f"Espacio / Peso Ocupado: {peso_actual} / {st.session_state.peso_maximo} kg")
+        st.markdown(f"💰 **Monedas:** Plata: `{st.session_state.plata}` | Oro: `{st.session_state.oro}` | Diamantes: `{st.session_state.diamante}`")
+        st.markdown("### Objetos en Mochila:")
+        for idx, item in enumerate(st.session_state.inventario):
+            col_inv1, col_inv2 = st.columns([3, 1])
+            with col_inv1:
+                st.markdown(f"- {item}")
+            with col_inv2:
+                if st.button("Usar / Vender", key=f"inv_usar_{idx}"):
+                    st.success(f"Has usado o interactuado con {item}.")
+
+    # 3. MISIONES
+    with menu_tab3:
+        st.subheader("📜 Registro de Misiones")
+        st.markdown("### En Curso:")
+        for m in st.session_state.misiones_activas:
+            st.markdown(f"- **{m['titulo']}**: {m['objetivo']} (Progreso: {m['progreso']}/{m['meta']})")
+        st.markdown("### Realizadas:")
+        for mr in st.session_state.misiones_realizadas:
+            st.markdown(f"- ✅ **{mr['titulo']}** (Recompensa obtenida: {mr['recompensa']})")
+
+    # 4. TRATADOS Y REPUTACIÓN
+    with menu_tab4:
+        st.subheader("👑 Tratados y Reputación con los Reinos")
+        st.write("Consulta el nivel de confianza diplomática y si has cometido delitos (lo que te convierte en criminal en los reinos):")
+        for reino, info in st.session_state.tratados_reinos.items():
+            st.markdown(f"**🏰 {reino}**")
+            st.markdown(f"- Confianza: `{info['confianza']}/100` | Estado: `{info['estado']}` | Delitos cometidos: `{info['crimenes']}`")
+            st.markdown("---")
+
+    # 5. PROFESIONES (1-100)
+    with menu_tab5:
+        st.subheader("🛠️ Panel de Profesiones (Niveles 1 al 100)")
+        st.write("Tus oficios y especialidades en el mundo abierto:")
+        cols_prof = st.columns(2)
+        idx_p = 0
+        for prof, nivel in st.session_state.profesiones.items():
+            with cols_prof[idx_p % 2]:
+                st.markdown(f"**{prof}**: Nivel `{nivel}/100`")
+                st.progress(nivel / 100)
+            idx_p += 1
+
+    # 6. GREMIO Y AMIGOS
+    with menu_tab6:
+        st.subheader("🏰 Gremio y Lista de Amigos")
+        st.markdown(f"**Tu Gremio actual:** `{st.session_state.gremio}`")
+        st.markdown("### Amigos conectados:")
+        for amigo in st.session_state.amigos:
+            st.markdown(f"- 🟢 {amigo} (En línea)")
+
+    # 7. ATRIBUTOS
+    with menu_tab7:
+        st.subheader("📊 Atributos del Héroe")
+        st.markdown(f"- **Fuerza (STR):** {st.session_state.str}")
+        st.markdown(f"- **Inteligencia (INT):** {st.session_state.int}")
+        st.markdown(f"- **HP Máximo:** {st.session_state.max_hp}")
+
+    # 8. CONFIGURACIÓN
+    with menu_tab8:
+        st.subheader("⚙️ Configuración del Juego")
+        st.session_state.config_volumen = st.slider("Volumen General", 0, 100, st.session_state.config_volumen)
+        st.session_state.config_visibilidad = st.selectbox("Visibilidad Gráfica", ["Baja", "Media", "Alta", "Ultra"], index=2)
+
+    st.markdown("---")
+
+# ================= MAPA EN PANTALLA COMPLETA (SIEMPRE VISIBLE DE FONDO O PRINCIPAL) =================
+st.markdown("### 🌍 Mundo Abierto Masivo — Snd-Worlds (Pantalla Completa)")
+
+# Renderizar el motor canvas a gran escala ocupando toda la vista principal
+zona_actual_str = st.session_state.reino_actual
+datos_reino = BESTIARIO_ZONAS.get(zona_actual_str, BESTIARIO_ZONAS["Reino Humano de Valoria"])
+html_mapa = generar_canvas_html(True, zona_actual_str, datos_reino["mobs"], datos_reino.get("jefes_zona", []))
+st.components.v1.html(html_mapa, height=650)
