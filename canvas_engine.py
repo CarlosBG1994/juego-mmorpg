@@ -1,4 +1,4 @@
-# --- MOTOR HTML5 / JS CANVAS — COMBATE AVANZADO Y HABILIDADES ---
+# --- MOTOR HTML5 / JS CANVAS — COMBATE CORREGIDO Y FLUIDO ---
 
 def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_cabello, color_armadura, mobs_zona):
     mobs_js_data = []
@@ -110,7 +110,7 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 x: 3000, y: 3000, radius: 22, speed: {velocidad_base}, hp: 100, maxHp: 100, 
                 kills: 0, shieldActive: false, shieldTimer: 0,
                 cooldowns: {{ '1': 0, '2': 0, '3': 0, '4': 0, 'q': 0 }},
-                effectAnim: null, effectRadius: 0
+                effectAnim: null, effectProgress: 0
             }};
             
             let keys = {{}};
@@ -141,30 +141,33 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
             }}
             
             window.addEventListener("keydown", (e) => {{
+                let k = e.key.toLowerCase();
                 keys[e.key] = true;
-                handleSkill(e.key.toLowerCase());
+                if (['1', '2', '3', '4', 'q'].includes(k)) {{
+                    handleSkill(k);
+                }}
             }});
             window.addEventListener("keyup", (e) => keys[e.key] = false);
 
             function handleSkill(key) {{
                 if (player.cooldowns[key] > 0) return;
 
-                if (key === '1') {{ // Golpe Cuerpo a Cuerpo
+                if (key === '1') {{
                     player.cooldowns['1'] = 25;
-                    player.effectAnim = 'slash'; player.effectRadius = 60;
+                    player.effectAnim = 'slash'; player.effectProgress = 20;
                     damageEnemiesInRadius(75, 45);
-                }} else if (key === '2') {{ // Bola de Fuego (Rango Medio)
+                }} else if (key === '2') {{
                     player.cooldowns['2'] = 50;
-                    player.effectAnim = 'fire'; player.effectRadius = 90;
+                    player.effectAnim = 'fire'; player.effectProgress = 30;
                     damageEnemiesInRadius(110, 70);
-                }} else if (key === '3') {{ // Escudo Rúnico
+                }} else if (key === '3') {{
                     player.cooldowns['3'] = 120;
                     player.shieldActive = true;
                     player.shieldTimer = 90;
-                }} else if (key === '4' || key === 'q') {{ // Onda Vital Masiva (AoE)
+                }} else if (key === '4' || key === 'q') {{
                     player.cooldowns['4'] = 180;
                     player.cooldowns['q'] = 180;
-                    player.effectAnim = 'pulse'; player.effectRadius = 160;
+                    player.effectAnim = 'pulse'; player.effectProgress = 40;
                     damageEnemiesInRadius(180, 120);
                 }}
             }}
@@ -201,7 +204,6 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 if (!checkCollision(player.x + dx, player.y, player.radius)) player.x += dx;
                 if (!checkCollision(player.x, player.y + dy, player.radius)) player.y += dy;
 
-                // Reducir cooldowns
                 for (let k in player.cooldowns) {{
                     if (player.cooldowns[k] > 0) player.cooldowns[k]--;
                 }}
@@ -211,7 +213,10 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                     if (player.shieldTimer <= 0) player.shieldActive = false;
                 }}
 
-                if (player.effectRadius > 0) player.effectRadius -= 4;
+                if (player.effectProgress > 0) {{
+                    player.effectProgress--;
+                    if (player.effectProgress <= 0) player.effectAnim = null;
+                }}
 
                 enemies.forEach(en => {{
                     let edx = player.x - en.x, edy = player.y - en.y;
@@ -235,32 +240,27 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
             function drawPlayerSprite(x, y) {{
                 ctx.save();
                 ctx.translate(x, y);
-                // Sombra
                 ctx.fillStyle = "rgba(0,0,0,0.5)";
                 ctx.beginPath(); ctx.ellipse(0, 18, 14, 7, 0, 0, Math.PI * 2); ctx.fill();
 
-                // Escudo protector visual
                 if (player.shieldActive) {{
                     ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 4;
                     ctx.fillStyle = "rgba(56, 189, 248, 0.2)";
                     ctx.beginPath(); ctx.arc(0, 0, 32, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
                 }}
 
-                // Armadura y cuerpo
                 ctx.fillStyle = "{color_hex}";
                 ctx.fillRect(-12, -12, 24, 26);
                 ctx.strokeStyle = "#facc15"; ctx.lineWidth = 2; ctx.strokeRect(-12, -12, 24, 26);
 
-                // Cabeza / Pelo ({estilo_cabello})
                 ctx.fillStyle = "#fde047";
                 ctx.beginPath(); ctx.arc(0, -16, 11, 0, Math.PI * 2); ctx.fill();
                 ctx.stroke();
 
-                // Animación de habilidades especiales
-                if (player.effectAnim && player.effectRadius > 0) {{
+                if (player.effectAnim) {{
                     ctx.strokeStyle = player.effectAnim === 'fire' ? "#ef4444" : "#facc15";
                     ctx.lineWidth = 4;
-                    ctx.beginPath(); ctx.arc(0, 0, 60 - player.effectRadius, 0, Math.PI * 2); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, 50 - (player.effectProgress * 1.2), 0, Math.PI * 2); ctx.stroke();
                 }}
                 
                 ctx.fillStyle = "#e2e8f0"; ctx.fillRect(14, -8, 5, 20);
