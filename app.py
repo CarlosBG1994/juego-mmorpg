@@ -5,15 +5,21 @@ from canvas_engine import generar_canvas_html
 
 st.set_page_config(page_title="Snd-Worlds MMORPG", page_icon="⚔️", layout="wide")
 
+# Opciones de personalización integradas directamente aquí para evitar KeyErrors
+OPCIONES_PERSONALIZACION = {
+    "cabello": ["Rubio Legendario", "Castaño Oscuro", "Pelirrojo Fuego", "Platino Arcano", "Negro Sombra"],
+    "armadura_color": ["Azul Real (Valoria)", "Rojo Sangre", "Verde Esmeralda", "Dorado Divino", "Oscuro Abisal"]
+}
+
 # Inicialización segura de estados de sesión
 if "zona_actual" not in st.session_state:
     st.session_state.zona_actual = "Reino Humano de Valoria"
 if "clase_pj" not in st.session_state:
     st.session_state.clase_pj = "Púgil"
 if "cabello_pj" not in st.session_state:
-    st.session_state.cabello_pj = "Rubio Legendario"
+    st.session_state.cabello_pj = OPCIONES_PERSONALIZACION["cabello"][0]
 if "armadura_pj" not in st.session_state:
-    st.session_state.armadura_pj = "Azul Real (Valoria)"
+    st.session_state.armadura_pj = OPCIONES_PERSONALIZACION["armadura_color"][0]
 if "oro_jugador" not in st.session_state:
     st.session_state.oro_jugador = 1450
 if "monturas_desbloqueadas" not in st.session_state:
@@ -27,8 +33,8 @@ st.title(f"⚔️ {DATOS_MUNDO['nombre_mundo']}")
 with st.sidebar:
     st.header("🎨 Creador y Moldear Personaje")
     st.session_state.clase_pj = st.selectbox("Clase del Héroe:", [c["nombre"] for c in DATOS_MUNDO["clases_personaje"]])
-    st.session_state.cabello_pj = st.selectbox("Estilo de Pelo / Casco:", DATOS_MUNDO["opciones_personalizacion"]["cabello"])
-    st.session_state.armadura_pj = st.selectbox("Color de Armadura:", DATOS_MUNDO["opciones_personalizacion"]["armadura_color"])
+    st.session_state.cabello_pj = st.selectbox("Estilo de Pelo / Casco:", OPCIONES_PERSONALIZACION["cabello"])
+    st.session_state.armadura_pj = st.selectbox("Color de Armadura:", OPCIONES_PERSONALIZACION["armadura_color"])
     
     st.markdown("---")
     st.header("🌍 Zonas y Establo")
