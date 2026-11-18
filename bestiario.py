@@ -79,5 +79,3 @@ BESTIARIO_ZONAS = {
     }
 }
 ```[cite: 6]
-
-Avísame cuando quieras que te pase el siguiente (`habilidades.py`).
