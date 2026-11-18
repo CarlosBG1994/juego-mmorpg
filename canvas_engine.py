@@ -1,4 +1,4 @@
-# --- MOTOR HTML5 / JS CANVAS — MMORPG 2D ESTILO PIXEL ART / TILESET ---
+# --- MOTOR HTML5 / JS CANVAS — MMORPG 2D CON SPRITES Y ENTIDADES DETALLADAS ---
 
 def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
     mobs_js_data = []
@@ -18,60 +18,58 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
         <style>
             body {{ background-color: #0b1017; color: #fff; margin: 0; padding: 0; overflow: hidden; font-family: 'Courier New', monospace; }}
             #gameContainer {{ position: relative; width: 100vw; height: 92vh; }}
-            canvas {{ background: #223414; display: block; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; }}
+            canvas {{ background: #1b2811; display: block; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; }}
             
-            /* HUD Superior estilo MMORPG */
             .mmorpg-top-hud {{
-                position: absolute; top: 10px; left: 15px; right: 15px;
+                position: absolute; top: 12px; left: 15px; right: 15px;
                 display: flex; justify-content: space-between; align-items: center;
-                pointer-events: none;
+                pointer-events: none; z-index: 10;
             }}
             .player-frame {{
-                background: rgba(15, 23, 42, 0.85); border: 2px solid #854d0e; padding: 8px 15px;
-                border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 4px;
+                background: rgba(15, 23, 42, 0.92); border: 2px solid #b45309; padding: 10px 18px;
+                border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 5px;
             }}
-            .hp-bar-bg {{ width: 160px; height: 14px; background: #450a0a; border: 1px solid #7f1d1d; border-radius: 3px; overflow: hidden; }}
-            .hp-bar-fill {{ width: 100%; height: 100%; background: #dc2626; transition: width 0.2s; }}
+            .hp-bar-bg {{ width: 200px; height: 14px; background: #450a0a; border: 1px solid #7f1d1d; border-radius: 4px; overflow: hidden; }}
+            .hp-bar-fill {{ width: 100%; height: 100%; background: #dc2626; transition: width 0.2s ease-in-out; }}
             
             .minimap-frame {{
-                width: 130px; height: 130px; background: rgba(15, 23, 42, 0.9);
-                border: 3px solid #b45309; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+                width: 140px; height: 140px; background: rgba(15, 23, 42, 0.92);
+                border: 3px solid #d97706; border-radius: 50%; box-shadow: 0 6px 20px rgba(0,0,0,0.85);
                 display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
             }}
             
-            /* Barra de Acciones Rápida Inferior */
             .mmorpg-action-bar {{
-                position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
-                background: rgba(15, 23, 42, 0.9); border: 2px solid #78350f; padding: 8px 12px;
-                border-radius: 8px; display: flex; gap: 8px; pointer-events: auto;
-                box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+                position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+                background: rgba(15, 23, 42, 0.95); border: 2px solid #78350f; padding: 8px 14px;
+                border-radius: 10px; display: flex; gap: 10px; pointer-events: auto; z-index: 10;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.9);
             }}
             .action-slot {{
-                width: 45px; height: 45px; background: #1e293b; border: 2px solid #475569;
-                border-radius: 4px; display: flex; align-items: center; justify-content: center;
-                font-size: 12px; font-weight: bold; color: #facc15; cursor: pointer; position: relative;
+                width: 50px; height: 50px; background: #1e293b; border: 2px solid #475569;
+                border-radius: 6px; display: flex; align-items: center; justify-content: center;
+                font-size: 15px; font-weight: bold; color: #facc15; cursor: pointer; position: relative;
+                transition: transform 0.1s;
             }}
-            .action-slot span {{ position: absolute; bottom: 2px; right: 4px; font-size: 9px; color: #94a3b8; }}
+            .action-slot:hover {{ transform: scale(1.08); border-color: #f59e0b; }}
+            .action-slot span {{ position: absolute; bottom: 2px; right: 5px; font-size: 10px; color: #94a3b8; }}
         </style>
     </head>
     <body>
         <div id="gameContainer">
-            <!-- HUD SUPERIOR -->
             <div class="mmorpg-top-hud">
                 <div class="player-frame">
-                    <div style="font-size: 13px; font-weight: bold; color: #facc15;">⭐ Héroe Nv.1 ({zona_actual})</div>
+                    <div style="font-size: 14px; font-weight: bold; color: #facc15;">⭐ Héroe Nv.1 ({zona_actual})</div>
                     <div class="hp-bar-bg"><div id="hpFill" class="hp-bar-fill"></div></div>
-                    <div id="hpText" style="font-size: 10px; color: #cbd5e1;">HP: 100 / 100</div>
+                    <div id="hpText" style="font-size: 11px; color: #cbd5e1;">HP: 100 / 100</div>
                 </div>
                 
                 <div class="minimap-frame">
-                    <canvas id="miniCanvas" width="120" height="120"></canvas>
+                    <canvas id="miniCanvas" width="130" height="130"></canvas>
                 </div>
             </div>
 
             <canvas id="gameCanvas"></canvas>
 
-            <!-- BARRA INFERIOR DE HABILIDADES TIPO MMORPG -->
             <div class="mmorpg-action-bar">
                 <div class="action-slot" title="Habilidad 1">🔥<span>1</span></div>
                 <div class="action-slot" title="Habilidad 2">⚔️<span>2</span></div>
@@ -95,38 +93,38 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
-            let player = {{ x: 2500, y: 2500, size: 28, speed: 4.5, hp: 100, maxHp: 100, name: "Héroe" }};
+            let player = {{ 
+                x: 2500, y: 2500, size: 24, speed: 5, hp: 100, maxHp: 100, name: "Héroe",
+                facing: "down", isMoving: false, animFrame: 0 
+            }};
             let keys = {{}};
             let enemies = [];
             
-            // Ciudades, Castillos y Estructuras en Tilemap 2D
             let structures = [
-                {{ x: 2300, y: 2300, w: 200, h: 160, name: "Aurelia Capital", type: "city" }},
-                {{ x: 3400, y: 1500, w: 180, h: 180, name: "Castillo de Hojacero", type: "castle" }},
-                {{ x: 1400, y: 3200, w: 160, h: 140, name: "Baluarte Enano", type: "fortress" }},
-                {{ x: 1000, y: 1200, w: 140, h: 140, name: "Puerto Marítimo", type: "port" }}
+                {{ x: 2300, y: 2300, w: 240, h: 190, name: "Aurelia Capital", type: "city" }},
+                {{ x: 3400, y: 1400, w: 200, h: 200, name: "Castillo de Hojacero", type: "castle" }},
+                {{ x: 1300, y: 3100, w: 180, h: 160, name: "Baluarte Enano", type: "fortress" }},
+                {{ x: 900, y: 1100, w: 160, h: 150, name: "Puerto Marítimo", type: "port" }}
             ];
 
-            // Generación de entorno 2D (Árboles, rocas, hogueras)
             let scenery = [];
-            for(let i=0; i<120; i++) {{
+            for(let i=0; i<150; i++) {{
                 scenery.push({{
                     x: Math.random() * 4800 + 100,
                     y: Math.random() * 4800 + 100,
-                    type: Math.random() > 0.3 ? 'tree' : 'rock',
-                    size: Math.random() * 20 + 25
+                    type: Math.random() > 0.35 ? 'tree' : 'rock',
+                    size: Math.random() * 25 + 28
                 }});
             }}
 
             let templateMobs = {str(mobs_js_data)};
-            let derrotadosCount = 0;
 
             for(let i=0; i < 50; i++) {{
                 let tmpl = templateMobs.length > 0 ? templateMobs[Math.floor(Math.random() * templateMobs.length)] : {{nombre: "Goblin", hp: 80, ataque_tipo: "Físico", velocidad: 2}};
                 enemies.push({{
                     x: Math.random() * 4600 + 200,
                     y: Math.random() * 4600 + 200,
-                    size: 22,
+                    size: 20,
                     speed: tmpl.velocidad || 1.8,
                     hp: tmpl.hp,
                     maxHp: tmpl.hp,
@@ -140,27 +138,29 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
             
             function update() {{
                 let dx = 0, dy = 0;
-                if (keys["ArrowUp"] || keys["w"] || keys["W"]) dy -= player.speed;
-                if (keys["ArrowDown"] || keys["s"] || keys["S"]) dy += player.speed;
-                if (keys["ArrowLeft"] || keys["a"] || keys["A"]) dx -= player.speed;
-                if (keys["ArrowRight"] || keys["d"] || keys["D"]) dx += player.speed;
+                if (keys["ArrowUp"] || keys["w"] || keys["W"]) {{ dy -= player.speed; player.facing = "up"; }}
+                if (keys["ArrowDown"] || keys["s"] || keys["S"]) {{ dy += player.speed; player.facing = "down"; }}
+                if (keys["ArrowLeft"] || keys["a"] || keys["A"]) {{ dx -= player.speed; player.facing = "left"; }}
+                if (keys["ArrowRight"] || keys["d"] || keys["D"]) {{ dx += player.speed; player.facing = "right"; }}
                 
+                player.isMoving = (dx !== 0 || dy !== 0);
+                if (player.isMoving) player.animFrame += 0.2;
+
                 player.x += dx;
                 player.y += dy;
-                player.x = Math.max(50, Math.min(4950, player.x));
-                player.y = Math.max(50, Math.min(4950, player.y));
+                player.x = Math.max(60, Math.min(4940, player.x));
+                player.y = Math.max(60, Math.min(4940, player.y));
 
-                // IA Enemiga de persecución
                 enemies.forEach(en => {{
                     let edx = player.x - en.x;
                     let edy = player.y - en.y;
                     let dist = Math.sqrt(edx*edx + edy*edy);
-                    if (dist < 400 && dist > 20) {{
+                    if (dist < 420 && dist > 22) {{
                         en.x += (edx / dist) * en.speed;
                         en.y += (edy / dist) * en.speed;
                     }}
                     en.cooldown++;
-                    if (dist < 32 && en.cooldown > 50) {{
+                    if (dist < 35 && en.cooldown > 50) {{
                         en.cooldown = 0;
                         player.hp = Math.max(0, player.hp - 10);
                         document.getElementById("hpFill").style.width = (player.hp / player.maxHp * 100) + "%";
@@ -169,29 +169,102 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
                 }});
             }}
 
+            function drawPlayerSprite(x, y) {{
+                ctx.save();
+                ctx.translate(x, y);
+                
+                // Sombra en el suelo
+                ctx.fillStyle = "rgba(0,0,0,0.4)";
+                ctx.beginPath();
+                ctx.ellipse(0, 16, 14, 7, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Capa / Armadura torso
+                ctx.fillStyle = "#1e3a8a"; // túnica azul oscura
+                ctx.fillRect(-10, -10, 20, 22);
+
+                // Cabeza / Casco
+                ctx.fillStyle = "#fde047"; // casco dorado
+                ctx.beginPath();
+                ctx.arc(0, -12, 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = "#ca8a04";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Hombreras
+                ctx.fillStyle = "#d97706";
+                ctx.fillRect(-13, -12, 6, 8);
+                ctx.fillRect(7, -12, 6, 8);
+
+                // Espada equipada en mano
+                ctx.fillStyle = "#e2e8f0";
+                ctx.fillRect(12, -6, 4, 18);
+                ctx.fillStyle = "#b45309";
+                ctx.fillRect(10, 8, 8, 3);
+
+                ctx.restore();
+            }}
+
+            function drawMonsterSprite(x, y, name) {{
+                ctx.save();
+                ctx.translate(x, y);
+
+                // Sombra
+                ctx.fillStyle = "rgba(0,0,0,0.4)";
+                ctx.beginPath();
+                ctx.ellipse(0, 14, 12, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cuerpo del monstruo (Goblin / Bestia)
+                ctx.fillStyle = "#7f1d1d"; // rojo oscuro orco/bestia
+                ctx.beginPath();
+                ctx.roundRect(-12, -12, 24, 24, [6]);
+                ctx.fill();
+                ctx.strokeStyle = "#b91c1c";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Ojos brillantes amenazantes
+                ctx.fillStyle = "#facc15";
+                ctx.fillRect(-6, -6, 4, 4);
+                ctx.fillRect(2, -6, 4, 4);
+
+                ctx.restore();
+            }}
+
             function drawPixelSprite(x, y, type, size) {{
                 ctx.save();
                 ctx.translate(x, y);
                 if (type === 'tree') {{
-                    // Tronco
-                    ctx.fillStyle = "#78350f";
-                    ctx.fillRect(-6, 0, 12, size);
-                    // Copa de pino / árbol frondoso 2D
-                    ctx.fillStyle = "#166534";
+                    ctx.fillStyle = "rgba(0,0,0,0.3)";
                     ctx.beginPath();
-                    ctx.arc(0, -size*0.4, size*0.8, 0, Math.PI*2);
+                    ctx.ellipse(0, size*0.4, size*0.5, size*0.2, 0, 0, Math.PI*2);
                     ctx.fill();
-                    ctx.fillStyle = "#22c55e";
+
+                    ctx.fillStyle = "#78350f";
+                    ctx.fillRect(-6, -size*0.2, 12, size*0.7);
+                    
+                    ctx.fillStyle = "#14532d";
+                    ctx.beginPath();
+                    ctx.arc(0, -size*0.4, size*0.75, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.fillStyle = "#16a34a";
                     ctx.beginPath();
                     ctx.arc(0, -size*0.6, size*0.5, 0, Math.PI*2);
                     ctx.fill();
                 }} else if (type === 'rock') {{
-                    ctx.fillStyle = "#64748b";
+                    ctx.fillStyle = "rgba(0,0,0,0.3)";
                     ctx.beginPath();
-                    ctx.roundRect(-size*0.5, -size*0.3, size, size*0.7, [6]);
+                    ctx.ellipse(0, size*0.3, size*0.5, size*0.2, 0, 0, Math.PI*2);
+                    ctx.fill();
+
+                    ctx.fillStyle = "#475569";
+                    ctx.beginPath();
+                    ctx.roundRect(-size*0.5, -size*0.4, size, size*0.7, [8]);
                     ctx.fill();
                     ctx.fillStyle = "#94a3b8";
-                    ctx.fillRect(-size*0.2, -size*0.1, size*0.4, size*0.3);
+                    ctx.fillRect(-size*0.2, -size*0.2, size*0.3, size*0.3);
                 }}
                 ctx.restore();
             }}
@@ -204,20 +277,20 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
                 let camY = canvas.height / 2 - player.y;
                 ctx.translate(camX, camY);
                 
-                // Terreno estilo césped MMORPG 2D con textura de cuadrícula sutil
-                ctx.fillStyle = "#223414";
+                // Terreno estilo césped MMORPG 2D
+                ctx.fillStyle = "#1b2811";
                 ctx.fillRect(0, 0, 5000, 5000);
                 
-                ctx.strokeStyle = "#1b2a0f";
+                ctx.strokeStyle = "#141f0c";
                 ctx.lineWidth = 2;
-                for(let x=0; x<=5000; x+=150) {{
+                for(let x=0; x<=5000; x+=180) {{
                     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 5000); ctx.stroke();
                 }}
-                for(let y=0; y<=5000; y+=150) {{
+                for(let y=0; y<=5000; y+=180) {{
                     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(5000, y); ctx.stroke();
                 }}
 
-                // Dibujar Estructuras, Ciudades y Castillos 2D
+                // Dibujar Estructuras, Ciudades y Castillos
                 structures.forEach(st => {{
                     ctx.fillStyle = "#334155";
                     ctx.fillRect(st.x, st.y, st.w, st.h);
@@ -225,84 +298,64 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
                     ctx.lineWidth = 4;
                     ctx.strokeRect(st.x, st.y, st.w, st.h);
                     
-                    // Techo o detalles del castillo
-                    ctx.fillStyle = "#b91c1c";
-                    ctx.fillRect(st.x - 10, st.y - 20, st.w + 20, 25);
+                    ctx.fillStyle = "#991b1b";
+                    ctx.fillRect(st.x - 12, st.y - 25, st.w + 24, 28);
                     
                     ctx.fillStyle = "#ffffff";
-                    ctx.font = "bold 14px 'Courier New', monospace";
+                    ctx.font = "bold 16px 'Courier New', monospace";
                     ctx.textAlign = "center";
-                    ctx.fillText(st.name, st.x + st.w/2, st.y - 30);
+                    ctx.fillText(st.name, st.x + st.w/2, st.y - 35);
                 }});
 
-                // Dibujar Escenario (Árboles y Rocas)
-                scenery.forEach(sc => {{
+                // Dibujar Escenario ordenado por Y para efecto profundidad
+                scenery.sort((a,b) => a.y - b.y).forEach(sc => {{
                     drawPixelSprite(sc.x, sc.y, sc.type, sc.size);
                 }});
 
-                // Dibujar Monstruos / Enemigos 2D
+                // Dibujar Monstruos / Enemigos con sprites detallados
                 enemies.forEach(en => {{
-                    ctx.fillStyle = "#991b1b";
-                    ctx.beginPath();
-                    ctx.arc(en.x, en.y, en.size, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = "#f87171";
-                    ctx.stroke();
+                    drawMonsterSprite(en.x, en.y, en.name);
 
-                    // Mini barra de vida enemigo
+                    // Barra de vida del enemigo
                     ctx.fillStyle = "#000";
-                    ctx.fillRect(en.x - 18, en.y - en.size - 12, 36, 6);
+                    ctx.fillRect(en.x - 22, en.y - 28, 44, 7);
                     ctx.fillStyle = "#22c55e";
-                    ctx.fillRect(en.x - 17, en.y - en.size - 11, 34 * (en.hp / en.maxHp), 4);
+                    ctx.fillRect(en.x - 21, en.y - 27, 42 * (en.hp / en.maxHp), 5);
 
                     ctx.fillStyle = "#f87171";
-                    ctx.font = "11px sans-serif";
+                    ctx.font = "bold 11px sans-serif";
                     ctx.textAlign = "center";
-                    ctx.fillText(en.name + ` [${{en.nivel}}]`, en.x, en.y - en.size - 16);
+                    ctx.fillText(en.name + ` [${{en.nivel}}]`, en.x, en.y - 34);
                 }});
 
-                // Dibujar Jugador (Héroe con espada/armadura 2D simulada)
-                ctx.fillStyle = "#eab308";
-                ctx.beginPath();
-                ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.lineWidth = 3;
-                ctx.strokeStyle = "#ffffff";
-                ctx.stroke();
-
-                // Espada equipada sprite lateral
-                ctx.fillStyle = "#cbd5e1";
-                ctx.fillRect(player.x + 12, player.y - 4, 16, 6);
+                // Dibujar Tu Jugador (Héroe con sprite detallado)
+                drawPlayerSprite(player.x, player.y);
 
                 ctx.fillStyle = "#facc15";
                 ctx.font = "bold 13px 'Courier New', monospace";
                 ctx.textAlign = "center";
-                ctx.fillText("⭐ " + player.name, player.x, player.y - player.size - 10);
+                ctx.fillText("⭐ " + player.name, player.x, player.y - 28);
                 
                 ctx.restore();
 
                 // DIBUJAR MINIMAPA CIRCULAR
-                miniCtx.clearRect(0, 0, 120, 120);
-                miniCtx.fillStyle = "#1e293b";
-                miniCtx.fillRect(0, 0, 120, 120);
+                miniCtx.clearRect(0, 0, 130, 130);
+                miniCtx.fillStyle = "#0f172a";
+                miniCtx.fillRect(0, 0, 130, 130);
                 
-                // Escalar posición del jugador al minimapa
-                let mX = (player.x / 5000) * 120;
-                let mY = (player.y / 5000) * 120;
+                let mX = (player.x / 5000) * 130;
+                let mY = (player.y / 5000) * 130;
                 
-                // Enemigos en minimapa
                 miniCtx.fillStyle = "#ef4444";
                 enemies.forEach(en => {{
-                    let ex = (en.x / 5000) * 120;
-                    let ey = (en.y / 5000) * 120;
+                    let ex = (en.x / 5000) * 130;
+                    let ey = (en.y / 5000) * 130;
                     miniCtx.fillRect(ex-1, ey-1, 2, 2);
                 }});
 
-                // Jugador en minimapa
                 miniCtx.fillStyle = "#facc15";
                 miniCtx.beginPath();
-                miniCtx.arc(mX, mY, 3, 0, Math.PI*2);
+                miniCtx.arc(mX, mY, 3.5, 0, Math.PI*2);
                 miniCtx.fill();
             }}
             
