@@ -78,4 +78,3 @@ BESTIARIO_ZONAS = {
         ]
     }
 }
-```[cite: 6]
