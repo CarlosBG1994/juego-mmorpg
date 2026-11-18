@@ -18,6 +18,19 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- FORZAR ANCHO COMPLETO EN STREAMLIT (PANTALLA COMPLETA REAL) ---
+st.markdown("""
+    <style>
+        .block-container {
+            max-width: 100% !important;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+            padding-top: 0.8rem;
+            padding-bottom: 0.8rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
@@ -301,10 +314,9 @@ if st.session_state.menu_activo:
 
     st.markdown("---")
 
-# ================= MAPA EN PANTALLA COMPLETA (SIEMPRE VISIBLE DE FONDO O PRINCIPAL) =================
+# ================= MAPA EN PANTALLA COMPLETA (PRINCIPAL) =================
 st.markdown("### 🌍 Mundo Abierto Masivo — Snd-Worlds (Pantalla Completa)")
 
-# Renderizar el motor canvas a gran escala ocupando toda la vista principal
 zona_actual_str = st.session_state.reino_actual
 datos_reino = BESTIARIO_ZONAS.get(zona_actual_str, BESTIARIO_ZONAS["Reino Humano de Valoria"])
 html_mapa = generar_canvas_html(True, zona_actual_str, datos_reino["mobs"], datos_reino.get("jefes_zona", []))
