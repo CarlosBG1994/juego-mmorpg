@@ -3,7 +3,7 @@
 DATOS_MUNDO = {
     "nombre_mundo": "Snd-Worlds (Guerra de los Eones)",
     "superficie_km2": 1500000,
-    "escala_niveles": "1 - 100 (Continente I: Niveles 1-60 Reinos Fundacionales, 61-100 Zonas Neutras)",
+    "escala_niveles": "1 - 100 (Continente I: Reinos Fundacionales y Zonas Neutras)",
     "continentes": [
         {
             "nombre": "Continente I: Reinos Fundacionales y Zonas Neutras",
@@ -18,11 +18,6 @@ DATOS_MUNDO = {
                 "Puertas del Eón",
                 "Archipiélago y Mazmorras del Mar Abierto"
             ]
-        },
-        {
-            "nombre": "Continente II: Tierras de Raid, Santuarios de Ángeles y Demonios",
-            "niveles": "101 - 250",
-            "zonas": ["Santuario Celestial", "Abismo Demoniaco", "Islas Brumas del Dragón"]
         }
     ],
     "clases_personaje": [
@@ -32,9 +27,29 @@ DATOS_MUNDO = {
         {"nombre": "Asesino", "rol": "Agilidad / Críticos y sigilo", "ataque_base": "Físico"}
     ],
     "monturas_disponibles": [
-        {"nombre": "A Pie (Velocidad Base)", "bonus_velocidad": 1.0},
-        {"nombre": "Caballo de Guerra Blindado", "bonus_velocidad": 1.6},
-        {"nombre": "Lobo Huargo del Norte", "bonus_velocidad": 1.9},
-        {"nombre": "Grifo de los Cielos (Vuelo)", "bonus_velocidad": 2.5}
+        {
+            "nombre": "A Pie (Velocidad Base)", 
+            "bonus_velocidad": 1.0, 
+            "coste": "Gratis (Por defecto)", 
+            "requisito": "Ninguno"
+        },
+        {
+            "nombre": "Caballo de Guerra Blindado", 
+            "bonus_velocidad": 1.6, 
+            "coste": "2,500 Monedas de Oro", 
+            "requisito": "Nivel 25 + Reputación en Aurelia Capital"
+        },
+        {
+            "nombre": "Lobo Huargo del Norte", 
+            "bonus_velocidad": 1.9, 
+            "coste": "6,000 Monedas de Oro", 
+            "requisito": "Completar Misión de Caza en el Bosque Ancestral"
+        },
+        {
+            "nombre": "Grifo de los Cielos (Vuelo)", 
+            "bonus_velocidad": 2.5, 
+            "coste": "25,000 Monedas de Oro + Fragmentos Míticos", 
+            "requisito": "Nivel 80 + Misión Mítica de las Puertas del Eón"
+        }
     ]
 }
