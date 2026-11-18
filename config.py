@@ -18,6 +18,11 @@ DATOS_MUNDO = {
                 "Puertas del Eón",
                 "Archipiélago y Mazmorras del Mar Abierto"
             ]
+        },
+        {
+            "nombre": "Continente II: Tierras de Raid y Santuarios Superiores",
+            "niveles": "101 - 250",
+            "zonas": ["Santuario Celestial", "Abismo Demoníaco", "Islas Brumas del Dragón"]
         }
     ],
     "clases_personaje": [
@@ -30,25 +35,25 @@ DATOS_MUNDO = {
         {
             "nombre": "A Pie (Velocidad Base)", 
             "bonus_velocidad": 1.0, 
-            "coste": "Gratis (Por defecto)", 
-            "requisito": "Ninguno"
+            "coste": 0, 
+            "requisito": "Ninguno (Por defecto)"
         },
         {
             "nombre": "Caballo de Guerra Blindado", 
             "bonus_velocidad": 1.6, 
-            "coste": "2,500 Monedas de Oro", 
+            "coste": 2500, 
             "requisito": "Nivel 25 + Reputación en Aurelia Capital"
         },
         {
             "nombre": "Lobo Huargo del Norte", 
             "bonus_velocidad": 1.9, 
-            "coste": "6,000 Monedas de Oro", 
+            "coste": 6000, 
             "requisito": "Completar Misión de Caza en el Bosque Ancestral"
         },
         {
             "nombre": "Grifo de los Cielos (Vuelo)", 
             "bonus_velocidad": 2.5, 
-            "coste": "25,000 Monedas de Oro + Fragmentos Míticos", 
+            "coste": 25000, 
             "requisito": "Nivel 80 + Misión Mítica de las Puertas del Eón"
         }
     ]
