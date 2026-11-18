@@ -262,3 +262,162 @@ with tab_craft:
                 exito, msg = simular_crafteo(taller_sel, receta["id"], st.session_state.inventario)
                 if exito:
                     for mat, cant in receta["materiales"].items():
+                        for _ in range(cant): st.session_state.inventario.remove(mat)
+                    st.session_state.inventario.append(receta['nombre'])
+                    save_user_data()
+                    st.success(f"¡Fabricado con éxito **{receta['nombre']}**!")
+                    st.rerun()
+                else:
+                    st.error(f"Error: {msg}")
+
+# ================= TAB 3: ATRIBUTOS Y NIVEL =================
+with tab_stats:
+    st.subheader("📊 Panel de Atributos y Escalado de Nivel")
+    st.write(f"⭐ **Nivel Actual:** `{st.session_state.hero_level}` | 🎁 **Puntos Libres:** `{st.session_state.puntos_libres}`")
+    
+    col_st1, col_st2 = st.columns(2)
+    with col_st1:
+        st.write(f"💪 **STR:** {st.session_state.str} | 🔮 **INT:** {st.session_state.int} | ⚡ **AGI:** {st.session_state.agi} | ❤️ **VIT:** {st.session_state.vit} | 🍀 **LUK:** {st.session_state.luk}")
+        if st.session_state.puntos_libres > 0:
+            attr = st.selectbox("Atributo a subir", ["Fuerza", "Inteligencia", "Agilidad", "Vitalidad", "Suerte"])
+            if st.button("Asignar Punto"):
+                st.session_state.puntos_libres -= 1
+                if attr == "Fuerza": st.session_state.str += 1
+                elif attr == "Inteligencia": st.session_state.int += 1
+                elif attr == "Agilidad": st.session_state.agi += 1
+                elif attr == "Vitalidad": 
+                    st.session_state.vit += 1
+                    st.session_state.max_hp += 5
+                    st.session_state.hero_hp += 5
+                elif attr == "Suerte": st.session_state.luk += 1
+                save_user_data()
+                st.success("¡Atributo mejorado!")
+                st.rerun()
+    with col_st2:
+        if st.button("✨ Simular Subida de Nivel (+1 Nivel)", use_container_width=True):
+            st.session_state.hero_level += 1
+            st.session_state.puntos_libres += 5
+            st.session_state.max_hp += 10
+            st.session_state.hero_hp = st.session_state.max_hp
+            save_user_data()
+            st.success(f"¡Subiste a Nivel {st.session_state.hero_level}!")
+            st.rerun()
+
+# ================= TAB 4: GRIMORIO Y FUSIÓN =================
+with tab_skills:
+    st.subheader("✨ Grimorio, Habilidades y Laboratorio de Fusión")
+    st.write("Cada habilidad cuenta con **3 poderes únicos**. Domina hasta 15 habilidades y fusiona pares para crear super-poderes.")
+    
+    col_sk1, col_sk2 = st.columns(2)
+    with col_sk1:
+        st.markdown("### 📋 Tus 5 Ranuras Activas de Combate")
+        for idx in range(5):
+            actual = st.session_state.habilidades_equipadas[idx]
+            nueva = st.selectbox(f"Ranura #{idx+1}", ["(Vacío)"] + st.session_state.grimorio_inventario, index=(st.session_state.grimorio_inventario.index(actual)+1) if actual in st.session_state.grimorio_inventario else 0, key=f"slot_{idx}")
+            val = "" if nueva == "(Vacío)" else nueva
+            if st.session_state.habilidades_equipadas[idx] != val:
+                st.session_state.habilidades_equipadas[idx] = val
+                save_user_data()
+
+    with col_sk2:
+        st.markdown("### ⚗️ Laboratorio de Fusión de Habilidades")
+        if st.session_state.hero_level >= 30:
+            fp1 = st.selectbox("Habilidad 1", st.session_state.grimorio_inventario, key="f1")
+            fp2 = st.selectbox("Habilidad 2", st.session_state.grimorio_inventario, key="f2")
+            nombre_fus = st.text_input("Nombre del Poder Híbrido")
+            if st.button("✨ Fusionar Poderes") and nombre_fus and fp1 != fp2:
+                st.session_state.habilidades_fusionadas.append({"nombre": nombre_fus, "p1": fp1, "p2": fp2})
+                st.session_state.grimorio_inventario.append(nombre_fus)
+                save_user_data()
+                st.success(f"¡Habilidad fusionada **{nombre_fus}** creada con éxito!")
+                st.rerun()
+        else:
+            st.warning("🔒 Se desbloquea al Nivel 30.")
+
+# ================= TAB 5: MAZMORRAS Y JEFES =================
+with tab_dungeon:
+    st.subheader("🏰 Mazmorras del Reino y Jefes de Instancia")
+    reino_d = BESTIARIO_ZONAS.get(st.session_state.reino_actual, {})
+    mazmorras = reino_d.get("mazmorras", [])
+    if mazmorras:
+        for maz in mazmorras:
+            st.markdown(f"**{maz['nombre']}** (Nivel mínimo: `{maz['nivel_min']}`)")
+            st.write(f"Boss: **{maz['jefe']}** (HP: {maz['hp_jefe']}) | Drop: *{maz['drop_jefe']}*")
+            if st.button(f"⚔️ Entrar a {maz['nombre']}", key=f"entrar_{maz['nombre']}"):
+                if st.session_state.hero_level >= maz['nivel_min']:
+                    st.success(f"¡Has derrotado a **{maz['jefe']}** en la mazmorra y obtenido {maz['drop_jefe']}!")
+                    st.session_state.inventario.append(maz['drop_jefe'])
+                    save_user_data()
+                    st.rerun()
+                else:
+                    st.error(f"Nivel insuficiente. Requieres nivel {maz['nivel_min']}.")
+    else:
+        st.info("No hay mazmorras registradas en esta zona exacta. Explora otro reino.")
+
+# ================= TAB 6: MISIONES =================
+with tab_quests:
+    st.subheader("📜 Tablón de Misiones del Asentamiento")
+    for m in st.session_state.misiones_activas:
+        estado = "✅ Completada" if m['completada'] else f"Progreso: {m['progreso']}/{m['meta']}"
+        st.markdown(f"**{m['titulo']}** — *{m['objetivo']}* [{estado}]")
+        if not m['completada'] and st.button(f"Completar Misión", key=f"m_comp_{m['id']}"):
+            m['completada'] = True
+            m['progreso'] = m['meta']
+            st.session_state.puntos_libres += 2
+            st.session_state.plata += 100
+            save_user_data()
+            st.success("¡Misión completada! +2 Puntos libres y +100 plata.")
+            st.rerun()
+
+# ================= TAB 7: TIENDA GREMIO =================
+with tab_edificio:
+    st.subheader("🏪 Tienda del Gremio de Aventureros")
+    for item in CATALOGO_EDIFICIOS["Gremio de Aventureros"]["items"]:
+        col_t1, col_t2 = st.columns([3, 1])
+        with col_t1:
+            st.markdown(f"**{item['nombre']}** — Coste: {item['precio']} {item['metal']}")
+        with col_t2:
+            if st.button("Comprar", key=f"comprar_{item['id']}"):
+                sk_limpia = item['nombre'].split(": ")[-1]
+                if sk_limpia not in st.session_state.grimorio_inventario:
+                    st.session_state.grimorio_inventario.append(sk_limpia)
+                    save_user_data()
+                    st.success(f"¡Aprendiste **{sk_limpia}**!")
+                    st.rerun()
+
+# ================= TAB 8: BESTIARIO Y ZONAS =================
+with tab_viaje_local:
+    st.subheader("🗺️ Bestiario y Viaje entre Reinos (Continente I: Niveles 1-100)")
+    reino_sel = st.selectbox("Selecciona Reino o Zona Común", list(BESTIARIO_ZONAS.keys()))
+    info_r = BESTIARIO_ZONAS[reino_sel]
+    st.write(f"**Rango de Nivel:** `{info_r['rango']}`")
+
+    st.markdown("### 🐺 Enemigos Comunes")
+    for mob in info_r["mobs"]:
+        st.markdown(f"- **{mob['nombre']}** (Nivel {mob['nivel']}) | Tipo: `{mob['tipo']}` | HP: {mob['hp']} | Ataque: `{mob['ataque']}` | Loot: *{mob['drop']}*")
+
+    st.markdown("### 👑 Jefes de Zona")
+    for j in info_r.get("jefes_zona", []):
+        st.markdown(f"- 🔴 **{j['nombre']}** (Nivel {j['nivel']}) | HP: {j['hp']} | Loot: *{j['drop']}*")
+
+    if st.button("🚀 Viajar a este Reino o Zona", use_container_width=True):
+        st.session_state.reino_actual = reino_sel
+        st.session_state.asentamiento_actual = f"Asentamiento en {reino_sel}"
+        save_user_data()
+        st.success(f"Te has desplazado a **{reino_sel}**.")
+        st.rerun()
+
+# ================= TAB 9: MOCHILA =================
+with tab_bag:
+    st.subheader("🎒 Inventario y Objetos en Mochila")
+    st.write(st.session_state.inventario)
+
+# ================= TAB 10: CONTINENTES =================
+with tab_world:
+    st.subheader("🌍 Mapa de Continentes y Escalado de Niveles")
+    for cont, info in CONTINENTES_OFICIALES.items():
+        st.markdown(f"**{cont}**")
+        st.write(f"- {info['tipo']}")
+
+st.markdown("---")
+st.caption("Snd-Worlds MMORPG Sandbox - Arquitectura Modular Definitiva con Canvas Real-Time")
