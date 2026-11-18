@@ -1,4 +1,4 @@
-# --- MOTOR HTML5 / JS CANVAS — GRÁFICOS HD Y VISIBILIDAD DE HÉROE ---
+# --- MOTOR HTML5 / JS CANVAS — COMBATE AVANZADO Y HABILIDADES ---
 
 def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_cabello, color_armadura, mobs_zona):
     mobs_js_data = []
@@ -8,7 +8,6 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
             "ataque_tipo": m["ataque"], "velocidad": m.get("velocidad", 1.8)
         })
 
-    # Mapeo de colores de armadura para el canvas
     colores_armadura_map = {
         "Azul Real (Valoria)": "#2563eb",
         "Rojo Sangre": "#dc2626",
@@ -52,12 +51,14 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 border-radius: 10px; display: flex; gap: 10px; pointer-events: auto; z-index: 10;
             }}
             .action-slot {{
-                width: 50px; height: 50px; background: #1e293b; border: 2px solid #475569;
-                border-radius: 6px; display: flex; align-items: center; justify-content: center;
-                font-size: 15px; font-weight: bold; color: #facc15; cursor: pointer;
+                width: 55px; height: 55px; background: #1e293b; border: 2px solid #475569;
+                border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+                font-size: 14px; font-weight: bold; color: #facc15; position: relative;
             }}
+            .action-slot span {{ font-size: 9px; color: #94a3b8; position: absolute; bottom: 2px; right: 5px; }}
+            
             .combat-hint {{
-                position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
+                position: absolute; bottom: 92px; left: 50%; transform: translateX(-50%);
                 background: rgba(0,0,0,0.85); border: 1px solid #f59e0b; color: #facc15;
                 padding: 6px 18px; border-radius: 6px; font-size: 13px; font-weight: bold;
                 pointer-events: none; z-index: 50;
@@ -79,16 +80,16 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 </div>
             </div>
 
-            <div class="combat-hint">⚔️ <b>W,A,S,D</b> para moverte | <b>ESPACIO / Q</b> para Atacar | ¡Mira tu personaje personalizado!</div>
+            <div class="combat-hint">⚔️ <b>WASD</b> Mover | <b>1</b> Cuerpo a Cuerpo | <b>2</b> Bola de Fuego | <b>3</b> Escudo Rúnico | <b>4/Q</b> Onda Vital</div>
 
             <canvas id="gameCanvas"></canvas>
 
             <div class="mmorpg-action-bar">
-                <div class="action-slot">⚔️<span>1</span></div>
-                <div class="action-slot">🔥<span>2</span></div>
-                <div class="action-slot">🛡️<span>3</span></div>
-                <div class="action-slot">🧪<span>4</span></div>
-                <div class="action-slot">🗡️<span>Q</span></div>
+                <div class="action-slot">⚔️<span id="cd1">1</span></div>
+                <div class="action-slot">🔥<span id="cd2">2</span></div>
+                <div class="action-slot">🛡️<span id="cd3">3</span></div>
+                <div class="action-slot">⚡<span id="cd4">4</span></div>
+                <div class="action-slot">🌀<span id="cdQ">Q</span></div>
             </div>
         </div>
         
@@ -106,8 +107,12 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
             resizeCanvas();
 
             let player = {{ 
-                x: 3000, y: 3000, radius: 22, speed: {velocidad_base}, hp: 100, maxHp: 100, kills: 0, isAttacking: false, attackAnim: 0 
+                x: 3000, y: 3000, radius: 22, speed: {velocidad_base}, hp: 100, maxHp: 100, 
+                kills: 0, shieldActive: false, shieldTimer: 0,
+                cooldowns: {{ '1': 0, '2': 0, '3': 0, '4': 0, 'q': 0 }},
+                effectAnim: null, effectRadius: 0
             }};
+            
             let keys = {{}};
             let enemies = [];
             
@@ -137,17 +142,38 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
             
             window.addEventListener("keydown", (e) => {{
                 keys[e.key] = true;
-                if (e.key === " " || e.key === "q" || e.key === "Q") performAttack();
+                handleSkill(e.key.toLowerCase());
             }});
             window.addEventListener("keyup", (e) => keys[e.key] = false);
 
-            function performAttack() {{
-                player.isAttacking = true;
-                player.attackAnim = 12;
+            function handleSkill(key) {{
+                if (player.cooldowns[key] > 0) return;
+
+                if (key === '1') {{ // Golpe Cuerpo a Cuerpo
+                    player.cooldowns['1'] = 25;
+                    player.effectAnim = 'slash'; player.effectRadius = 60;
+                    damageEnemiesInRadius(75, 45);
+                }} else if (key === '2') {{ // Bola de Fuego (Rango Medio)
+                    player.cooldowns['2'] = 50;
+                    player.effectAnim = 'fire'; player.effectRadius = 90;
+                    damageEnemiesInRadius(110, 70);
+                }} else if (key === '3') {{ // Escudo Rúnico
+                    player.cooldowns['3'] = 120;
+                    player.shieldActive = true;
+                    player.shieldTimer = 90;
+                }} else if (key === '4' || key === 'q') {{ // Onda Vital Masiva (AoE)
+                    player.cooldowns['4'] = 180;
+                    player.cooldowns['q'] = 180;
+                    player.effectAnim = 'pulse'; player.effectRadius = 160;
+                    damageEnemiesInRadius(180, 120);
+                }}
+            }}
+
+            function damageEnemiesInRadius(radius, damage) {{
                 enemies.forEach((en, index) => {{
                     let dx = en.x - player.x, dy = en.y - player.y;
-                    if (Math.sqrt(dx*dx + dy*dy) < 75) {{
-                        en.hp -= 50;
+                    if (Math.sqrt(dx*dx + dy*dy) < radius) {{
+                        en.hp -= damage;
                         if (en.hp <= 0) {{ enemies.splice(index, 1); player.kills++; }}
                     }}
                 }});
@@ -175,8 +201,17 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 if (!checkCollision(player.x + dx, player.y, player.radius)) player.x += dx;
                 if (!checkCollision(player.x, player.y + dy, player.radius)) player.y += dy;
 
-                if (player.attackAnim > 0) player.attackAnim--;
-                else player.isAttacking = false;
+                // Reducir cooldowns
+                for (let k in player.cooldowns) {{
+                    if (player.cooldowns[k] > 0) player.cooldowns[k]--;
+                }}
+
+                if (player.shieldActive) {{
+                    player.shieldTimer--;
+                    if (player.shieldTimer <= 0) player.shieldActive = false;
+                }}
+
+                if (player.effectRadius > 0) player.effectRadius -= 4;
 
                 enemies.forEach(en => {{
                     let edx = player.x - en.x, edy = player.y - en.y;
@@ -188,9 +223,11 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                     en.cooldown++;
                     if (dist < 35 && en.cooldown > 45) {{
                         en.cooldown = 0;
-                        player.hp = Math.max(0, player.hp - 10);
-                        document.getElementById("hpFill").style.width = (player.hp / player.maxHp * 100) + "%";
-                        document.getElementById("hpText").innerText = `HP: ${{player.hp}} / ${{player.maxHp}}`;
+                        if (!player.shieldActive) {{
+                            player.hp = Math.max(0, player.hp - 10);
+                            document.getElementById("hpFill").style.width = (player.hp / player.maxHp * 100) + "%";
+                            document.getElementById("hpText").innerText = `HP: ${{player.hp}} / ${{player.maxHp}}`;
+                        }}
                     }}
                 }});
             }}
@@ -202,20 +239,28 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 ctx.fillStyle = "rgba(0,0,0,0.5)";
                 ctx.beginPath(); ctx.ellipse(0, 18, 14, 7, 0, 0, Math.PI * 2); ctx.fill();
 
-                // Cuerpo / Armadura personalizada
+                // Escudo protector visual
+                if (player.shieldActive) {{
+                    ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 4;
+                    ctx.fillStyle = "rgba(56, 189, 248, 0.2)";
+                    ctx.beginPath(); ctx.arc(0, 0, 32, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                }}
+
+                // Armadura y cuerpo
                 ctx.fillStyle = "{color_hex}";
                 ctx.fillRect(-12, -12, 24, 26);
                 ctx.strokeStyle = "#facc15"; ctx.lineWidth = 2; ctx.strokeRect(-12, -12, 24, 26);
 
-                // Cabeza y Casco / Pelo ({estilo_cabello})
+                // Cabeza / Pelo ({estilo_cabello})
                 ctx.fillStyle = "#fde047";
                 ctx.beginPath(); ctx.arc(0, -16, 11, 0, Math.PI * 2); ctx.fill();
                 ctx.stroke();
 
-                // Animación de ataque (Espada brillante HD)
-                if (player.isAttacking) {{
-                    ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 5;
-                    ctx.beginPath(); ctx.arc(0, 0, 45, 0, Math.PI * 2); ctx.stroke();
+                // Animación de habilidades especiales
+                if (player.effectAnim && player.effectRadius > 0) {{
+                    ctx.strokeStyle = player.effectAnim === 'fire' ? "#ef4444" : "#facc15";
+                    ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.arc(0, 0, 60 - player.effectRadius, 0, Math.PI * 2); ctx.stroke();
                 }}
                 
                 ctx.fillStyle = "#e2e8f0"; ctx.fillRect(14, -8, 5, 20);
