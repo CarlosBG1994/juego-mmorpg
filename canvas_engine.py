@@ -1,4 +1,4 @@
-# --- MOTOR HTML5 / JS CANVAS PARA PVE EN TIEMPO REAL ---
+# --- MOTOR HTML5 / JS CANVAS DE MUNDO ABIERTO A PANTALLA COMPLETA ---
 
 def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
     mobs_js_data = []
@@ -16,131 +16,173 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
     <html>
     <head>
         <style>
-            body {{ background-color: #0e1117; color: white; text-align: center; font-family: sans-serif; margin: 0; padding: 0; }}
-            canvas {{ background: #1a1c23; border: 2px solid #ffaa00; box-shadow: 0 0 20px rgba(255,170,0,0.4); border-radius: 8px; }}
-            .hud-game {{ display: flex; justify-content: space-around; background: #161922; padding: 8px; margin-bottom: 5px; border-radius: 5px; font-weight: bold; font-size: 13px; color: #ffaa00; }}
-            .controls-hint {{ font-size: 12px; color: #a0a0a0; margin-top: 5px; }}
+            body {{ background-color: #0b0e14; color: white; text-align: center; font-family: sans-serif; margin: 0; padding: 0; overflow: hidden; }}
+            #gameContainer {{ position: relative; width: 100vw; height: 85vh; }}
+            canvas {{ background: #121620; display: block; width: 100%; height: 100%; cursor: crosshair; }}
+            .hud-overlay {{
+                position: absolute; top: 10px; left: 10px; right: 10px;
+                display: flex; justify-content: space-between; align-items: center;
+                background: rgba(18, 22, 32, 0.85); padding: 10px 20px; border-radius: 8px;
+                border: 1px solid #ffaa00; font-weight: bold; font-size: 14px; color: #ffaa00;
+                pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            }}
+            .controls-hint {{
+                position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+                background: rgba(18, 22, 32, 0.85); padding: 6px 15px; border-radius: 5px;
+                font-size: 12px; color: #a0a0a0; border: 1px solid #333; pointer-events: none;
+            }}
         </style>
     </head>
     <body>
-        <div class="hud-game">
-            <span id="playerHpText">❤️ HP: 100/100</span>
-            <span id="zoneText">🗺️ Zona: {zona_actual}</span>
-            <span id="scoreText">⚔️ Derrotados: 0</span>
+        <div id="gameContainer">
+            <div class="hud-overlay">
+                <span id="playerHpText">❤️ HP: 100/100</span>
+                <span>🗺️ Región: {zona_actual}</span>
+                <span id="scoreText">⚔️ Derrotados: 0</span>
+                <span id="coordsText">📍 X: 400 | Y: 300</span>
+            </div>
+            <canvas id="gameCanvas"></canvas>
+            <div class="controls-hint">Usa <b>W, A, S, D</b> o <b>Flechas</b> para moverte por el vasto mundo. ¡Esquiva a los enemigos hostiles!</div>
         </div>
-        <canvas id="gameCanvas" width="800" height="380"></canvas>
-        <div class="controls-hint">Usa las teclas <b>W, A, S, D</b> o <b>Flechas</b> para moverte y esquivar ataques mágicos y físicos en tiempo real.</div>
         
         <script>
             const canvas = document.getElementById("gameCanvas");
             const ctx = canvas.getContext("2d");
             
-            let player = {{ x: 400, y: 190, size: 20, speed: 4, hp: 100, maxHp: 100, color: "#ffaa00" }};
+            function resizeCanvas() {{
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight * 0.85;
+            }}
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // Jugador y mundo masivo
+            let player = {{ x: 2000, y: 2000, size: 22, speed: 5, hp: 100, maxHp: 100, color: "#ffaa00" }};
             let keys = {{}};
             let enemies = [];
-            let projectiles = [];
-            let isCaza = {str(es_caza).lower()};
+            let settlements = [
+                {{ x: 1800, y: 1900, name: "Aurelia Capital (Humano)", color: "#3498db", radius: 50 }},
+                {{ x: 2800, y: 1200, name: "Sylvanis Refugio (Elfo)", color: "#2ecc71", radius: 50 }},
+                {{ x: 1200, y: 2800, name: "Khazad Dun Baluarte (Enano)", color: "#e67e22", radius: 50 }},
+                {{ x: 3200, y: 3200, name: "Garra de la Tormenta (Bestia)", color: "#e74c3c", radius: 50 }}
+            ];
             
             let templateMobs = {str(mobs_js_data)};
+            let derrotadosCount = 0;
             
-            if (isCaza && templateMobs.length > 0) {{
-                for(let i=0; i<4; i++) {{
-                    let tmpl = templateMobs[Math.floor(Math.random() * templateMobs.length)];
-                    enemies.push({{
-                        x: Math.random() * 700 + 50,
-                        y: Math.random() * 300 + 40,
-                        size: 18,
-                        speed: tmpl.velocidad || 1.5,
-                        hp: tmpl.hp,
-                        maxHp: tmpl.hp,
-                        name: tmpl.nombre,
-                        ataque_tipo: tmpl.ataque_tipo,
-                        cooldown: 0,
-                        color: tmpl.ataque_tipo.includes("Magia") ? "#9933ff" : "#ff4444"
-                    }});
-                }}
+            // Generar mobs distribuidos por el vasto mundo abierto (mapa de 5000x5000)
+            for(let i=0; i < 40; i++) {{
+                let tmpl = templateMobs.length > 0 ? templateMobs[Math.floor(Math.random() * templateMobs.length)] : {{nombre: "Bestia Salvaje", hp: 100, ataque_tipo: "Físico", velocidad: 2}};
+                enemies.push({{
+                    x: Math.random() * 4600 + 200,
+                    y: Math.random() * 4600 + 200,
+                    size: 18,
+                    speed: tmpl.velocidad || 1.8,
+                    hp: tmpl.hp,
+                    maxHp: tmpl.hp,
+                    name: tmpl.nombre,
+                    ataque_tipo: tmpl.ataque_tipo,
+                    cooldown: 0,
+                    color: "#ff3333"
+                }});
             }}
             
             window.addEventListener("keydown", (e) => keys[e.key] = true);
             window.addEventListener("keyup", (e) => keys[e.key] = false);
             
             function update() {{
-                if (keys["ArrowUp"] || keys["w"] || keys["W"]) player.y -= player.speed;
-                if (keys["ArrowDown"] || keys["s"] || keys["S"]) player.y += player.speed;
-                if (keys["ArrowLeft"] || keys["a"] || keys["A"]) player.x -= player.speed;
-                if (keys["ArrowRight"] || keys["d"] || keys["D"]) player.x += player.speed;
+                let dxInput = 0;
+                let dyInput = 0;
+                if (keys["ArrowUp"] || keys["w"] || keys["W"]) dyInput -= player.speed;
+                if (keys["ArrowDown"] || keys["s"] || keys["S"]) dyInput += player.speed;
+                if (keys["ArrowLeft"] || keys["a"] || keys["A"]) dxInput -= player.speed;
+                if (keys["ArrowRight"] || keys["d"] || keys["D"]) dxInput += player.speed;
                 
-                player.x = Math.max(player.size, Math.min(canvas.width - player.size, player.x));
-                player.y = Math.max(player.size, Math.min(canvas.height - player.size, player.y));
+                player.x += dxInput;
+                player.y += dyInput;
                 
-                if (isCaza) {{
-                    enemies.forEach(en => {{
-                        let dx = player.x - en.x;
-                        let dy = player.y - en.y;
-                        let dist = Math.sqrt(dx*dx + dy*dy);
-                        
-                        if (dist > 2) {{
-                            en.x += (dx / dist) * en.speed;
-                            en.y += (dy / dist) * en.speed;
-                        }}
-                        
-                        en.cooldown++;
-                        if (en.cooldown > 100 && dist < 200) {{
-                            en.cooldown = 0;
-                            if (en.ataque_tipo.includes("Magia")) {{
-                                projectiles.push({{
-                                    x: en.x, y: en.y,
-                                    vx: (dx / dist) * 3,
-                                    vy: (dy / dist) * 3,
-                                    radius: 6,
-                                    color: "#9933ff"
-                                }});
-                            }} else if (dist < 30) {{
-                                let isCrit = Math.random() < 0.15;
-                                let damage = isCrit ? 25 : 12;
-                                player.hp -= damage;
-                                if (player.hp < 0) player.hp = 0;
-                                document.getElementById("playerHpText").innerText = `❤️ HP: ${{player.hp}}/${{player.maxHp}}` + (isCrit ? " [¡CRÍTICO RECIBIDO!]" : "");
-                            }}
-                        }}
-                    }});
+                // Limites del mundo masivo (5000x5000)
+                player.x = Math.max(50, Math.min(4950, player.x));
+                player.y = Math.max(50, Math.min(4950, player.y));
+                
+                document.getElementById("coordsText").innerText = `📍 X: ${{Math.round(player.x)}} | Y: ${{Math.round(player.y)}}`;
+
+                // IA de Enemigos: persecución activa y daño en tiempo real
+                enemies.forEach(en => {{
+                    let edx = player.x - en.x;
+                    let edy = player.y - en.y;
+                    let dist = Math.sqrt(edx*edx + edy*edy);
                     
-                    for(let i = projectiles.length - 1; i >= 0; i--) {{
-                        let p = projectiles[i];
-                        p.x += p.vx;
-                        p.y += p.vy;
-                        
-                        let pdx = player.x - p.x;
-                        let pdy = player.y - p.y;
-                        if (Math.sqrt(pdx*pdx + pdy*pdy) < player.size + p.radius) {{
-                            let isCrit = Math.random() < 0.2;
-                            let dmg = isCrit ? 30 : 15;
-                            player.hp -= dmg;
-                            if (player.hp < 0) player.hp = 0;
-                            projectiles.splice(i, 1);
-                            document.getElementById("playerHpText").innerText = `❤️ HP: ${{player.hp}}/${{player.maxHp}}` + (isCrit ? " [¡CRÍTICO MÁGICO!]" : "");
-                            continue;
-                        }}
-                        
-                        if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {{
-                            projectiles.splice(i, 1);
-                        }}
+                    if (dist < 400 && dist > 15) {{
+                        en.x += (edx / dist) * en.speed;
+                        en.y += (edy / dist) * en.speed;
                     }}
-                }}
+                    
+                    en.cooldown++;
+                    if (dist < 30 && en.cooldown > 60) {{
+                        en.cooldown = 0;
+                        let damage = Math.floor(Math.random() * 10) + 8;
+                        player.hp -= damage;
+                        if (player.hp < 0) player.hp = 0;
+                        document.getElementById("playerHpText").innerText = `❤️ HP: ${{player.hp}}/${{player.maxHp}} [¡GOLPE RECIBIDO!]`;
+                    }}
+                }});
             }}
             
             function draw() {{
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
-                ctx.strokeStyle = "#252836";
-                ctx.lineWidth = 1;
-                for(let x=0; x<canvas.width; x+=40) {{
-                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-                }}
-                for(let y=0; y<canvas.height; y+=40) {{
-                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-                }}
+                // Camara centrada en el jugador
+                ctx.save();
+                let camX = canvas.width / 2 - player.x;
+                let camY = canvas.height / 2 - player.y;
+                ctx.translate(camX, camY);
                 
+                // Dibujar suelo y rejilla del mundo masivo
+                ctx.strokeStyle = "#1e2330";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for(let x=0; x<=5000; x+=200) {{
+                    ctx.moveTo(x, 0); ctx.lineTo(x, 5000);
+                }}
+                for(let y=0; y<=5000; y+=200) {{
+                    ctx.moveTo(0, y); ctx.lineTo(5000, y);
+                }}
+                ctx.stroke();
+
+                // Dibujar Asentamientos y Ciudades en el mapa
+                settlements.forEach(st => {{
+                    ctx.fillStyle = st.color;
+                    ctx.beginPath();
+                    ctx.arc(st.x, st.y, st.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = "#ffffff";
+                    ctx.stroke();
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "bold 14px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText(st.name, st.x, st.y - st.radius - 10);
+                }});
+
+                // Dibujar Enemigos (círculos rojos con IA)
+                enemies.forEach(en => {{
+                    ctx.fillStyle = en.color;
+                    ctx.beginPath();
+                    ctx.arc(en.x, en.y, en.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = "#fff";
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = "#ff9999";
+                    ctx.font = "11px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText(en.name + ` (Nv.${{en.nivel}})`, en.x, en.y - en.size - 6);
+                }});
+                
+                // Dibujar Jugador
                 ctx.fillStyle = player.color;
                 ctx.beginPath();
                 ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
@@ -148,27 +190,12 @@ def generar_canvas_html(es_caza, zona_actual, mobs_zona, jefes_zona):
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = "#ffffff";
                 ctx.stroke();
+
+                ctx.fillStyle = "#ffaa00";
+                ctx.font = "bold 13px sans-serif";
+                ctx.fillText("⭐ Héroe", player.x, player.y - player.size - 8);
                 
-                enemies.forEach(en => {{
-                    ctx.fillStyle = en.color;
-                    ctx.beginPath();
-                    ctx.arc(en.x, en.y, en.size, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = "#ffffff";
-                    ctx.stroke();
-                    
-                    ctx.fillStyle = "#ffffff";
-                    ctx.font = "10px sans-serif";
-                    ctx.fillText(en.name, en.x - 20, en.y - en.size - 6);
-                }});
-                
-                projectiles.forEach(p => {{
-                    ctx.fillStyle = p.color;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                    ctx.fill();
-                }});
+                ctx.restore();
             }}
             
             function loop() {{
