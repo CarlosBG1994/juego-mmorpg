@@ -198,19 +198,11 @@ TALLERES_OFICIOS = {
 }
 
 def simular_crafteo(oficio, receta_id, inventario_jugador):
-    """
-    Simula la fabricación de un objeto comprobando los materiales en el inventario
-    bajo la regla de omni-oficios (todos los jugadores pueden aprender y usar todos los oficios).
-    """
     if oficio not in TALLERES_OFICIOS:
         return False, "Taller u oficio desconocido."
     
     recetas = TALLERES_OFICIOS[oficio]["recetas"]
-    receta_sel = None
-    for r in recetas:
-        if r["id"] == receta_id:
-            receta_sel = r
-            break
+    receta_sel = next((r for r in recetas if r["id"] == receta_id), None)
             
     if not receta_sel:
         return False, "Receta no encontrada."
