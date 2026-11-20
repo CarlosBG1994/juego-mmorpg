@@ -45,9 +45,8 @@ def generar_catalogo_1870_habilidades():
     - 70 habilidades míticas (10 arquetipos míticos x 7 rangos de maestría)
     """
     catalogo = {}
-
-    # 1. 1.800 habilidades de Tier I a Tier V
     contador = 1
+
     for tier_nombre, mult_dano, cd_base in TIERS:
         for elem_nombre, icono, efecto_visual, color in PREFIJOS_ELEMENTO:
             for forma in FORMAS_TECNICA:
@@ -72,7 +71,6 @@ def generar_catalogo_1870_habilidades():
                 }
                 contador += 1
 
-    # 2. 70 habilidades Míticas (1801 a 1870)
     for m_base in MITICAS_BASE:
         for grado in range(1, 8):
             skill_id = f"skill_{contador:04d}"
@@ -99,9 +97,9 @@ def generar_catalogo_1870_habilidades():
 CATALOGO_HABILIDADES = generar_catalogo_1870_habilidades()
 
 BARRA_HABILIDADES_DEFECTO = {
-    "1": "skill_0091",  # [Tier I] Impacto Marcial
-    "2": "skill_0001",  # [Tier I] Impacto Ígneo
-    "3": "skill_0219",  # [Tier I] Égida Sagrada
-    "4": "skill_0078",  # [Tier I] Descarga Voltaica
-    "q": "skill_1801",  # [MÍTICA - Grado 1] Sol Invictus
+    "1": "skill_0091",
+    "2": "skill_0001",
+    "3": "skill_0219",
+    "4": "skill_0078",
+    "q": "skill_1801",
 }
