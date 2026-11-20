@@ -1,49 +1,70 @@
 # --- CONFIGURACIÓN GLOBAL DE SND-WORLDS MMORPG (config.py) ---
 
+CONTINENTE_INICIAL = "Continente Inicial: Tierras del Origen (Niveles 1–100)"
+
+CONTINENTES_RACIALES = [
+    "Continente Racial Humano",
+    "Continente Racial Élfico",
+    "Continente Racial Enano",
+    "Continente Racial Dracónico",
+]
+
+CONTINENTE_DEMONIACO = "Continente Demoníaco: Abismo Ígneo (Niveles 301–350)"
+CONTINENTE_ANGELICAL = "Continente Angelical: Ciudadela Celestial (Final)"
+
+RANGOS_POR_ORDEN_RACIAL = [
+    "101–150",
+    "151–200",
+    "201–250",
+    "251–300",
+]
+
 DATOS_MUNDO = {
     "nombre_mundo": "Snd-Worlds (Guerra de los Eones)",
     "superficie_km2": 1500000,
-    "escala_mapa_unidades": 120000,  # Escala espacial del continente activo
-    "escala_niveles": "1 - 300+ (Sistema Multicontinente)",
-    "continentes": [
-        {
-            "id": "c1",
-            "nombre": "Continente I: Reinos Fundacionales y Zonas Neutras",
-            "superficie_km2": 500000,
-            "niveles": "1 - 100",
-            "reinos": [
-                {"nombre": "Reino Humano de Valoria", "niveles": "1 - 15", "capital": "Aurelia Capital"},
-                {"nombre": "Bosque Ancestral de Elfos", "niveles": "16 - 30", "capital": "Santuario Silvestre"},
-                {"nombre": "Baluarte Enano de Piedra", "niveles": "31 - 45", "capital": "Fortaleza de Hierro"},
-                {"nombre": "Dominio de los Magos", "niveles": "46 - 60", "capital": "Torre de los Arcanos"},
-            ],
-            "zonas_neutras": [
-                "Puertas del Eón",
-                "Archipiélago y Mazmorras del Mar Abierto",
-            ],
-        },
-        {
-            "id": "c2",
-            "nombre": "Continente II: Tierras de Ceniza y Abismos Antiguos",
-            "superficie_km2": 500000,
-            "niveles": "101 - 200",
-            "reinos": [
-                {"nombre": "Desierto de Obsidiana", "niveles": "101 - 130", "capital": "Ciudadela del Sol Negro"},
-                {"nombre": "Cavernas del Dragón", "niveles": "131 - 160", "capital": "Guarida de Escamas"},
-            ],
-            "zonas_neutras": ["Fosas Abisales del Titán", "Picos de los Vientos Eternos"],
-        },
-        {
-            "id": "c3",
-            "nombre": "Continente III: El Dominio Celestial y Grietas del Vacío",
-            "superficie_km2": 500000,
-            "niveles": "201 - 300",
-            "reinos": [
-                {"nombre": "Santuario Estelar", "niveles": "201 - 250", "capital": "Catedral del Creador"},
-            ],
-            "zonas_neutras": ["Grieta Cuántica del Eón"],
-        },
-    ],
+    "escala_mapa_unidades": 120000,
+    "continente_inicial": CONTINENTE_INICIAL,
+    "continentes_raciales": CONTINENTES_RACIALES,
+    "continente_demoniaco": CONTINENTE_DEMONIACO,
+    "continente_angelical": CONTINENTE_ANGELICAL,
+    "zonas_por_continente": {
+        CONTINENTE_INICIAL: [
+            "Valoria Inicial",
+            "Llanuras del Comienzo",
+            "Bosque de Bruma",
+            "Puertas del Eón",
+        ],
+        "Continente Racial Humano": [
+            "Aurelia Capital",
+            "Murallas de Hojacero",
+            "Tierras Fronterizas Humanas",
+        ],
+        "Continente Racial Élfico": [
+            "Santuario Silvestre",
+            "Arboleda Eterna",
+            "Cañada de los Susurros",
+        ],
+        "Continente Racial Enano": [
+            "Baluarte de Piedra",
+            "Grandes Fundiciones",
+            "Galerías Profundas",
+        ],
+        "Continente Racial Dracónico": [
+            "Cumbre de Escamas",
+            "Caldera de Ceniza",
+            "Santuario del Draco",
+        ],
+        CONTINENTE_DEMONIACO: [
+            "Fosas del Abismo",
+            "Ciudadela Carmesí",
+            "Trono de las Sombras",
+        ],
+        CONTINENTE_ANGELICAL: [
+            "Pináculo de Luz",
+            "Jardines del Alba",
+            "Umbral del Creador",
+        ],
+    },
     "clases_personaje": [
         {"nombre": "Púgil", "rol": "Combate cuerpo a cuerpo / Artes marciales", "ataque_base": "Físico"},
         {"nombre": "Guerrero", "rol": "Tanque / Armaduras pesadas", "ataque_base": "Físico"},
