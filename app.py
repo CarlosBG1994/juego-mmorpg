@@ -1,8 +1,17 @@
 import streamlit as st
-from config import DATOS_MUNDO
+from config import (
+    DATOS_MUNDO,
+    CONTINENTE_INICIAL,
+    CONTINENTES_RACIALES,
+    CONTINENTE_DEMONIACO,
+    CONTINENTE_ANGELICAL,
+)
 from habilidades import CATALOGO_HABILIDADES, BARRA_HABILIDADES_DEFECTO
-from misiones_reino import SISTEMA_MISIONES
-from progression_engine import verificar_desbloqueo_continente
+from misiones_reino import SISTEMA_MISIONES, obtener_secundarias_disponibles
+from progression_engine import (
+    obtener_rango_visual_continente,
+    verificar_acceso_continente,
+)
 from canvas_engine import generar_canvas_html
 
 st.set_page_config(page_title="Snd-Worlds MMORPG", page_icon="⚔️", layout="wide")
@@ -12,10 +21,20 @@ OPCIONES_PERSONALIZACION = {
     "armadura_color": ["Azul Real (Valoria)", "Rojo Sangre", "Verde Esmeralda", "Dorado Divino", "Oscuro Abisal"],
 }
 
+TODOS_CONTINENTES = (
+    [CONTINENTE_INICIAL]
+    + CONTINENTES_RACIALES
+    + [CONTINENTE_DEMONIACO, CONTINENTE_ANGELICAL]
+)
+
+if "continentes_abiertos" not in st.session_state:
+    st.session_state.continentes_abiertos = [CONTINENTE_INICIAL]
+if "orden_apertura_raciales" not in st.session_state:
+    st.session_state.orden_apertura_raciales = []
 if "continente_actual" not in st.session_state:
-    st.session_state.continente_actual = "Continente I: Reinos Fundacionales y Zonas Neutras"
+    st.session_state.continente_actual = CONTINENTE_INICIAL
 if "zona_actual" not in st.session_state:
-    st.session_state.zona_actual = "Reino Humano de Valoria"
+    st.session_state.zona_actual = DATOS_MUNDO["zonas_por_continente"][CONTINENTE_INICIAL][0]
 if "clase_pj" not in st.session_state:
     st.session_state.clase_pj = "Púgil"
 if "cabello_pj" not in st.session_state:
@@ -24,16 +43,23 @@ if "armadura_pj" not in st.session_state:
     st.session_state.armadura_pj = OPCIONES_PERSONALIZACION["armadura_color"][0]
 if "oro_jugador" not in st.session_state:
     st.session_state.oro_jugador = 1450
-if "misiones_completadas" not in st.session_state:
-    st.session_state.misiones_completadas = 12
-if "miticas_resueltas" not in st.session_state:
-    st.session_state.miticas_resueltas = 1
+if "misiones_completadas_ids" not in st.session_state:
+    st.session_state.misiones_completadas_ids = []
+if "jugador_completo_principales_abiertas" not in st.session_state:
+    st.session_state.jugador_completo_principales_abiertas = False
+if "misiones_ocultas_angelical_completadas" not in st.session_state:
+    st.session_state.misiones_ocultas_angelical_completadas = False
 if "monturas_desbloqueadas" not in st.session_state:
     st.session_state.monturas_desbloqueadas = ["A Pie (Velocidad Base)"]
 if "montura_equipada" not in st.session_state:
     st.session_state.montura_equipada = "A Pie (Velocidad Base)"
 if "barra_habilidades" not in st.session_state:
     st.session_state.barra_habilidades = BARRA_HABILIDADES_DEFECTO.copy()
+
+principales_ids = {m["id"] for m in SISTEMA_MISIONES["principales"]}
+todas_principales_completadas = principales_ids.issubset(set(st.session_state.misiones_completadas_ids))
+if todas_principales_completadas:
+    st.session_state.jugador_completo_principales_abiertas = True
 
 st.title(f"⚔️ {DATOS_MUNDO['nombre_mundo']} — {DATOS_MUNDO['superficie_km2']:,} km²")
 
@@ -54,7 +80,6 @@ with st.sidebar:
             sid for sid, sk in CATALOGO_HABILIDADES.items()
             if filtro_cat == "Todas" or sk["categoria"] == filtro_cat
         ]
-
         for tecla in ["1", "2", "3", "4", "q"]:
             actual = st.session_state.barra_habilidades.get(tecla, "skill_0001")
             opciones_tecla = ids_filtrados if actual in ids_filtrados else [actual] + ids_filtrados
@@ -68,31 +93,44 @@ with st.sidebar:
             st.session_state.barra_habilidades[tecla] = elegida
 
     st.markdown("---")
-    st.header("🌍 Progresión de Continentes")
-    lista_continentes = [c["nombre"] for c in DATOS_MUNDO["continentes"]]
-    continente_sel = st.selectbox("Seleccionar Continente:", lista_continentes)
-
-    acceso_permitido, mensaje_estado = verificar_desbloqueo_continente(
-        continente_sel,
-        st.session_state.misiones_completadas,
-        st.session_state.miticas_resueltas,
+    st.header("🌍 Continentes y Niveles")
+    continente_sel = st.selectbox(
+        "Seleccionar Continente:",
+        TODOS_CONTINENTES,
+        format_func=lambda c: f"{c} [{obtener_rango_visual_continente(c, st.session_state.orden_apertura_raciales)}]",
     )
 
-    if acceso_permitido:
+    permitido, msg_cont = verificar_acceso_continente(
+        continente_sel,
+        st.session_state.continentes_abiertos,
+        st.session_state.orden_apertura_raciales,
+        st.session_state.jugador_completo_principales_abiertas,
+        todas_principales_completadas,
+        st.session_state.misiones_ocultas_angelical_completadas,
+    )
+
+    if continente_sel not in st.session_state.continentes_abiertos and permitido:
+        if st.button(f"🔓 Abrir {continente_sel}", key="btn_abrir_continente"):
+            st.session_state.continentes_abiertos.append(continente_sel)
+            if continente_sel in CONTINENTES_RACIALES and continente_sel not in st.session_state.orden_apertura_raciales:
+                st.session_state.orden_apertura_raciales.append(continente_sel)
+            st.session_state.continente_actual = continente_sel
+            st.session_state.zona_actual = DATOS_MUNDO["zonas_por_continente"][continente_sel][0]
+            st.rerun()
+
+    if continente_sel in st.session_state.continentes_abiertos:
         st.session_state.continente_actual = continente_sel
-        st.success(mensaje_estado)
-        cont_data = next(c for c in DATOS_MUNDO["continentes"] if c["nombre"] == continente_sel)
-        zonas_cont = [r["nombre"] for r in cont_data["reinos"]] + cont_data["zonas_neutras"]
-        st.session_state.zona_actual = st.selectbox("Zona Activa en el Continente:", zonas_cont)
+        st.success(msg_cont)
+        zonas_cont = DATOS_MUNDO["zonas_por_continente"][continente_sel]
+        idx_z = zonas_cont.index(st.session_state.zona_actual) if st.session_state.zona_actual in zonas_cont else 0
+        st.session_state.zona_actual = st.selectbox("Zona Activa:", zonas_cont, index=idx_z)
     else:
-        st.error(mensaje_estado)
-        st.info(f"📊 Progreso actual: {st.session_state.misiones_completadas} misiones | {st.session_state.miticas_resueltas}/10 Míticas Ocultas.")
+        st.warning(msg_cont)
 
     st.markdown("---")
     st.header("🐴 Establo y Movilidad")
     montura_elegida = st.selectbox("Montura Equipada:", st.session_state.monturas_desbloqueadas)
     st.session_state.montura_equipada = montura_elegida
-
     velocidad_mapa = 4.5
     for m in DATOS_MUNDO["monturas_disponibles"]:
         if m["nombre"] == montura_elegida:
@@ -113,7 +151,7 @@ with st.sidebar:
                         else:
                             st.error("Oro insuficiente.")
 
-tab_juego, tab_misiones, tab_lore = st.tabs(["🎮 Mundo Abierto y Combate", "📜 Registro de Misiones", "👑 Lore y Progreso"])
+tab_juego, tab_misiones, tab_lore = st.tabs(["🎮 Mundo Abierto y Combate", "📜 Registro de Misiones", "👑 Continentes y Progreso"])
 
 with tab_juego:
     mobs_zona = [
@@ -124,8 +162,13 @@ with tab_juego:
         tecla: CATALOGO_HABILIDADES[st.session_state.barra_habilidades[tecla]]
         for tecla in ["1", "2", "3", "4", "q"]
     }
+    rango_act = obtener_rango_visual_continente(
+        st.session_state.continente_actual,
+        st.session_state.orden_apertura_raciales,
+    )
     html_engine = generar_canvas_html(
         st.session_state.continente_actual,
+        rango_act,
         st.session_state.zona_actual,
         st.session_state.montura_equipada,
         velocidad_mapa,
@@ -137,35 +180,59 @@ with tab_juego:
     st.components.v1.html(html_engine, height=750, scrolling=False)
 
 with tab_misiones:
-    st.subheader(f"📜 Tablón de Misiones — {st.session_state.continente_actual}")
+    st.subheader(f"📜 Misiones — {st.session_state.continente_actual}")
 
     st.markdown("### 👑 Historia Principal")
     for m in SISTEMA_MISIONES["principales"]:
-        with st.expander(f"{m['titulo']} (Nivel Requerido: {m['nivel_requerido']})"):
+        hecha = m["id"] in st.session_state.misiones_completadas_ids
+        with st.expander(f"{'✅ ' if hecha else ''}{m['titulo']} (Nivel: {m['nivel_requerido']}) — {m['continente']}"):
+            st.write(f"**Zona:** {m['zona']}")
             st.write(f"**Descripción:** {m['descripcion']}")
             st.info(f"**Objetivo:** {m['objetivo']}")
             st.success(f"**Recompensa:** {m['recompensa']}")
+            if not hecha and st.button("Completar Misión Principal", key=f"done_mq_{m['id']}"):
+                st.session_state.misiones_completadas_ids.append(m["id"])
+                st.session_state.oro_jugador += m["recompensa"].get("oro", 0)
+                st.rerun()
 
-    st.markdown("### 🗓️ Misiones Diarias, Secundarias y de Caza")
-    for sq in SISTEMA_MISIONES["diarias_y_secundarias"]:
-        with st.expander(f"[{sq['tipo']}] {sq['titulo']} (Nivel: {sq['nivel']})"):
+    st.markdown("### 🔗 Secundarias de Única Vez Encadenadas")
+    sec_disponibles = obtener_secundarias_disponibles(st.session_state.misiones_completadas_ids)
+    if not sec_disponibles:
+        st.info("No hay nuevas secundarias de única vez disponibles en este momento (o ya completaste la cadena actual).")
+    for sq in sec_disponibles:
+        with st.expander(f"[Cadena: {sq['cadena']} · Paso {sq['paso']}] {sq['titulo']} (Nivel: {sq['nivel_requerido']})"):
+            st.write(f"**Zona:** {sq['zona']} | **Única vez:** Sí")
             st.write(f"**Descripción:** {sq['descripcion']}")
             st.info(f"**Objetivo:** {sq['objetivo']}")
-            st.warning(f"**Restricción:** {sq['reinicio']}")
             st.success(f"**Recompensa:** {sq['recompensa']}")
+            if st.button("Completar Secundaria (Única Vez)", key=f"done_sec_{sq['id']}"):
+                st.session_state.misiones_completadas_ids.append(sq["id"])
+                st.session_state.oro_jugador += sq["recompensa"].get("oro", 0)
+                st.rerun()
 
-    st.markdown("### 🔮 Cadenas de Misiones Míticas y Secretas (10 Ocultas)")
-    st.caption("⚠️ Debes completar todas las misiones regulares y estas cadenas míticas antes de desbloquear el siguiente continente.")
+    st.markdown("### 🔮 Misiones Míticas Ocultas (Activación Secreta)")
     for mo in SISTEMA_MISIONES["ocultas_miticas"]:
         with st.expander(f"🔒 {mo['titulo']} [Nivel Mínimo: {mo['nivel_minimo']}]"):
-            st.write(f"**Estado:** {mo['estado_conocido']}")
-            st.info(f"**Pista del Rumor:** {mo['pista_inicial']}")
-            st.warning("⚠️ *Los pasos exactos y la recompensa están sellados hasta descubrir el detonante secreto.*")
+            st.write(f"**Estado:** {mo['estado']}")
+            st.info(f"**Pista del Rumor:** {mo['pista_rumor']}")
+            st.warning("⚠️ *La condición exacta de activación está oculta hasta descubrirla en el mundo.*")
+
+    st.markdown("### 🗝️ Misiones Ocultas de Apertura de Continentes")
+    for oc in SISTEMA_MISIONES["ocultas_apertura_continentes"]:
+        with st.expander(f"🗝️ {oc['titulo']} — {oc['objetivo_tipo']}"):
+            st.write(f"**Estado:** {oc['estado']}")
+            st.info(f"**Pista del Rumor:** {oc['pista_rumor']}")
+            st.warning("⚠️ *Las condiciones ocultas de apertura requieren exploración y cumplimiento de requisitos.*")
 
 with tab_lore:
-    st.subheader("👑 Lore, Escala del Mundo y Estado del Servidor")
-    st.write(f"**Extensión Total del Mundo:** {DATOS_MUNDO['superficie_km2']:,} km²")
-    st.write(f"**Continente Activo:** {st.session_state.continente_actual}")
-    st.write(f"**Misiones Completadas:** {st.session_state.misiones_completadas}")
-    st.write(f"**Cadenas Míticas Resueltas:** {st.session_state.miticas_resueltas} / 10")
-    st.info("💡 **Regla de Avance:** Ningún aventurero puede cruzar a los continentes superiores sin haber completado todas las misiones y las cadenas míticas ocultas del continente anterior.")
+    st.subheader("👑 Estado de Continentes, Niveles y Progresión")
+    for cont in TODOS_CONTINENTES:
+        abierto = cont in st.session_state.continentes_abiertos
+        rango = obtener_rango_visual_continente(cont, st.session_state.orden_apertura_raciales)
+        estado_txt = "🔓 Abierto" if abierto else "🔒 Cerrado"
+        st.write(f"- **{cont}** | Rango: `{rango}` | Estado: {estado_txt}")
+
+    st.markdown("---")
+    st.write(f"**Orden de apertura de continentes raciales:** {st.session_state.orden_apertura_raciales or 'Ninguno abierto aún'}")
+    st.write(f"**Jugador completó misiones principales abiertas:** {'Sí' if st.session_state.jugador_completo_principales_abiertas else 'No'}")
+    st.write(f"**Misiones ocultas específicas para Continente Angelical resueltas:** {'Sí' if st.session_state.misiones_ocultas_angelical_completadas else 'No'}")

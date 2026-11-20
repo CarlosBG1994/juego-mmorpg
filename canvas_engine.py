@@ -4,6 +4,7 @@ import json
 
 def generar_canvas_html(
     continente_actual,
+    rango_continente,
     zona_actual,
     montura_equipada,
     velocidad_base,
@@ -78,13 +79,13 @@ def generar_canvas_html(
                 border-radius: 10px; display: flex; gap: 10px; pointer-events: auto; z-index: 10;
             }}
             .action-slot {{
-                width: 68px; height: 64px; background: #1e293b; border: 2px solid #475569;
+                width: 72px; height: 64px; background: #1e293b; border: 2px solid #475569;
                 border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center;
                 font-size: 18px; font-weight: bold; color: #facc15; position: relative; cursor: pointer; padding: 2px;
             }}
             .action-slot .slot-name {{
                 font-size: 9px; color: #e2e8f0; text-align: center; line-height: 1.05;
-                max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;
+                max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;
             }}
             .action-slot .slot-key {{ font-size: 10px; color: #facc15; position: absolute; top: 2px; left: 5px; }}
             
@@ -100,9 +101,9 @@ def generar_canvas_html(
         <div id="gameContainer">
             <div class="mmorpg-top-hud">
                 <div class="player-frame">
-                    <div style="font-size: 13px; font-weight: bold; color: #facc15;">🌍 {continente_actual}</div>
+                    <div style="font-size: 13px; font-weight: bold; color: #facc15;">🌍 {continente_actual} ({rango_continente})</div>
                     <div style="font-size: 12px; color: #e2e8f0;">📍 Zona: <b>{zona_actual}</b> | 🐴 {montura_equipada}</div>
-                    <div id="coordsText" style="font-size: 11px; color: #94a3b8;">Sector: (600.0 km, 600.0 km) — Escala 1.500.000 km²</div>
+                    <div id="coordsText" style="font-size: 11px; color: #94a3b8;">Sector: (600.0 km, 600.0 km) — Mundo: 1.500.000 km²</div>
                     <div class="hp-bar-bg"><div id="hpFill" class="hp-bar-fill"></div></div>
                     <div id="hpText" style="font-size: 11px; color: #cbd5e1;">HP: 100 / 100</div>
                 </div>
@@ -113,7 +114,7 @@ def generar_canvas_html(
             </div>
 
             <div id="interactionHint" class="combat-hint">
-                ⚔️ <b>WASD / Flechas</b> Mover | <b>1, 2, 3, 4, Q</b> Habilidades Equipadas | <span id="portalMsg" style="color:#38bdf8;">Acércate a la puerta de una ciudad/castillo y pulsa E</span>
+                ⚔️ <b>WASD / Flechas</b> Mover | <b>1, 2, 3, 4, Q</b> Habilidades | <span id="portalMsg" style="color:#38bdf8;">Acércate a la puerta de un castillo y pulsa E</span>
             </div>
 
             <canvas id="gameCanvas"></canvas>
@@ -134,7 +135,6 @@ def generar_canvas_html(
             const miniCtx = miniCanvas.getContext("2d");
             const EQUIPPED_SKILLS = {skills_js};
 
-            // Escala masiva del continente activo (120.000 x 120.000 unidades -> 1.500.000 km² globales)
             const WORLD_SIZE = 120000;
             const LAND_MIN = 4000;
             const LAND_MAX = 116000;
@@ -159,13 +159,12 @@ def generar_canvas_html(
             let enemies = [];
 
             let structures = [
-                {{ x: 59300, y: 59150, w: 460, h: 380, name: "Aurelia Capital", type: "city", doorX: 59530, doorY: 59530 }},
-                {{ x: 61200, y: 58600, w: 420, h: 360, name: "Castillo de Hojacero", type: "castle", doorX: 61410, doorY: 58960 }},
-                {{ x: 58200, y: 60800, w: 380, h: 340, name: "Baluarte Enano de Piedra", type: "castle", doorX: 58390, doorY: 61140 }},
-                {{ x: 61600, y: 61100, w: 360, h: 340, name: "Torre de los Arcanos", type: "dungeon", doorX: 61780, doorY: 61440 }}
+                {{ x: 59300, y: 59150, w: 460, h: 380, name: "Ciudadela Principal", type: "city", doorX: 59530, doorY: 59530 }},
+                {{ x: 61200, y: 58600, w: 420, h: 360, name: "Castillo de la Frontera", type: "castle", doorX: 61410, doorY: 58960 }},
+                {{ x: 58200, y: 60800, w: 380, h: 340, name: "Bastión de Piedra", type: "castle", doorX: 58390, doorY: 61140 }},
+                {{ x: 61600, y: 61100, w: 360, h: 340, name: "Torre del Umbral", type: "dungeon", doorX: 61780, doorY: 61440 }}
             ];
 
-            // Entorno alrededor de la región jugable y distribuidor global
             let scenery = [];
             for (let i = 0; i < 450; i++) {{
                 let sx = 55000 + Math.random() * 10000;
@@ -278,7 +277,6 @@ def generar_canvas_html(
                     return false;
                 }}
 
-                // El océano fuera de LAND_MIN..LAND_MAX bloquea el paso
                 if (nx - radius < LAND_MIN || nx + radius > LAND_MAX || ny - radius < LAND_MIN || ny + radius > LAND_MAX) {{
                     return true;
                 }}
@@ -323,7 +321,7 @@ def generar_canvas_html(
 
                 let kmX = (player.x / 100).toFixed(1);
                 let kmY = (player.y / 100).toFixed(1);
-                document.getElementById("coordsText").innerText = `Sector: (${{kmX}} km, ${{kmY}} km) — Continente Activo: 500.000 km²`;
+                document.getElementById("coordsText").innerText = `Sector: (${{kmX}} km, ${{kmY}} km) — Snd-Worlds 1.500.000 km²`;
 
                 enemies.forEach(en => {{
                     let edx = player.x - en.x, edy = player.y - en.y;
@@ -437,14 +435,10 @@ def generar_canvas_html(
                     return;
                 }}
 
-                // Océano exterior (bloqueado)
                 ctx.fillStyle = "#0284c7"; ctx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
-                // Costa de arena
                 ctx.fillStyle = "#d97706"; ctx.fillRect(LAND_MIN - 200, LAND_MIN - 200, (LAND_MAX - LAND_MIN) + 400, (LAND_MAX - LAND_MIN) + 400);
-                // Masa continental de tierra firme
                 ctx.fillStyle = "#15803d"; ctx.fillRect(LAND_MIN, LAND_MIN, LAND_MAX - LAND_MIN, LAND_MAX - LAND_MIN);
 
-                // Calzadas reales conectando ciudades
                 ctx.strokeStyle = "#92400e"; ctx.lineWidth = 28;
                 ctx.beginPath();
                 ctx.moveTo(59530, 59530);
@@ -475,7 +469,6 @@ def generar_canvas_html(
                     ctx.fillText(en.name + ` [${{en.nivel}}]`, en.x, en.y - 34);
                 }});
 
-                // Efectos visuales de habilidades equipadas
                 player.activeEffects.forEach(ef => {{
                     let progress = 1 - (ef.timer / ef.maxTimer);
                     let r = Math.max(15, ef.maxRadius * progress);
@@ -494,7 +487,6 @@ def generar_canvas_html(
 
                 ctx.restore();
 
-                // Minimapa global
                 miniCtx.clearRect(0, 0, 136, 136);
                 miniCtx.fillStyle = "#0284c7"; miniCtx.fillRect(0, 0, 136, 136);
                 miniCtx.fillStyle = "#15803d"; miniCtx.fillRect(6, 6, 124, 124);
