@@ -1,4 +1,4 @@
-# --- MOTOR HTML5 / JS CANVAS — COMBATE CORREGIDO Y FLUIDO ---
+# --- MOTOR HTML5 / JS CANVAS — AGUA BLOQUEADA, CASTILLOS INTERACTIVOS Y GRÁFICOS PULIDOS ---
 
 def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_cabello, color_armadura, mobs_zona):
     mobs_js_data = []
@@ -24,7 +24,7 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
         <style>
             body {{ background-color: #020617; color: #fff; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; user-select: none; }}
             #gameContainer {{ position: relative; width: 100vw; height: 92vh; }}
-            canvas {{ background: #0369a1; display: block; width: 100%; height: 100%; cursor: crosshair; }}
+            canvas {{ background: #0284c7; display: block; width: 100%; height: 100%; cursor: crosshair; }}
             
             .mmorpg-top-hud {{
                 position: absolute; top: 12px; left: 15px; right: 15px;
@@ -61,7 +61,7 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 position: absolute; bottom: 92px; left: 50%; transform: translateX(-50%);
                 background: rgba(0,0,0,0.85); border: 1px solid #f59e0b; color: #facc15;
                 padding: 6px 18px; border-radius: 6px; font-size: 13px; font-weight: bold;
-                pointer-events: none; z-index: 50;
+                pointer-events: none; z-index: 50; text-align: center;
             }}
         </style>
     </head>
@@ -80,7 +80,9 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 </div>
             </div>
 
-            <div class="combat-hint">⚔️ <b>WASD</b> Mover | <b>1</b> Cuerpo a Cuerpo | <b>2</b> Bola de Fuego | <b>3</b> Escudo Rúnico | <b>4/Q</b> Onda Vital</div>
+            <div id="interactionHint" class="combat-hint">
+                ⚔️ <b>WASD</b> Mover | <b>1-4/Q</b> Habilidades | <span id="portalMsg" style="color:#38bdf8;">Acércate a un Castillo para Entrar (Pulsa E)</span>
+            </div>
 
             <canvas id="gameCanvas"></canvas>
 
@@ -107,8 +109,8 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
             resizeCanvas();
 
             let player = {{ 
-                x: 3000, y: 3000, radius: 22, speed: {velocidad_base}, hp: 100, maxHp: 100, 
-                kills: 0, shieldActive: false, shieldTimer: 0,
+                x: 3000, y: 3000, radius: 20, speed: {velocidad_base}, hp: 100, maxHp: 100, 
+                kills: 0, shieldActive: false, shieldTimer: 0, insideCastle: false, castleName: "",
                 cooldowns: {{ '1': 0, '2': 0, '3': 0, '4': 0, 'q': 0 }},
                 effectAnim: null, effectProgress: 0
             }};
@@ -116,26 +118,27 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
             let keys = {{}};
             let enemies = [];
             
+            // Castillos y ciudades con puertas interactivas
             let structures = [
-                {{ x: 2500, y: 2500, w: 350, h: 300, name: "Aurelia Capital", type: "city" }},
-                {{ x: 4000, y: 1500, w: 280, h: 280, name: "Castillo de Hojacero", type: "castle" }},
-                {{ x: 1400, y: 3500, w: 250, h: 250, name: "Mazmorra Subterránea", type: "dungeon" }}
+                {{ x: 2400, y: 2400, w: 380, h: 320, name: "Aurelia Capital", type: "city", doorX: 2590, doorY: 2720 }},
+                {{ x: 4200, y: 1400, w: 320, h: 320, name: "Castillo de Hojacero", type: "castle", doorX: 4360, doorY: 1720 }},
+                {{ x: 1200, y: 3800, w: 280, h: 280, name: "Baluarte Subterráneo", type: "dungeon", doorX: 1340, doorY: 4080 }}
             ];
 
             let scenery = [];
-            for(let i=0; i<120; i++) {{
+            for(let i=0; i<100; i++) {{
                 scenery.push({{
-                    x: Math.random() * 5400 + 300, y: Math.random() * 5400 + 300,
-                    type: Math.random() > 0.4 ? 'tree' : 'rock', radius: 26
+                    x: Math.random() * 5200 + 400, y: Math.random() * 5200 + 400,
+                    type: Math.random() > 0.5 ? 'tree' : 'rock', radius: 24
                 }});
             }}
 
             let templateMobs = {str(mobs_js_data)};
-            for(let i=0; i < 40; i++) {{
+            for(let i=0; i < 35; i++) {{
                 let tmpl = templateMobs[Math.floor(Math.random() * templateMobs.length)];
                 enemies.push({{
-                    x: Math.random() * 5200 + 400, y: Math.random() * 5200 + 400,
-                    radius: 20, speed: tmpl.velocidad || 1.8, hp: tmpl.hp, maxHp: tmpl.hp,
+                    x: Math.random() * 5000 + 500, y: Math.random() * 5000 + 500,
+                    radius: 18, speed: tmpl.velocidad || 1.8, hp: tmpl.hp, maxHp: tmpl.hp,
                     name: tmpl.nombre, nivel: tmpl.nivel, cooldown: 0
                 }});
             }}
@@ -146,12 +149,31 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 if (['1', '2', '3', '4', 'q'].includes(k)) {{
                     handleSkill(k);
                 }}
+                if (k === 'e') {{
+                    checkCastleInteraction();
+                }}
             }});
             window.addEventListener("keyup", (e) => keys[e.key] = false);
 
+            function checkCastleInteraction() {{
+                if (player.insideCastle) {{
+                    player.insideCastle = false;
+                    document.getElementById("portalMsg").innerText = "Has salido al mundo exterior.";
+                    return;
+                }}
+                for (let st of structures) {{
+                    let distDoor = Math.hypot(player.x - st.doorX, player.y - st.doorY);
+                    if (distDoor < 60) {{
+                        player.insideCastle = true;
+                        player.castleName = st.name;
+                        document.getElementById("portalMsg").innerText = `🏰 Estás dentro de ${{st.name}}. Pulsa E para salir.`;
+                        break;
+                    }}
+                }}
+            }}
+
             function handleSkill(key) {{
                 if (player.cooldowns[key] > 0) return;
-
                 if (key === '1') {{
                     player.cooldowns['1'] = 25;
                     player.effectAnim = 'slash'; player.effectProgress = 20;
@@ -159,7 +181,7 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 }} else if (key === '2') {{
                     player.cooldowns['2'] = 50;
                     player.effectAnim = 'fire'; player.effectProgress = 30;
-                    damageEnemiesInRadius(110, 70);
+                    damageEnemiesInRadius(120, 80);
                 }} else if (key === '3') {{
                     player.cooldowns['3'] = 120;
                     player.shieldActive = true;
@@ -173,25 +195,49 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
             }}
 
             function damageEnemiesInRadius(radius, damage) {{
-                enemies.forEach((en, index) => {{
+                for (let i = enemies.length - 1; i >= 0; i--) {{
+                    let en = enemies[i];
                     let dx = en.x - player.x, dy = en.y - player.y;
-                    if (Math.sqrt(dx*dx + dy*dy) < radius) {{
+                    if (Math.hypot(dx, dy) < radius) {{
                         en.hp -= damage;
-                        if (en.hp <= 0) {{ enemies.splice(index, 1); player.kills++; }}
+                        if (en.hp <= 0) {{ enemies.splice(i, 1); player.kills++; }}
                     }}
-                }});
+                }}
             }}
 
+            // Restricción estricta de terreno: El agua (fuera de la isla central de hierba) bloquea el paso
             function checkCollision(nx, ny, radius) {{
-                if (nx < 100 || nx > 5900 || ny < 100 || ny > 5900) return true;
-                for (let st of structures) {{
-                    if (nx + radius > st.x && nx - radius < st.x + st.w && ny + radius > st.y && ny - radius < st.y + st.h) return true;
+                if (nx < 150 || nx > 5850 || ny < 150 || ny > 5850) return true;
+                
+                // Si está dentro de un castillo, colisiona con sus murallas interiores
+                if (player.insideCastle) {{
+                    let st = structures.find(s => s.name === player.castleName);
+                    if (st && (nx - radius < st.x + 20 || nx + radius > st.x + st.w - 20 || ny - radius < st.y + 40 || ny + radius > st.y + st.h - 20)) {{
+                        // Permitir salida por la puerta
+                        let distDoor = Math.hypot(nx - st.doorX, ny - st.doorY);
+                        if (distDoor > 45) return true;
+                    }}
+                    return false;
                 }}
+
+                // EL AGUA BLOQUEA EL PASO: El mundo principal de tierra va de x: 800 a 5200, y: 800 a 5200. Fuera de ahí es agua profunda inalcanzable.
+                let enTierra = (nx > 850 && nx < 5150 && ny > 850 && ny < 5150);
+                
+                // También colisiona con los edificios y castillos cerrados
+                for (let st of structures) {{
+                    if (nx + radius > st.x && nx - radius < st.x + st.w && ny + radius > st.y && ny - radius < st.y + st.h) {{
+                        // Permitir pasar si está cerca de la puerta
+                        let distDoor = Math.hypot(nx - st.doorX, ny - st.doorY);
+                        if (distDoor > 45) return true;
+                    }}
+                }}
+                
                 for (let sc of scenery) {{
                     let dx = nx - sc.x, dy = ny - sc.y;
-                    if (Math.sqrt(dx*dx + dy*dy) < radius + sc.radius * 0.7) return true;
+                    if (Math.hypot(dx, dy) < radius + sc.radius * 0.6) return true;
                 }}
-                return false;
+
+                return !enTierra; // Si sale de la isla de tierra, choca con el agua
             }}
             
             function update() {{
@@ -207,23 +253,27 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 for (let k in player.cooldowns) {{
                     if (player.cooldowns[k] > 0) player.cooldowns[k]--;
                 }}
-
                 if (player.shieldActive) {{
                     player.shieldTimer--;
                     if (player.shieldTimer <= 0) player.shieldActive = false;
                 }}
-
                 if (player.effectProgress > 0) {{
                     player.effectProgress--;
                     if (player.effectProgress <= 0) player.effectAnim = null;
                 }}
 
+                // Movimiento de enemigos (restringidos a tierra firme)
                 enemies.forEach(en => {{
                     let edx = player.x - en.x, edy = player.y - en.y;
-                    let dist = Math.sqrt(edx*edx + edy*edy);
-                    if (dist < 400 && dist > 22) {{
-                        en.x += (edx / dist) * en.speed;
-                        en.y += (edy / dist) * en.speed;
+                    let dist = Math.hypot(edx, edy);
+                    if (dist < 350 && dist > 20 && !player.insideCastle) {{
+                        let nextX = en.x + (edx / dist) * en.speed;
+                        let nextY = en.y + (edy / dist) * en.speed;
+                        // Evitar que enemigos entren al agua
+                        if (nextX > 900 && nextX < 5100 && nextY > 900 && nextY < 5100) {{
+                            en.x = nextX;
+                            en.y = nextY;
+                        }}
                     }}
                     en.cooldown++;
                     if (dist < 35 && en.cooldown > 45) {{
@@ -241,29 +291,27 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.fillStyle = "rgba(0,0,0,0.5)";
-                ctx.beginPath(); ctx.ellipse(0, 18, 14, 7, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(0, 16, 12, 6, 0, 0, Math.PI * 2); ctx.fill();
 
                 if (player.shieldActive) {{
                     ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 4;
                     ctx.fillStyle = "rgba(56, 189, 248, 0.2)";
-                    ctx.beginPath(); ctx.arc(0, 0, 32, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
                 }}
 
                 ctx.fillStyle = "{color_hex}";
-                ctx.fillRect(-12, -12, 24, 26);
-                ctx.strokeStyle = "#facc15"; ctx.lineWidth = 2; ctx.strokeRect(-12, -12, 24, 26);
+                ctx.fillRect(-11, -11, 22, 24);
+                ctx.strokeStyle = "#facc15"; ctx.lineWidth = 2; ctx.strokeRect(-11, -11, 22, 24);
 
                 ctx.fillStyle = "#fde047";
-                ctx.beginPath(); ctx.arc(0, -16, 11, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(0, -15, 10, 0, Math.PI * 2); ctx.fill();
                 ctx.stroke();
 
                 if (player.effectAnim) {{
                     ctx.strokeStyle = player.effectAnim === 'fire' ? "#ef4444" : "#facc15";
                     ctx.lineWidth = 4;
-                    ctx.beginPath(); ctx.arc(0, 0, 50 - (player.effectProgress * 1.2), 0, Math.PI * 2); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, 45 - (player.effectProgress * 1.1), 0, Math.PI * 2); ctx.stroke();
                 }}
-                
-                ctx.fillStyle = "#e2e8f0"; ctx.fillRect(14, -8, 5, 20);
                 ctx.restore();
             }}
 
@@ -271,11 +319,11 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.fillStyle = "rgba(0,0,0,0.4)";
-                ctx.beginPath(); ctx.ellipse(0, 15, 12, 6, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(0, 14, 11, 5, 0, 0, Math.PI * 2); ctx.fill();
 
-                ctx.fillStyle = "#991b1b"; ctx.beginPath(); ctx.roundRect(-16, -16, 32, 32, [8]); ctx.fill();
+                ctx.fillStyle = "#991b1b"; ctx.beginPath(); ctx.roundRect(-14, -14, 28, 28, [6]); ctx.fill();
                 ctx.strokeStyle = "#f87171"; ctx.lineWidth = 2; ctx.stroke();
-                ctx.fillStyle = "#facc15"; ctx.fillRect(-7, -6, 4, 4); ctx.fillRect(3, -6, 4, 4);
+                ctx.fillStyle = "#facc15"; ctx.fillRect(-6, -5, 3, 3); ctx.fillRect(3, -5, 3, 3);
                 ctx.restore();
             }}
             
@@ -287,39 +335,63 @@ def generar_canvas_html(zona_actual, montura_equipada, velocidad_base, estilo_ca
                 let camY = canvas.height / 2 - player.y;
                 ctx.translate(camX, camY);
                 
-                ctx.fillStyle = "#0284c7"; ctx.fillRect(0, 0, 6000, 6000);
-                ctx.fillStyle = "#1a2e12"; ctx.fillRect(800, 800, 4400, 4400);
+                if (player.insideCastle) {{
+                    // Interiores del castillo detallados
+                    ctx.fillStyle = "#1e293b"; ctx.fillRect(player.x - 600, player.y - 600, 1200, 1200);
+                    ctx.strokeStyle = "#d97706"; ctx.lineWidth = 8; ctx.strokeRect(player.x - 550, player.y - 550, 1100, 1100);
+                    
+                    ctx.fillStyle = "#facc15"; ctx.font = "bold 24px sans-serif"; ctx.textAlign = "center";
+                    ctx.fillText(`🏰 Interior de ${{player.castleName}}`, player.x, player.y - 200);
+                    ctx.font = "bold 14px sans-serif";
+                    ctx.fillText("Salón del Trono y Comercio Real (Pulsa E para salir)", player.x, player.y - 160);
+                    
+                    drawPlayerSprite(player.x, player.y);
+                    ctx.restore();
+                    return;
+                }}
 
+                // MUNDO EXTERIOR: Océano de fondo (agua profunda)
+                ctx.fillStyle = "#0284c7"; ctx.fillRect(0, 0, 6000, 6000);
+                
+                // Isla central de tierra firme con césped detallado
+                ctx.fillStyle = "#166534"; ctx.fillRect(800, 800, 4400, 4400);
+                ctx.fillStyle = "#15803d"; ctx.fillRect(850, 850, 4300, 4300);
+
+                // Dibujar Castillos y Ciudades con sus Puertas
                 structures.forEach(st => {{
                     ctx.fillStyle = st.type === 'dungeon' ? "#450a0a" : "#334155";
                     ctx.fillRect(st.x, st.y, st.w, st.h);
                     ctx.strokeStyle = st.type === 'dungeon' ? "#dc2626" : "#f59e0b";
-                    ctx.lineWidth = 4; ctx.strokeRect(st.x, st.y, st.w, st.h);
+                    ctx.lineWidth = 5; ctx.strokeRect(st.x, st.y, st.w, st.h);
                     
-                    ctx.fillStyle = "#991b1b"; ctx.fillRect(st.x - 10, st.y - 25, st.w + 20, 26);
-                    ctx.fillStyle = "#ffffff"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
-                    ctx.fillText(st.name, st.x + st.w/2, st.y - 35);
+                    // Puerta de entrada interactiva
+                    ctx.fillStyle = "#78350f"; ctx.fillRect(st.doorX - 20, st.doorY - 15, 40, 30);
+                    ctx.strokeStyle = "#facc15"; ctx.lineWidth = 2; ctx.strokeRect(st.doorX - 20, st.doorY - 15, 40, 30);
+
+                    ctx.fillStyle = "#991b1b"; ctx.fillRect(st.x - 10, st.y - 30, st.w + 20, 30);
+                    ctx.fillStyle = "#ffffff"; ctx.font = "bold 15px sans-serif"; ctx.textAlign = "center";
+                    ctx.fillText(st.name + " [Pulsa E en la Puerta]", st.x + st.w/2, st.y - 10);
                 }});
 
                 scenery.forEach(sc => {{
                     if (sc.type === 'tree') {{
-                        ctx.fillStyle = "#14532d"; ctx.beginPath(); ctx.arc(sc.x, sc.y - 12, sc.radius, 0, Math.PI*2); ctx.fill();
+                        ctx.fillStyle = "#14532d"; ctx.beginPath(); ctx.arc(sc.x, sc.y - 10, sc.radius, 0, Math.PI*2); ctx.fill();
                     }} else {{
-                        ctx.fillStyle = "#475569"; ctx.beginPath(); ctx.roundRect(sc.x - sc.radius, sc.y - sc.radius*0.7, sc.radius*2, sc.radius*1.4, [8]); ctx.fill();
+                        ctx.fillStyle = "#475569"; ctx.beginPath(); ctx.roundRect(sc.x - sc.radius, sc.y - sc.radius*0.7, sc.radius*2, sc.radius*1.4, [6]); ctx.fill();
                     }}
                 }});
 
                 enemies.forEach(en => {{
                     drawMonsterSprite(en.x, en.y, en.name);
-                    ctx.fillStyle = "#000"; ctx.fillRect(en.x - 22, en.y - 30, 44, 6);
-                    ctx.fillStyle = "#22c55e"; ctx.fillRect(en.x - 21, en.y - 29, 42 * (en.hp / en.maxHp), 4);
+                    ctx.fillStyle = "#000"; ctx.fillRect(en.x - 20, en.y - 28, 40, 6);
+                    ctx.fillStyle = "#22c55e"; ctx.fillRect(en.x - 19, en.y - 27, 38 * (en.hp / en.maxHp), 4);
                     ctx.fillStyle = "#f87171"; ctx.font = "bold 11px sans-serif"; ctx.textAlign = "center";
-                    ctx.fillText(en.name + ` [${{en.nivel}}]`, en.x, en.y - 36);
+                    ctx.fillText(en.name + ` [${{en.nivel}}]`, en.x, en.y - 34);
                 }});
 
                 drawPlayerSprite(player.x, player.y);
                 ctx.fillStyle = "#facc15"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center";
-                ctx.fillText("⭐ Tu Héroe (Kills: " + player.kills + ")", player.x, player.y - 32);
+                ctx.fillText("⭐ Tu Héroe (Kills: " + player.kills + ")", player.x, player.y - 30);
                 
                 ctx.restore();
 
