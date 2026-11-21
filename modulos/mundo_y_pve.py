@@ -4,40 +4,54 @@ Gestiona los 4 reinos del Continente Primordial, zonas por nivel,
 jefes de zona, mazmorras con respawn y detalles geográficos.
 """
 
-# Configuración de los 4 Reinos: Geografía y Estructura
+# Geografía: 1.500.000 km2 totales
+# Distribución: Humano (350k), Elfo (400k), Enano (300k), Bestia (350k), Neutral (100k)
 REINOS_PRIMORDIALES = {
     "Reino Humano": {
         "capital": "Fortaleza Solar",
-        "raza": "Humano",
-        "extension_km2": 450_000,
-        "ciudades_principales": ["Ciudadela del Alba", "Puerto del Rey", "Villa Hierro"],
-        "puertas_y_fronteras": ["Puerta del Sol Naciente", "Paso de la Guardia"],
+        "extension_km2": 350_000,
+        "ciudades": ["Ciudadela del Alba", "Puerto del Rey", "Villa Hierro"],
+        "pueblos": ["Valle Verde", "Paso del Escudo", "Aldea del Río"],
+        "puertas": ["Puerta del Sol Naciente", "Paso de la Guardia"],
         "castillos": ["Castillo de Aurelius", "Baluarte del León"]
     },
     "Reino Elfo": {
         "capital": "Arbol Corazon de Sylva",
-        "raza": "Elfo",
-        "extension_km2": 520_000,
-        "ciudades_principales": ["Refugio de la Hoja", "Santuario Lunar", "Arboleda Susurrante"],
-        "puertas_y_fronteras": ["Arco de Raíces", "Puerta de los Vientos"],
+        "extension_km2": 400_000,
+        "ciudades": ["Refugio de la Hoja", "Santuario Lunar", "Arboleda Susurrante"],
+        "pueblos": ["Aldea de los Cánticos", "Puesto del Rocío", "Enclave Silvano"],
+        "puertas": ["Arco de Raíces", "Puerta de los Vientos"],
         "castillos": ["Palacio de Cristal Élfico", "Torreón de Thalor'en"]
     },
     "Reino Enano": {
         "capital": "Forja Profunda de Kar-Drak",
-        "raza": "Enano",
-        "extension_km2": 380_000,
-        "ciudades_principales": ["Yunque de Piedra", "Ciudad Subterránea de Oro", "Mina del Trueno"],
-        "puertas_y_fronteras": ["Gran Portal de Roca", "Pasaje del Yunque"],
+        "extension_km2": 300_000,
+        "ciudades": ["Yunque de Piedra", "Ciudad Subterránea de Oro", "Mina del Trueno"],
+        "pueblos": ["Martillo de Hierro", "Fosa de Carbón", "Pico del Yunque"],
+        "puertas": ["Gran Portal de Roca", "Pasaje del Yunque"],
         "castillos": ["Ciudadela Forjaeterna", "Baluarte de Bramir"]
     },
     "Reino Hombre Bestia": {
         "capital": "Bastion Primordial de los Clanes",
-        "raza": "Hombre Bestia",
-        "extension_km2": 600_000,
-        "ciudades_principales": ["Claro del Rugido", "Villa de los Huesos", "Campamento de la Luna"],
-        "puertas_y_fronteras": ["Entrada del Tótem", "Cerca de Espinas"],
+        "extension_km2": 350_000,
+        "ciudades": ["Claro del Rugido", "Villa de los Huesos", "Campamento de la Luna"],
+        "pueblos": ["Aldea de las Garras", "Paso de la Manada", "Santuario de los Ancestros"],
+        "puertas": ["Entrada del Tótem", "Cerca de Espinas"],
         "castillos": ["Fortaleza de Kaelen", "Salón del Gran Jefe"]
     }
+}
+
+DESCRIPCIONES_ARQUITECTONICAS = {
+    "Reino Humano": "Casas de piedra y madera con techos de teja. Ciudades organizadas en cuadrícula alrededor de castillos de piedra caliza con altas torres vigía.",
+    "Reino Elfo": "Construcciones vivas integradas en árboles gigantes y cristal. Los castillos son estructuras translúcidas que parecen flotar sobre los bosques.",
+    "Reino Enano": "Arquitectura tallada directamente en la roca de las montañas. Casas robustas con arcos de hierro, castillos que son fortalezas impenetrables de granito reforzado.",
+    "Reino Hombre Bestia": "Aldeas de tiendas circulares de cuero reforzado y madera tallada. Castillos construidos sobre colinas escarpadas con huesos y piedra tosca."
+}
+
+ZONAS_NEUTRALES_UNIDAS = {
+    "extension_km2": 100_000,
+    "asentamientos": ["Puesto Comercial del Nexo", "Refugio de los Perdidos"],
+    "descripciones": ["Tierras de Nadie", "Grieta de los Antiguos", "Cumbre del Continente"]
 }
 
 RANGOS_ZONAS_REINOS = [
@@ -46,12 +60,6 @@ RANGOS_ZONAS_REINOS = [
     {"rango": "26-35", "tipo": "Tierras Fronterizas"},
     {"rango": "36-45", "tipo": "Zonas Hostiles y Cavernas"},
     {"rango": "46-60", "tipo": "Territorio Peligroso y Bastiones de Elite"}
-]
-
-ZONAS_NEUTRALES_UNIDAS = [
-    {"rango": "61-75", "descripcion": "Tierras de Nadie Inter-Reinos"},
-    {"rango": "76-85", "descripcion": "Grieta de los Antiguos"},
-    {"rango": "86-100", "descripcion": "Cumbre del Continente Primordial"}
 ]
 
 class Mazmorra:

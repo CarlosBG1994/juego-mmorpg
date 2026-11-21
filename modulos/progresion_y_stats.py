@@ -29,6 +29,7 @@ class PersonajeProgresion:
         self.hp_actual = 100
         
         self.puntos_libres = 0
+        # Estadísticas base según raza (se pueden expandir en el futuro)
         self.stats = {
             "STR": 10, "INT": 10, "AGI": 10, "VIT": 10, "LUK": 10, "DES": 10
         }
@@ -38,39 +39,46 @@ class PersonajeProgresion:
         """Añade experiencia y verifica si el jugador sube de nivel."""
         self.experiencia += cantidad
         subidas = 0
-        # Permite subir múltiples niveles si la experiencia ganada es muy alta
         while self.experiencia >= self.experiencia_siguiente:
             self.experiencia -= self.experiencia_siguiente
             resultado, mensaje = self.subir_nivel()
             if resultado:
                 subidas += 1
             else:
-                self.experiencia = 0 # Tope de nivel alcanzado
+                self.experiencia = 0
                 break
         return subidas
 
     def subir_nivel(self):
         limite_actual = CONTINENTES_Y_LIMITES.get(self.continente_actual, 100)
         if self.nivel >= limite_actual:
-            return False, f"Alcanzaste el limite del {self.continente_actual} (Nivel {limite_actual})."
+            return False, f"Alcanzaste el limite del {self.continente_actual}."
 
         self.nivel += 1
-        # Asignación de 5 puntos libres por nivel como solicitaste
         self.puntos_libres += 5 
-        # Incremento automático de 10 HP como dicta la regla base
+        
+        # Mejora: El HP máximo sube, pero solo curamos un 20% del HP max al subir 
+        # en lugar de rellenar toda la barra, esto añade reto en combate.
         self.hp_max += 10
-        self.hp_actual = self.hp_max
-        # Escala la curva de experiencia un 15% por nivel
+        self.hp_actual += int(self.hp_max * 0.20)
+        if self.hp_actual > self.hp_max:
+            self.hp_actual = self.hp_max
+            
         self.experiencia_siguiente = int(self.experiencia_siguiente * 1.15)
-        return True, f"¡Nivel {self.nivel}! +5 puntos libres de stats y +10 HP maximo."
+        return True, f"¡Nivel {self.nivel}! +5 puntos libres."
 
     def asignar_puntos(self, estadistica: str, cantidad: int):
         estadistica = estadistica.upper()
         if estadistica not in self.stats:
             return False, "Estadistica no valida."
+        
+        # Mejora: Límite de puntos por estadística (No más del 50% de puntos totales a una sola stat)
+        if (self.stats[estadistica] + cantidad) > (self.nivel * 5 + 10):
+            return False, "Has alcanzado el límite permitido para esta estadística en tu nivel actual."
+            
         if cantidad <= 0 or cantidad > self.puntos_libres:
-            return False, "Cantidad de puntos insuficiente o no valida."
+            return False, "Cantidad de puntos insuficiente."
         
         self.stats[estadistica] += cantidad
         self.puntos_libres -= cantidad
-        return True, f"{cantidad} puntos asignados a {estadistica}. Puntos libres restantes: {self.puntos_libres}."
+        return True, f"{cantidad} puntos asignados a {estadistica}."
