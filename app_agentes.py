@@ -164,12 +164,6 @@ def llamar_gemini(system_prompt: str, mensajes: list) -> str:
 
 
 def extraer_bloques_archivo(respuesta: str) -> list[tuple[str, str]]:
-    """
-    Permite que el Agente 0 cree varios archivos de modulo a la vez si se le pide:
-    ```archivo:modulos/ejemplo.py
-    ...codigo...
-    ```
-    """
     patron = re.compile(r"```archivo:([^\n`]+)\n(.*?)```", re.DOTALL | re.IGNORECASE)
     resultados = []
     for ruta_raw, codigo in patron.findall(respuesta):
@@ -209,26 +203,312 @@ def construir_prompt_agente(agente_id: str, info: dict, registro: dict) -> str:
             f"- {k}: {v.get('nombre')} -> archivo: {v.get('archivo') or 'sin archivo'} | rol: {v.get('rol')}"
             for k, v in registro.items()
         )
-        return f"""
-Eres {info.get('nombre')} para el juego Snd-Worlds.
-Habla en espanol claro, cercano y sin jerga innecesaria. El usuario no quiere revisar codigo a mano ni perder cosas que ya existen.
+        return (
+            f"Eres {info.get('nombre')} para el juego Snd-Worlds.\n"
+            "Habla en espanol claro, cercano y sin jerga innecesaria. "
+            "El usuario no quiere revisar codigo a mano ni perder cosas que ya existen.\n\n"
+            f"{REGLAS_SND_WORLDS}\n\n"
+            "AGENTES Y MODULOS REGISTRADOS ACTUALMENTE:\n"
+            f"{modulos_resumen}\n\n"
+            "LECTURA COMPLETA DE LO QUE HAY AHORA MISMO:\n"
+            f"{panoramica}\n\n"
+            "TU MISION:\n"
+            "1. Analiza todo lo que ya existe en el proyecto y en juego_explicado.txt.\n"
+            "2. Cuando el usuario pida crear modulos o generar agentes "
+            "(o que crees lo que ya existe para ir haciendo modificaciones):\n"
+            "   - Por cada agente/modulo nuevo que debas activar, incluye un bloque:\n"
+            "```nuevo_modulo\n"
+            "{\n"
+            '  "id": "nombre_en_minusculas_sin_espacios",\n'
+            '  "nombre": "Agente · Nombre del Modulo",\n'
+            '  "rol": "Que hace este modulo y que modifica",\n'
+            '  "archivo": "modulos/nombre_en_minusculas_sin_espacios.py"\n'
+            "}\n"
+            "```\n"
+            "   - Si el usuario pide que tu mismo crees o generes el codigo inicial "
+            "de uno o varios archivos de modulo en modulos/, incluye por cada archivo un bloque:\n"
+            "```archivo:modulos/nombre_modulo.py\n"
+            "# codigo python inicial conservando las reglas de Snd-Worlds\n"
+            "```\n"
+            "3. Explica al usuario en lenguaje sencillo que se ha creado, "
+            "que agentes nuevos han aparecido en la lista y que no se ha borrado nada previo.\n"
+        )
 
-{REGLAS_SND_WORLDS}
+    archivo_rel = info.get("archivo") or f"modulos/{agente_id}.py"
+    ruta_abs = BASE_DIR / archivo_rel
+    contenido_actual = ruta_abs.read_text(encoding="utf-8") if ruta_abs.exists() else "# Modulo aun vacio\n"
 
-AGENTES Y MODULOS REGISTRADOS ACTUALMENTE:
-{modulos_resumen}
+    return (
+        f"Eres {info.get('nombre')} para el juego Snd-Worlds.\n"
+        f"Tu rol es: {info.get('rol')}\n"
+        "Habla en espanol claro y directo. El usuario no quiere tocar codigo ni que se borre lo que ya existe.\n\n"
+        f"{REGLAS_SND_WORLDS}\n\n"
+        "CONTEXTO GENERAL DEL PROYECTO Y juego_explicado.txt:\n"
+        f"{panoramica}\n\n"
+        f"TU ARCHIVO ASIGNADO ES: {archivo_rel}\n"
+        f"CONTENIDO ACTUAL DE {archivo_rel}:\n"
+        "```python\n"
+        f"{contenido_actual}\n"
+        "```\n\n"
+        "TU MISION:\n"
+        f"- Cuando el usuario pida crear, ampliar o modificar algo de tu modulo, "
+        f"entrega el codigo completo actualizado de {archivo_rel} dentro de un unico bloque ```python ... ``` "
+        "conservando todo lo anterior que siga siendo valido y anadiendo o ajustando lo pedido sin borrar lo previo.\n"
+        "- Al final, resume en palabras sencillas que se ha guardado y que no se ha borrado nada anterior.\n"
+    )
 
-LECTURA COMPLETA DE LO QUE HAY AHORA MISMO:
-{panoramica}
 
-TU MISION:
-1. Analiza todo lo que ya existe en el proyecto y en juego_explicado.txt.
-2. Cuando el usuario pida crear modulos o generar agentes (o que crees lo que ya existe para ir haciendo modificaciones):
-   - Por cada agente/modulo nuevo que debas activar, incluye un bloque:
-```nuevo_modulo
-{{
-  "id": "nombre_en_minusculas_sin_espacios",
-  "nombre": "Agente · Nombre del Modulo",
-  "rol": "Que hace este modulo y que modifica",
-  "archivo": "modulos/nombre_en_minusculas_sin_espacios.py"
-}}
+HTML_PAGE = """<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snd-Worlds · Centro de Agentes (Puerto 9567)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; display: flex; flex-direction: column; height: 100vh; }
+    header { background: #1e293b; padding: 12px 18px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    header h1 { font-size: 16px; margin: 0; color: #38bdf8; }
+    .quick-btn { background: #0f766e; color: #fff; border: none; border-radius: 6px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .quick-btn:hover { background: #0d9488; }
+    .main { display: flex; flex: 1; min-height: 0; }
+    .sidebar { width: 280px; background: #1e293b; border-right: 1px solid #334155; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .tab-btn { text-align: left; background: transparent; color: #cbd5e1; border: 1px solid transparent; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .tab-btn:hover { background: #334155; }
+    .tab-btn.active { background: #0284c7; color: #fff; font-weight: 600; }
+    .chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .chat-header { padding: 12px 18px; background: #162032; border-bottom: 1px solid #334155; font-size: 13px; color: #94a3b8; }
+    .chat-header strong { color: #f8fafc; font-size: 15px; display: block; margin-bottom: 2px; }
+    .messages { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+    .msg { max-width: 84%; padding: 12px 14px; border-radius: 10px; white-space: pre-wrap; line-height: 1.45; font-size: 14px; }
+    .msg.user { align-self: flex-end; background: #0369a1; color: #fff; }
+    .msg.assistant { align-self: flex-start; background: #1e293b; border: 1px solid #334155; color: #e2e8f0; }
+    .aviso { font-size: 12px; color: #4ade80; margin-top: 8px; font-weight: 600; }
+    .composer { display: flex; gap: 10px; padding: 14px 18px; background: #1e293b; border-top: 1px solid #334155; }
+    textarea { flex: 1; resize: none; height: 54px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #f8fafc; padding: 10px; font-family: inherit; font-size: 14px; }
+    button.send { background: #0284c7; color: #fff; border: none; border-radius: 8px; padding: 0 20px; font-weight: 600; cursor: pointer; }
+    button.send:hover { background: #0369a1; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Snd-Worlds · Centro de Agentes</h1>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="quick-btn" id="btnAutoCrear">Leer todo y crear módulos/agentes</button>
+      <span style="font-size:12px;color:#94a3b8;">Puerto 9567 · Sin borrar lo previo</span>
+    </div>
+  </header>
+  <div class="main">
+    <aside class="sidebar" id="sidebar"></aside>
+    <section class="chat-area">
+      <div class="chat-header" id="chatHeader">
+        <strong id="agenteNombre">Cargando...</strong>
+        <span id="agenteRol"></span>
+      </div>
+      <div class="messages" id="messages"></div>
+      <form class="composer" id="composer">
+        <textarea id="inputMsg" placeholder="Escribe aquí lo que quieres que haga este agente..." required></textarea>
+        <button class="send" type="submit">Enviar</button>
+      </form>
+    </section>
+  </div>
+
+  <script>
+    let agentes = {};
+    let actual = "explorador";
+
+    async function cargarEstado(agenteId = actual) {
+      actual = agenteId;
+      const res = await fetch(`/api/estado?agente=${encodeURIComponent(actual)}`);
+      const data = await res.json();
+      agentes = data.agentes;
+      renderSidebar();
+      renderHeader();
+      renderMensajes(data.historial || []);
+    }
+
+    function renderSidebar() {
+      const sb = document.getElementById("sidebar");
+      sb.innerHTML = "";
+      for (const [id, info] of Object.entries(agentes)) {
+        const btn = document.createElement("button");
+        btn.className = "tab-btn" + (id === actual ? " active" : "");
+        btn.textContent = info.nombre;
+        btn.onclick = () => cargarEstado(id);
+        sb.appendChild(btn);
+      }
+    }
+
+    function renderHeader() {
+      const info = agentes[actual] || {};
+      document.getElementById("agenteNombre").textContent = info.nombre || actual;
+      const extra = info.archivo ? ` · Archivo: ${info.archivo}` : " · Lee todo y crea módulos/agentes";
+      document.getElementById("agenteRol").textContent = (info.rol || "") + extra;
+    }
+
+    function renderMensajes(historial) {
+      const box = document.getElementById("messages");
+      box.innerHTML = "";
+      for (const m of historial) {
+        const div = document.createElement("div");
+        div.className = "msg " + (m.role === "user" ? "user" : "assistant");
+        div.textContent = m.content;
+        if (m.aviso) {
+          const av = document.createElement("div");
+          av.className = "aviso";
+          av.textContent = m.aviso;
+          div.appendChild(av);
+        }
+        box.appendChild(div);
+      }
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function enviarTexto(texto) {
+      const res = await fetch("/api/mensaje", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agente: actual, mensaje: texto })
+      });
+      const data = await res.json();
+      if (data.nuevo_agente_id) {
+        actual = data.nuevo_agente_id;
+      }
+      await cargarEstado(actual);
+    }
+
+    document.getElementById("btnAutoCrear").addEventListener("click", async () => {
+      actual = "explorador";
+      await enviarTexto(
+        "Lee todo lo que tenemos ahora mismo en el proyecto y en juego_explicado.txt, genera el código inicial de los módulos que falten o estén vacíos sin borrar nada y activa los agentes correspondientes."
+      );
+    });
+
+    document.getElementById("composer").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const ta = document.getElementById("inputMsg");
+      const texto = ta.value.trim();
+      if (!texto) return;
+      ta.value = "";
+      await enviarTexto(texto);
+    });
+
+    cargarEstado("explorador");
+  </script>
+</body>
+</html>
+"""
+
+
+class ManejadorWeb(http.server.BaseHTTPRequestHandler):
+    def _json(self, payload: dict, status: int = 200):
+        cuerpo = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(cuerpo)))
+        self.end_headers()
+        self.wfile.write(cuerpo)
+
+    def do_GET(self):
+        if self.path.startswith("/api/estado"):
+            agente = "explorador"
+            if "agente=" in self.path:
+                agente = self.path.split("agente=", 1)[1].split("&", 1)[0]
+            registro = cargar_registro()
+            if agente not in registro:
+                agente = "explorador"
+            self._json({
+                "agentes": registro,
+                "actual": agente,
+                "historial": cargar_historial(agente),
+            })
+            return
+
+        html_bytes = HTML_PAGE.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(html_bytes)))
+        self.end_headers()
+        self.wfile.write(html_bytes)
+
+    def do_POST(self):
+        if self.path != "/api/mensaje":
+            self._json({"error": "Ruta no encontrada"}, 404)
+            return
+
+        longitud = int(self.headers.get("Content-Length", "0"))
+        cuerpo = json.loads(self.rfile.read(longitud).decode("utf-8") or "{}")
+        agente_id = cuerpo.get("agente", "explorador")
+        mensaje = (cuerpo.get("mensaje") or "").strip()
+
+        registro = cargar_registro()
+        if agente_id not in registro:
+            agente_id = "explorador"
+
+        info = registro[agente_id]
+        historial = cargar_historial(agente_id)
+        historial.append({"role": "user", "content": mensaje})
+
+        system_prompt = construir_prompt_agente(agente_id, info, registro)
+        respuesta = llamar_gemini(system_prompt, historial)
+
+        avisos = []
+        nuevo_agente_id = None
+
+        if info.get("es_creador_modulos"):
+            for nuevo_mod in extraer_nuevos_modulos(respuesta):
+                mod_id = slug_modulo(nuevo_mod.get("id") or nuevo_mod.get("nombre") or "modulo")
+                archivo_mod = nuevo_mod.get("archivo") or f"modulos/{mod_id}.py"
+                if not archivo_mod.startswith("modulos/"):
+                    archivo_mod = f"modulos/{Path(archivo_mod).name}"
+                registro[mod_id] = {
+                    "nombre": nuevo_mod.get("nombre") or f"Agente · {mod_id}",
+                    "rol": nuevo_mod.get("rol") or "Agente especializado en su modulo.",
+                    "archivo": archivo_mod,
+                    "es_creador_modulos": False,
+                }
+                ruta_archivo = BASE_DIR / archivo_mod
+                if not ruta_archivo.exists():
+                    ruta_archivo.write_text(f"# Modulo: {mod_id}\n", encoding="utf-8")
+                nuevo_agente_id = mod_id
+                avisos.append(f"Agente listo: {registro[mod_id]['nombre']} ({archivo_mod})")
+
+            guardar_registro(registro)
+
+            for ruta_arch, cod_arch in extraer_bloques_archivo(respuesta):
+                respaldo = hacer_backup(ruta_arch)
+                (BASE_DIR / ruta_arch).write_text(cod_arch, encoding="utf-8")
+                avisos.append(
+                    f"Creado/actualizado {ruta_arch} sin borrar lo previo"
+                    + (f" (copia en {respaldo})" if respaldo else "")
+                )
+        else:
+            codigo = extraer_bloque_python(respuesta)
+            archivo_rel = info.get("archivo") or f"modulos/{agente_id}.py"
+            if codigo:
+                respaldo = hacer_backup(archivo_rel)
+                ruta_archivo = BASE_DIR / archivo_rel
+                ruta_archivo.write_text(codigo, encoding="utf-8")
+                avisos.append(
+                    f"Guardado en {archivo_rel} sin borrar lo previo"
+                    + (f" (copia en {respaldo})" if respaldo else "")
+                )
+
+        aviso_final = " · ".join(avisos)
+        historial.append({"role": "assistant", "content": respuesta, "aviso": aviso_final})
+        guardar_historial(agente_id, historial)
+
+        self._json({
+            "ok": True,
+            "nuevo_agente_id": nuevo_agente_id,
+            "aviso": aviso_final,
+        })
+
+    def log_message(self, format, *args):
+        pass
+
+
+if __name__ == "__main__":
+    puerto = int(os.environ.get("PORT", "9567"))
+    with socketserver.ThreadingTCPServer(("0.0.0.0", puerto), ManejadorWeb) as httpd:
+        print(f"Web de agentes de Snd-Worlds lista en http://localhost:{puerto}")
+        httpd.serve_forever()
