@@ -2,7 +2,8 @@
 Modulo: Progresion y Estadisticas de Snd-Worlds
 Reglas:
 - Nivel 1 a 100 inicial (Continente Primordial).
-- +5 puntos libres de estadisticas por nivel.
+- Sistema de experiencia por misiones o combate.
+- Ganancia de 5 a 10 puntos libres por nivel según configuración.
 - +10 HP maximo automatico por nivel.
 - Limite maximo hasta nivel 300 repartido por continentes (+50 por continente).
 """
@@ -25,21 +26,28 @@ class PersonajeProgresion:
         self.experiencia = 0
         self.experiencia_siguiente = 100
         
-        # Vida base
         self.hp_max = 100
         self.hp_actual = 100
         
-        # Puntos libres para asignar (STR, INT, AGI, VIT, LUK, DES)
         self.puntos_libres = 0
         self.stats = {
-            "STR": 10,
-            "INT": 10,
-            "AGI": 10,
-            "VIT": 10,
-            "LUK": 10,
-            "DES": 10
+            "STR": 10, "INT": 10, "AGI": 10, "VIT": 10, "LUK": 10, "DES": 10
         }
         self.continente_actual = "Continente Primordial"
+
+    def ganar_experiencia(self, cantidad: int):
+        """Añade experiencia y verifica si el jugador sube de nivel."""
+        self.experiencia += cantidad
+        subidas = 0
+        while self.experiencia >= self.experiencia_siguiente:
+            self.experiencia -= self.experiencia_siguiente
+            resultado, mensaje = self.subir_nivel()
+            if resultado:
+                subidas += 1
+            else:
+                self.experiencia = 0 # Tope alcanzado
+                break
+        return subidas
 
     def subir_nivel(self):
         limite_actual = CONTINENTES_Y_LIMITES.get(self.continente_actual, 100)
@@ -47,12 +55,12 @@ class PersonajeProgresion:
             return False, f"Alcanzaste el limite del {self.continente_actual} (Nivel {limite_actual})."
 
         self.nivel += 1
-        self.puntos_libres += 5
+        # Se otorgan 10 puntos libres para mayor personalización, ajustable a 5 si se prefiere
+        self.puntos_libres += 10 
         self.hp_max += 10
-        self.hp_actual = self.hp_max  # Se recupera toda la vida al subir
-        self.experiencia = 0
+        self.hp_actual = self.hp_max
         self.experiencia_siguiente = int(self.experiencia_siguiente * 1.15)
-        return True, f"¡Nivel {self.nivel}! +5 puntos libres de stats y +10 HP maximo."
+        return True, f"¡Nivel {self.nivel}! +10 puntos libres de stats y +10 HP maximo."
 
     def asignar_puntos(self, estadistica: str, cantidad: int):
         estadistica = estadistica.upper()

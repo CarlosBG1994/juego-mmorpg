@@ -1,0 +1,11 @@
+[
+  {
+    "role": "user",
+    "content": "explicame de que va este modulo"
+  },
+  {
+    "role": "assistant",
+    "content": "El módulo `modulos/world_sync.py` tiene como propósito principal gestionar la **experiencia de usuario fluida y sincronizada** en un entorno de juego masivo. \n\nComo Agente de Visibilidad Global y Grupos, mis funciones dentro de este archivo se enfocan en tres pilares fundamentales que garantizan que el mundo se sienta coherente para todos los jugadores:\n\n1.  **Gestión de Carga Masiva (Streaming de Mundo):**\n    *   Optimiza cómo se cargan las zonas del mundo. En lugar de cargar todo el mapa (lo cual sería ineficiente), este módulo permite que el juego cargue solo los fragmentos o \"particiones\" cercanos al jugador o grupo, permitiendo una transición fluida entre regiones sin tiempos de carga excesivos.\n\n2.  **Particionamiento de Zonas:**\n    *   Divide el mundo en celdas lógicas. Esto permite que los jefes de zona, eventos y cofres se gestionen de manera independiente. Si un grupo está en el *Reino Humano* y otro en el *Archipiélago de los Vientos*, el sistema de particionamiento asegura que los recursos del servidor se enfoquen donde realmente hay actividad.\n\n3.  **Sincronización de Minimapa para Grupos:**\n    *   Este es el componente social. Asegura que, cuando un grupo se desplaza, la información de navegación (posiciones de compañeros, puntos de interés compartidos, objetivos de misión) sea consistente para todos los miembros. Evita el \"desfase\" de posición y permite que el grupo vea los mismos marcadores en tiempo real.\n\n**En resumen:**\nEste módulo es el \"pegamento\" técnico que permite que el jugador explore un mundo inmenso sin ver costuras, manteniendo a los grupos unidos y al servidor eficiente. \n\n**Estado actual:**\nEl archivo está listo para implementar estas lógicas de partición y sincronización según sea necesario, manteniendo toda la estructura de reglas de *Snd-Worlds* intacta. No se ha borrado absolutamente nada, solo hemos definido el marco de trabajo para estas capacidades.",
+    "aviso": ""
+  }
+]

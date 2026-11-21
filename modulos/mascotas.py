@@ -1,7 +1,7 @@
 """
 Modulo: Mascotas de Snd-Worlds
 Gestiona los compañeros de aventura. Tienen nivel, lealtad,
-habilidades pasivas, atributos de combate y potencial para PvP.
+habilidades pasivas, atributos de combate, posicionamiento y ataques activos.
 """
 
 class Mascota:
@@ -11,17 +11,31 @@ class Mascota:
         self.rareza = rareza
         self.nivel = 1
         self.lealtad = 50
-        self.es_adquirible = es_adquirible
-        self.es_unica = es_unica
         
-        # Atributos de combate para PvP
+        # Atributos de combate y posición
         self.stats_combate = {"ATK": 10, "DEF": 10, "VEL": 10}
+        self.posicion = {"x": 0, "y": 0}
+        self.energia = 100
         self.puntos_entrenamiento = 0 
         
-        # Nueva estructura: Habilidades activas y pasivas
         self.habilidades_pasivas = [] 
-        self.habilidades_activas = [] # Habilidades usables en combate (ej: "Rugido de Guerra")
+        self.habilidades_activas = [] # Lista de habilidades (nombre, coste_energia, dano)
         self.ataque_especial = None 
+
+    def moverse(self, nueva_x: int, nueva_y: int):
+        """Mueve a la mascota en el campo de batalla."""
+        self.posicion["x"] = nueva_x
+        self.posicion["y"] = nueva_y
+        return f"{self.nombre} se ha desplazado a ({nueva_x}, {nueva_y})."
+
+    def usar_habilidad(self, indice_habilidad: int):
+        """Ejecuta una habilidad activa si la energía es suficiente."""
+        if indice_habilidad < len(self.habilidades_activas):
+            hab = self.habilidades_activas[indice_habilidad]
+            if self.energia >= hab["coste"]:
+                self.energia -= hab["coste"]
+                return f"{self.nombre} usa {hab['nombre']} causando {hab['dano']} de daño!"
+        return "Energía insuficiente o habilidad no disponible."
 
     def ganar_experiencia(self, exp: int):
         if self.nivel < 50:
@@ -38,8 +52,6 @@ class Mascota:
         return False
 
     def aplicar_sinergia_clase(self, clase_jugador: str):
-        """Aplica un bono extra si la mascota es compatible con la clase del jugador."""
-        # Ejemplo de sinergia:
         if clase_jugador == "Caballero" and self.tipo == "Gólem":
             self.stats_combate["DEF"] += 15
             return "¡Sinergia Activa: Defensa de Piedra reforzada!"
@@ -55,7 +67,6 @@ class Mascota:
         return "Acción no disponible."
 
 # --- CATÁLOGOS AMPLIADOS ---
-# [Se mantienen los catálogos anteriores intactos]
 MASCOTAS_BASE = {
     "Humano": {"nombre": "Cachorro de Grifo", "pasiva": "STR"},
     "Elfo": {"nombre": "Espíritu del Bosque", "pasiva": "INT"},

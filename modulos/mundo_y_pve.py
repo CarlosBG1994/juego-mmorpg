@@ -1,14 +1,43 @@
 """
 Modulo: Mundo y PvE de Snd-Worlds
 Gestiona los 4 reinos del Continente Primordial, zonas por nivel,
-jefes de zona y mazmorras con respawn de jefes (15-20 minutos).
+jefes de zona, mazmorras con respawn y detalles geográficos.
 """
 
+# Configuración de los 4 Reinos: Geografía y Estructura
 REINOS_PRIMORDIALES = {
-    "Reino Humano": {"capital": "Fortaleza Solar", "raza": "Humano"},
-    "Reino Elfo": {"capital": "Arbol Corazon de Sylva", "raza": "Elfo"},
-    "Reino Enano": {"capital": "Forja Profunda de Kar-Drak", "raza": "Enano"},
-    "Reino Hombre Bestia": {"capital": "Bastion Primordial de los Clanes", "raza": "Hombre Bestia"}
+    "Reino Humano": {
+        "capital": "Fortaleza Solar",
+        "raza": "Humano",
+        "extension_km2": 450_000,
+        "ciudades_principales": ["Ciudadela del Alba", "Puerto del Rey", "Villa Hierro"],
+        "puertas_y_fronteras": ["Puerta del Sol Naciente", "Paso de la Guardia"],
+        "castillos": ["Castillo de Aurelius", "Baluarte del León"]
+    },
+    "Reino Elfo": {
+        "capital": "Arbol Corazon de Sylva",
+        "raza": "Elfo",
+        "extension_km2": 520_000,
+        "ciudades_principales": ["Refugio de la Hoja", "Santuario Lunar", "Arboleda Susurrante"],
+        "puertas_y_fronteras": ["Arco de Raíces", "Puerta de los Vientos"],
+        "castillos": ["Palacio de Cristal Élfico", "Torreón de Thalor'en"]
+    },
+    "Reino Enano": {
+        "capital": "Forja Profunda de Kar-Drak",
+        "raza": "Enano",
+        "extension_km2": 380_000,
+        "ciudades_principales": ["Yunque de Piedra", "Ciudad Subterránea de Oro", "Mina del Trueno"],
+        "puertas_y_fronteras": ["Gran Portal de Roca", "Pasaje del Yunque"],
+        "castillos": ["Ciudadela Forjaeterna", "Baluarte de Bramir"]
+    },
+    "Reino Hombre Bestia": {
+        "capital": "Bastion Primordial de los Clanes",
+        "raza": "Hombre Bestia",
+        "extension_km2": 600_000,
+        "ciudades_principales": ["Claro del Rugido", "Villa de los Huesos", "Campamento de la Luna"],
+        "puertas_y_fronteras": ["Entrada del Tótem", "Cerca de Espinas"],
+        "castillos": ["Fortaleza de Kaelen", "Salón del Gran Jefe"]
+    }
 }
 
 RANGOS_ZONAS_REINOS = [
@@ -33,7 +62,7 @@ class Mazmorra:
         self.jefe_final = jefe_final
         self.cofres_secretos = []
         self.jefe_derrotado = False
-        self.tiempo_respawn_minutos = 18  # Respawn entre 15 y 20 minutos
+        self.tiempo_respawn_minutos = 18
 
     def anadir_cofre_secreto(self, contenido: dict):
         self.cofres_secretos.append(contenido)

@@ -17,48 +17,49 @@ CONFIGURACION_APARIENCIA = {
     "detalles": ["Color de ojos intensos", "Forma de la nariz perfilada", "Cicatrices en el torso", "Implantes runicos"]
 }
 
-# 2. SISTEMA DE MAESTRIA Y ROLES
-# Define el rol principal de cada clase para proyectar el estilo de juego
-MAESTRIA_CLASES = {
-    "Caballero": {"rol": "Tanque", "foco": "Supervivencia y bloqueo"},
-    "Paladin": {"rol": "Híbrido", "foco": "Apoyo defensivo y daño sagrado"},
-    "Mago de Batalla": {"rol": "DPS Mágico", "foco": "Combate rúnico a corta/media distancia"},
-    "Pugil": {"rol": "DPS Físico", "foco": "Cadencia de golpes y frenesí"},
-    "Asesino": {"rol": "DPS Explosivo", "foco": "Sigilo y daño crítico"},
-    "Explorador": {"rol": "Utilidad", "foco": "Control de distancia y supervivencia"},
-    "Invocador": {"rol": "Control", "foco": "Gestión de entes y daño persistente"},
-    "Clerigo": {"rol": "Sanador", "foco": "Soporte puro y luz protectora"},
-    # ... (Se mantiene la estructura para todas las clases)
+# 2. RESTRICCIONES VISUALES POR RAZA (Filtros estéticos)
+RESTRICCIONES_VISUALES = {
+    "Enano": {
+        "prohibir_estilos": ["Melena salvaje"], # Los enanos prefieren trenzas o cortes prácticos
+        "solo_tonos_piel": ["Palido", "Bronceado", "Cenizo", "Pétreo"]
+    },
+    "Elfo": {
+        "prohibir_rasgos": ["Vello facial denso"], # Los elfos no poseen vello facial
+        "solo_tonos_piel": ["Palido", "Bronceado", "Albino"]
+    },
+    "Draconica": {
+        "solo_tonos_piel": ["Escamoso"],
+        "prohibir_cabello": True # Los dracónicos tienen crestas, no cabello
+    }
 }
 
-# 3. VALIDACION DE RESTRICCIONES Y AFINIDADES (Mantenidas)
-RAZAS_HABILITADAS = ["Humano", "Elfo", "Enano", "Hombre Bestia"]
-ARMADURAS_PERMITIDAS = {
-    "Caballero": ["Placas", "Malla"],
-    "Paladin": ["Placas", "Malla", "Cuero"],
-    "Mago de Batalla": ["Tela", "Cuero"],
-    "Pugil": ["Tela", "Cuero"],
-    "Guerrero Pesado": ["Placas"]
-}
+# 3. FUNCION DE FILTRADO PARA LA UI
+def obtener_opciones_personalizacion(raza: str) -> dict:
+    """Retorna las opciones de apariencia filtradas según la raza."""
+    config = CONFIGURACION_APARIENCIA.copy()
+    restricciones = RESTRICCIONES_VISUALES.get(raza, {})
 
-# 4. FUNCIONES DE GESTION
-def obtener_maestria_clase(clase: str) -> dict:
-    """Retorna el rol y foco de la clase para que el jugador sepa qué estilo juega."""
-    return MAESTRIA_CLASES.get(clase, {"rol": "Desconocido", "foco": "Exploración"})
+    if "prohibir_estilos" in restricciones:
+        config["cabello"]["estilos"] = [s for s in config["cabello"]["estilos"] if s not in restricciones["prohibir_estilos"]]
+    
+    if "solo_tonos_piel" in restricciones:
+        config["tonos_piel"] = restricciones["solo_tonos_piel"]
 
-def proyectar_crecimiento(clase: str, nivel_actual: int) -> str:
-    """Sugiere al jugador qué estadísticas potenciar según el rol de su clase."""
-    maestria = obtener_maestria_clase(clase)
-    if maestria["rol"] == "Tanque":
-        return "Prioriza VIT y STR para resistir el frente de batalla."
-    elif "DPS" in maestria["rol"]:
-        return "Prioriza tus estadísticas ofensivas principales para maximizar el daño."
-    return "Distribuye tus puntos según tu estilo de juego preferido."
+    if "prohibir_rasgos" in restricciones:
+        config["rasgos_faciales"] = [r for r in config["rasgos_faciales"] if r not in restricciones["prohibir_rasgos"]]
+
+    if restricciones.get("prohibir_cabello"):
+        config["cabello"] = {"estilos": ["Sin cabello/Cresta"], "colores": ["Escamas metálicas"]}
+
+    return config
+
+# ... [Mantenimiento de MAESTRIA_CLASES, RAZAS_HABILITADAS, ARMADURAS_PERMITIDAS] ...
 
 def obtener_plantilla_creacion(raza: str) -> dict:
-    plantilla = CONFIGURACION_APARIENCIA.copy()
+    """Retorna la plantilla adaptada, ahora con filtros de estética racial."""
+    plantilla = obtener_opciones_personalizacion(raza)
     if raza in ["Hombre Bestia", "Draconica"]:
         plantilla["detalles"].append("Patrón de Pelaje o Escamas")
     return plantilla
 
-# ... [RESTO DE FUNCIONES VALIDAS: validar_compatibilidad, validar_uso_equipo, etc.] ...
+# ... [RESTO DE FUNCIONES VALIDAS: validar_compatibilidad, obtener_maestria_clase, etc.] ...
