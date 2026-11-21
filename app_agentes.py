@@ -20,6 +20,14 @@ HISTORIALES_DIR = BASE_DIR / "historiales_chats"
 TXT_GUIA_PATH = BASE_DIR / "juego_explicado.txt"
 ENV_PATH = BASE_DIR / ".env"
 
+MODELOS_RESPALDO_TEXTO = [
+    "gemini-flash-latest",
+    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash",
+    "gemini-2.5-flash",
+]
+
 
 def cargar_env() -> None:
   if not ENV_PATH.exists():
@@ -177,6 +185,15 @@ def leer_todo_el_proyecto() -> str:
   return "\n\n".join(partes)
 
 
+def obtener_cola_modelos() -> list[str]:
+  principal = os.environ.get("GEMINI_MODEL", "").strip() or "gemini-flash-latest"
+  cola = [principal]
+  for m in MODELOS_RESPALDO_TEXTO:
+    if m not in cola:
+      cola.append(m)
+  return cola
+
+
 def llamar_gemini(system_prompt: str, mensajes: list) -> str:
   api_key = os.environ.get("GEMINI_API_KEY", "").strip()
   if not api_key:
@@ -184,8 +201,6 @@ def llamar_gemini(system_prompt: str, mensajes: list) -> str:
         "Falta configurar GEMINI_API_KEY en el archivo .env o en la terminal.\n"
         "Anade GEMINI_API_KEY='tu_clave_aqui' en .env y vuelve a arrancar."
     )
-
-  modelo = os.environ.get("GEMINI_MODEL", "").strip() or "gemini-flash-latest"
 
   contents = []
   for m in mensajes:
@@ -197,49 +212,71 @@ def llamar_gemini(system_prompt: str, mensajes: list) -> str:
       "contents": contents,
   }
 
-  url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
-  max_reintentos = 3
+  modelos = obtener_cola_modelos()
+  ultimo_aviso = "No se pudo completar la peticion con ningun modelo."
 
-  for intento in range(1, max_reintentos + 1):
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "X-goog-api-key": api_key,
-        },
-        method="POST",
-    )
+  for idx, modelo in enumerate(modelos):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
+    max_reintentos = 2
 
-    try:
-      with urllib.request.urlopen(req, timeout=180) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-      partes = (
-          data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+    for intento in range(1, max_reintentos + 1):
+      req = urllib.request.Request(
+          url,
+          data=json.dumps(payload).encode("utf-8"),
+          headers={
+              "Content-Type": "application/json",
+              "X-goog-api-key": api_key,
+          },
+          method="POST",
       )
-      texto = "".join(p.get("text", "") for p in partes if "text" in p).strip()
-      return texto or "No se recibio respuesta de texto."
-    except urllib.error.HTTPError as e:
-      detalle = ""
+
       try:
-        detalle = e.read().decode("utf-8", errors="ignore")
-      except Exception:
-        detalle = str(e)
-      if e.code == 503 and intento < max_reintentos:
-        espera = intento * 3
-        print(
-            f"[AVISO] 503 temporal en '{modelo}' (intento"
-            f" {intento}/{max_reintentos}). Reintentando en {espera}s..."
+        with urllib.request.urlopen(req, timeout=180) as resp:
+          data = json.loads(resp.read().decode("utf-8"))
+        partes = (
+            data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
         )
-        time.sleep(espera)
-        continue
-      aviso = f"Error HTTP {e.code} con el modelo '{modelo}': {detalle[:400]}"
-      print(f"[AVISO] {aviso}")
-      return aviso
-    except Exception as e:
-      aviso = f"Error de conexion al llamar a Gemini: {e}"
-      print(f"[AVISO] {aviso}")
-      return aviso
+        texto = "".join(p.get("text", "") for p in partes if "text" in p).strip()
+        if texto:
+          if idx > 0:
+            print(f"[INFO] Respondio el modelo alternativo '{modelo}'.")
+          return texto
+        ultimo_aviso = f"El modelo '{modelo}' no devolvio texto."
+        break
+      except urllib.error.HTTPError as e:
+        detalle = ""
+        try:
+          detalle = e.read().decode("utf-8", errors="ignore")
+        except Exception:
+          detalle = str(e)
+
+        if e.code == 503 and intento < max_reintentos:
+          espera = intento * 2
+          print(
+              f"[AVISO] 503 temporal en '{modelo}' (intento"
+              f" {intento}/{max_reintentos}). Reintentando en {espera}s..."
+          )
+          time.sleep(espera)
+          continue
+
+        if e.code in (429, 503):
+          ultimo_aviso = (
+              f"Error HTTP {e.code} con el modelo '{modelo}': {detalle[:300]}"
+          )
+          print(
+              f"[AVISO] '{modelo}' dio {e.code}; saltando al siguiente modelo..."
+          )
+          break
+
+        aviso = f"Error HTTP {e.code} con el modelo '{modelo}': {detalle[:400]}"
+        print(f"[AVISO] {aviso}")
+        return aviso
+      except Exception as e:
+        ultimo_aviso = f"Error de conexion con '{modelo}': {e}"
+        print(f"[AVISO] {ultimo_aviso}")
+        break
+
+  return ultimo_aviso
 
 
 def extraer_bloques_archivo(respuesta: str) -> list[tuple[str, str]]:
