@@ -70,5 +70,11 @@
     "rol": "Guarda y carga el progreso del jugador en archivos externos para evitar perdidas.",
     "archivo": "modulos/persistencia.py",
     "es_creador_modulos": false
+  },
+  "world_sync": {
+    "nombre": "Agente · Visibilidad Global y Grupos",
+    "rol": "Gestión de carga masiva, particionamiento de zonas y sincronización de minimapa para grupos.",
+    "archivo": "modulos/world_sync.py",
+    "es_creador_modulos": false
   }
 }
