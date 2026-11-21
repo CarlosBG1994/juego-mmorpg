@@ -3,8 +3,7 @@ Modulo: Economia y Comercio de Snd-Worlds
 Reglas:
 - 100 Cobre = 1 Plata, 100 Plata = 1 Oro, 100 Oro = 1 Diamante, 100 Diamante = 1 Platino
 - Mochila: capacidad base 20 + bono por montura.
-- Subastas: Tasa de publicación (1%), Comisión venta (5%).
-- Límite: Subastas estándar 1 hora. Subastas Tier I-III (15 min) con aviso global.
+- Subastas: Tasa de publicación (1%), Comisión venta (5%), Sistema Escrow, Soporte Buyout.
 """
 
 import time
@@ -50,54 +49,60 @@ class Mochila:
         return None
 
 class SistemaComercio:
-    subastas_activas = []
+    subastas_activas = [] # Lista de diccionarios con la subasta
+    almacen_escrow = {}   # {item_id: item_data} para seguridad
     historial_ventas = []
     TASA_PUBLICACION = 0.01 
     TASA_COMISION = 0.05
 
     @classmethod
-    def publicar_en_subasta(cls, vendedor_nombre: str, item: dict, precio_cobre: int, billetera_vendedor: Billetera):
-        # 1. Validación de precio mínimo
+    def publicar_en_subasta(cls, vendedor: object, item: dict, precio_inicio: int, precio_buyout: int = 0):
+        # 1. Validación y Escrow
         tier = item.get("tier", "VI")
-        if precio_cobre < VALOR_MINIMO_POR_TIER.get(tier, 100):
-            return False, "Precio inferior al mínimo de mercado."
+        if precio_inicio < VALOR_MINIMO_POR_TIER.get(tier, 100):
+            return False, "Precio inferior al mínimo."
 
-        # 2. Impuesto de publicación
-        coste_publicacion = int(precio_cobre * cls.TASA_PUBLICACION)
-        if not billetera_vendedor.retirar_cobre(coste_publicacion):
-            return False, "Fondos insuficientes para tasa de publicación."
+        # Retirar de mochila y mover a Escrow
+        item_data = vendedor.mochila.eliminar_item(item.get("id"))
+        if not item_data:
+            return False, "Objeto no encontrado en mochila."
+        
+        cls.almacen_escrow[item["id"]] = item_data
+        
+        # 2. Cobro de Tasa
+        coste = int(precio_inicio * cls.TASA_PUBLICACION)
+        if not vendedor.mochila.billetera.retirar_cobre(coste):
+            return False, "Fondos insuficientes para tasa."
 
-        # 3. Lógica de tiempo: 15 min para alta gama (I-III), 60 min resto
+        # 3. Registro
         duracion = 900 if tier in ["I", "II", "III"] else 3600
-        if tier in ["I", "II", "III"]:
-            print(f"[AVISO GLOBAL] ¡Subasta de alto nivel {item['nombre']} disponible! Tiempo: 15 min.")
-
         cls.subastas_activas.append({
-            "vendedor": vendedor_nombre,
-            "item": item,
-            "precio": precio_cobre,
+            "vendedor": vendedor.nombre,
+            "item_id": item["id"],
+            "precio_actual": precio_inicio,
+            "precio_buyout": precio_buyout,
             "fin": time.time() + duracion
         })
-        return True, f"Objeto publicado. Se cobró {coste_publicacion} de tasa."
+        return True, "Objeto en Escrow y publicado."
 
     @classmethod
-    def registrar_transaccion(cls, vendedor, comprador, item, precio):
-        cls.historial_ventas.append({
-            "vendedor": vendedor, "comprador": comprador, "item": item, "precio": precio, "timestamp": time.time()
-        })
-
-    @classmethod
-    def procesar_venta(cls, indice_subasta: int, billetera_comprador: Billetera, billetera_vendedor: Billetera):
-        subasta = cls.subastas_activas[indice_subasta]
-        if time.time() > subasta["fin"]:
-            return False, "La subasta ha expirado."
-            
-        precio = subasta["precio"]
-        comision = int(precio * cls.TASA_COMISION)
+    def procesar_compra(cls, indice: int, comprador: object, tipo_compra: str = "normal"):
+        subasta = cls.subastas_activas[indice]
+        item = cls.almacen_escrow.get(subasta["item_id"])
         
-        if billetera_comprador.retirar_cobre(precio):
-            billetera_vendedor.depositar(cobre=(precio - comision))
-            cls.registrar_transaccion(subasta["vendedor"], "Comprador", subasta["item"], precio)
-            cls.subastas_activas.pop(indice_subasta)
-            return True, "Venta realizada exitosamente."
+        # Lógica de compra (Buyout tiene prioridad)
+        precio = subasta["precio_buyout"] if tipo_compra == "buyout" else subasta["precio_actual"]
+        
+        if comprador.mochila.billetera.retirar_cobre(precio):
+            # Finalizar
+            comprador.mochila.anadir_item(item)
+            cls.almacen_escrow.pop(subasta["item_id"])
+            cls.subastas_activas.pop(indice)
+            cls.historial_ventas.append({"item": item["id"], "precio": precio, "ts": time.time()})
+            return True, "Compra exitosa."
         return False, "Fondos insuficientes."
+
+    @classmethod
+    def obtener_subastas_por_tier(cls, tier: str):
+        # Indexación simple para búsqueda rápida
+        return [s for s in cls.subastas_activas if cls.almacen_escrow[s["item_id"]].get("tier") == tier]

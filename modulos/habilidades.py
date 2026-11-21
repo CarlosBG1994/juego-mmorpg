@@ -1,35 +1,42 @@
-# --- CATÁLOGO DE HABILIDADES LEYENDA (TIER II) ---
-# Límite: 10 portadores simultáneos por habilidad.
+# --- CATÁLOGO AMPLIADO DE HABILIDADES LEYENDA (TIER II) ---
+# Límite: 10 portadores simultáneos por ID.
+# Se han añadido nuevas leyendas para asegurar cobertura total de clases.
 
-DETALLES_LEYENDA = {
-    "L001": { # Susurro del Viento Silvano (Elfo)
-        "Efecto": "Control sónico y natural.",
-        "Niv1": "Ráfaga Silenciosa + 80% AGI. Daño por aire.",
-        "Niv15": "Eco del Bosque: Refleja 20% del daño recibido.",
-        "Niv30": "Canto de la Arboleda: Daño en área 200% AGI + Ralentización."
+DETALLES_LEYENDA.update({
+    "L006": { # Velo de los Mil Cristales (Mago de Batalla / Invocador)
+        "Efecto": "Refracción de energía arcana.",
+        "Niv1": "Dardo Cristalino + 80% INT.",
+        "Niv15": "Espejismo: Crea un clon que recibe el 50% del daño.",
+        "Niv30": "Lluvia de Prismas: Daño en área 180% INT + Confusión."
     },
-    "L002": { # Marca del Cazador de Dragones (Humano/Enano)
-        "Efecto": "Perforación de armadura pesada.",
-        "Niv1": "Disparo de Precisión + 80% DES. Ignora 10% DEF.",
-        "Niv15": "Punto Débil: Los críticos reducen la resistencia del objetivo.",
-        "Niv30": "Flecha Rompe-Escamas: Daño directo 200% DES + Hemorragia."
+    "L007": { # Juicio del Martillo Real (Paladín / Caballero)
+        "Efecto": "La justicia cae con peso divino.",
+        "Niv1": "Martillo de Luz + 80% STR.",
+        "Niv15": "Aura de Comando: +15% STR a aliados cercanos.",
+        "Niv30": "Sentencia de Aurelius: Daño 200% STR + Incapacitación."
     },
-    "L003": { # Furia del Volcán (Enano)
-        "Efecto": "Canalización de magma rúnico.",
-        "Niv1": "Golpe de Magma + 80% STR. Daño fuego.",
-        "Niv15": "Piel de Obsidiana: +30% VIT y reducción de daño fuego.",
-        "Niv30": "Erupción Interna: Daño área 200% STR + quemadura persistente."
+    "L008": { # Paso de la Sombra Furtiva (Asesino / Acechador Nocturno)
+        "Efecto": "Desplazamiento a través del plano umbrío.",
+        "Niv1": "Estocada Sombría + 80% AGI.",
+        "Niv15": "Paso de Vapor: Teletransporte corto (5 metros).",
+        "Niv30": "Danza de Mil Cortes: Daño 190% AGI + Sangrado grave."
     },
-    "L004": { # Danza del Alma Bestial (Hombre Bestia)
-        "Efecto": "Transformación parcial en espíritu.",
-        "Niv1": "Garra Espectral + 80% AGI. Daño espíritu.",
-        "Niv15": "Reflejos Feroces: +20% esquiva durante 6s.",
-        "Niv30": "Danza del Depredador: Daño encadenado a 3 objetivos 180% AGI."
+    "L009": { # Plegaria de la Montaña (Clérigo / Defensor Rúnico)
+        "Efecto": "Resistencia inamovible de la roca.",
+        "Niv1": "Bendición de Piedra + 80% VIT.",
+        "Niv15": "Piel Pétrea: Reduce daño físico recibido 25%.",
+        "Niv30": "Avalancha Vital: Cura y escudo masivo (180% VIT)."
     },
-    "L005": { # Luz de la Aurora Sagrada (Humano/Elfo)
-        "Efecto": "Sanación y protección de luz pura.",
-        "Niv1": "Destello de Aurora + 80% INT. Cura básica.",
-        "Niv15": "Barrera de Fe: Escudo de absorción (150% INT).",
-        "Niv30": "Despertar Divino: Cura masiva en área 200% INT + Purga."
+    "L010": { # Instinto del Ápice (Campeón / Acechador Salvaje)
+        "Efecto": "Acceso al instinto de los depredadores antiguos.",
+        "Niv1": "Zarpazo Afilado + 80% AGI.",
+        "Niv15": "Sentido Agudo: Aumenta la probabilidad de críticos 15%.",
+        "Niv30": "Caza del Ápice: Daño 200% AGI + Debilitamiento."
+    },
+    "L011": { # Balística de Precisión (Explorador / Ballestero)
+        "Efecto": "Cálculo matemático de trayectoria.",
+        "Niv1": "Tiro Rúnico + 80% DES.",
+        "Niv15": "Enfoque Total: Ignora 25% de la armadura enemiga.",
+        "Niv30": "Impacto Crítico Real: Daño 200% DES + Interrupción."
     }
-}
+})

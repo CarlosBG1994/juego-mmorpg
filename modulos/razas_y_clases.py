@@ -4,6 +4,9 @@ Gestiona la identidad visual, atributos, restricciones de equipo,
 personalización estética y maestría de progresión de personajes.
 """
 
+# RAZAS ACTIVAS (El sistema solo permitirá elegir estas)
+RAZAS_HABILITADAS = ["Humano", "Elfo", "Enano", "Hombre Bestia"]
+
 # 1. CONFIGURACION DE APARIENCIA EXPANDIDA
 CONFIGURACION_APARIENCIA = {
     "genero": ["Masculino", "Femenino"],
@@ -17,25 +20,28 @@ CONFIGURACION_APARIENCIA = {
     "detalles": ["Color de ojos intensos", "Forma de la nariz perfilada", "Cicatrices en el torso", "Implantes runicos"]
 }
 
-# 2. RESTRICCIONES VISUALES POR RAZA (Filtros estéticos)
+# 2. RESTRICCIONES VISUALES POR RAZA
 RESTRICCIONES_VISUALES = {
     "Enano": {
-        "prohibir_estilos": ["Melena salvaje"], # Los enanos prefieren trenzas o cortes prácticos
+        "prohibir_estilos": ["Melena salvaje"],
         "solo_tonos_piel": ["Palido", "Bronceado", "Cenizo", "Pétreo"]
     },
     "Elfo": {
-        "prohibir_rasgos": ["Vello facial denso"], # Los elfos no poseen vello facial
+        "prohibir_rasgos": ["Vello facial denso"],
         "solo_tonos_piel": ["Palido", "Bronceado", "Albino"]
     },
-    "Draconica": {
+    "Draconica": { # Aunque está definida, el usuario no puede seleccionarla aún
         "solo_tonos_piel": ["Escamoso"],
-        "prohibir_cabello": True # Los dracónicos tienen crestas, no cabello
+        "prohibir_cabello": True
     }
 }
 
 # 3. FUNCION DE FILTRADO PARA LA UI
 def obtener_opciones_personalizacion(raza: str) -> dict:
-    """Retorna las opciones de apariencia filtradas según la raza."""
+    """Retorna las opciones de apariencia filtradas. Si la raza no está habilitada, devuelve vacío."""
+    if raza not in RAZAS_HABILITADAS:
+        return {}
+        
     config = CONFIGURACION_APARIENCIA.copy()
     restricciones = RESTRICCIONES_VISUALES.get(raza, {})
 
@@ -53,13 +59,14 @@ def obtener_opciones_personalizacion(raza: str) -> dict:
 
     return config
 
-# ... [Mantenimiento de MAESTRIA_CLASES, RAZAS_HABILITADAS, ARMADURAS_PERMITIDAS] ...
-
 def obtener_plantilla_creacion(raza: str) -> dict:
-    """Retorna la plantilla adaptada, ahora con filtros de estética racial."""
+    """Retorna la plantilla adaptada si la raza es permitida."""
+    if raza not in RAZAS_HABILITADAS:
+        return {}
+    
     plantilla = obtener_opciones_personalizacion(raza)
-    if raza in ["Hombre Bestia", "Draconica"]:
-        plantilla["detalles"].append("Patrón de Pelaje o Escamas")
+    if raza == "Hombre Bestia":
+        plantilla["detalles"].append("Patrón de Pelaje")
     return plantilla
 
-# ... [RESTO DE FUNCIONES VALIDAS: validar_compatibilidad, obtener_maestria_clase, etc.] ...
+# ... [Mantenimiento de MAESTRIA_CLASES, ARMADURAS_PERMITIDAS, validar_compatibilidad, etc.] ...

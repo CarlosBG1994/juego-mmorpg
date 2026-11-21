@@ -3,8 +3,7 @@ Modulo: Progresion y Estadisticas de Snd-Worlds
 Reglas:
 - Nivel 1 a 100 inicial (Continente Primordial).
 - Sistema de experiencia por misiones o combate.
-- Ganancia de 5 a 10 puntos libres por nivel según configuración.
-- +10 HP maximo automatico por nivel.
+- Ganancia de 5 puntos libres por nivel y +10 HP maximo automatico.
 - Limite maximo hasta nivel 300 repartido por continentes (+50 por continente).
 """
 
@@ -39,13 +38,14 @@ class PersonajeProgresion:
         """Añade experiencia y verifica si el jugador sube de nivel."""
         self.experiencia += cantidad
         subidas = 0
+        # Permite subir múltiples niveles si la experiencia ganada es muy alta
         while self.experiencia >= self.experiencia_siguiente:
             self.experiencia -= self.experiencia_siguiente
             resultado, mensaje = self.subir_nivel()
             if resultado:
                 subidas += 1
             else:
-                self.experiencia = 0 # Tope alcanzado
+                self.experiencia = 0 # Tope de nivel alcanzado
                 break
         return subidas
 
@@ -55,12 +55,14 @@ class PersonajeProgresion:
             return False, f"Alcanzaste el limite del {self.continente_actual} (Nivel {limite_actual})."
 
         self.nivel += 1
-        # Se otorgan 10 puntos libres para mayor personalización, ajustable a 5 si se prefiere
-        self.puntos_libres += 10 
+        # Asignación de 5 puntos libres por nivel como solicitaste
+        self.puntos_libres += 5 
+        # Incremento automático de 10 HP como dicta la regla base
         self.hp_max += 10
         self.hp_actual = self.hp_max
+        # Escala la curva de experiencia un 15% por nivel
         self.experiencia_siguiente = int(self.experiencia_siguiente * 1.15)
-        return True, f"¡Nivel {self.nivel}! +10 puntos libres de stats y +10 HP maximo."
+        return True, f"¡Nivel {self.nivel}! +5 puntos libres de stats y +10 HP maximo."
 
     def asignar_puntos(self, estadistica: str, cantidad: int):
         estadistica = estadistica.upper()

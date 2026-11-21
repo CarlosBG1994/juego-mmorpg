@@ -3,6 +3,7 @@ Modulo: Misiones de Snd-Worlds
 Gestiona la creación, seguimiento y finalización de misiones.
 - Tipos: Principal, Secundaria, Tutorial, Diario, Legado.
 - Estructura: Escalado hasta 2,000 misiones (500 por reino).
+- Sistema de misiones secundarias infinitas y bloqueo de progresión global.
 """
 
 class Mision:
@@ -28,7 +29,8 @@ class GestorMisiones:
         self.misiones_disponibles = []
         self.misiones_activas = []
         self.misiones_historial = []
-        # Inicialización base
+        self.progresion_bloqueada = False # Control para el salto de continente
+        
         self._inicializar_misiones_tutorial()
         self._inicializar_misiones_principales()
 
@@ -45,19 +47,29 @@ class GestorMisiones:
             Mision("P001", "El Despertar del Eter", "Habla con el guía de tu reino.", "Principal", {"exp": 100, "oro": 10}, 1),
             Mision("P002", "Primera Sangre", "Derrota a 5 enemigos.", "Principal", {"exp": 500, "oro": 50}, 5),
             Mision("P003", "El Sello Perdido", "Recupera una habilidad en mazmorra.", "Principal", {"exp": 1200, "oro": 200}, 15)
+            # ... hasta P99, misión final del Continente Primordial.
         ]
         self.misiones_disponibles.extend(catalogo)
 
-    def generar_misiones_secundarias_y_diarias(self, zona: str, nivel: int):
-        """Genera dinámicamente misiones de caza, recolección y diarias."""
-        # 1. Caza de Criminales (Secundaria)
-        self.misiones_disponibles.append(Mision(f"S_{zona}_01", "Justicia del Continente", "Caza al jugador fugitivo de esta zona.", "Secundaria", {"oro": 500}, nivel))
-        # 2. Mazmorras (Secundaria)
-        self.misiones_disponibles.append(Mision(f"M_{zona}_01", "Limpieza de Mazmorra", "Derrota al Jefe Final de la zona.", "Secundaria", {"exp": 2000, "item": "Cofre Raro"}, nivel))
-        # 3. Diario (Repetible)
-        self.misiones_disponibles.append(Mision(f"D_{zona}_01", "Patrulla Diaria", "Derrota a 20 enemigos de la zona.", "Diaria", {"exp": 1000, "oro": 100}, nivel, True))
+    def generar_misiones_infinitas(self, tipo: str, nivel: int):
+        """Generador procedural de misiones secundarias infinitas."""
+        id_gen = f"INF_{tipo}_{nivel}"
+        misiones_gen = {
+            "caza": Mision(id_gen, "Contrato de Caza", "Elimina criaturas peligrosas en la zona.", "Secundaria", {"exp": 500}, nivel, True),
+            "recoleccion": Mision(id_gen, "Recursos del Nexo", "Recolecta materiales antiguos.", "Secundaria", {"oro": 200}, nivel, True),
+            "purgar": Mision(id_gen, "Justicia sobre Fugitivos", "Caza a los renegados que rompen la paz.", "Secundaria", {"exp": 800}, nivel, True)
+        }
+        return misiones_gen.get(tipo, None)
 
     def activar_mision(self, id_mision: str):
+        # Bloqueo de progresión: Si es principal y está bloqueado, no permite activar
+        mision = next((m for m in self.misiones_disponibles if m.id == id_mision), None)
+        if mision and mision.tipo == "Principal" and self.progresion_bloqueada:
+            return False, "La historia principal está en pausa. Busca el Nexo para continuar."
+        
+        return self._procesar_activacion(id_mision)
+
+    def _procesar_activacion(self, id_mision):
         for mision in self.misiones_disponibles:
             if mision.id == id_mision:
                 mision.aceptar_mision()
@@ -69,7 +81,7 @@ class GestorMisiones:
         for mision in self.misiones_activas:
             if mision.id == id_mision:
                 mision.completar_mision()
-                # Si es diaria/repetible, la movemos de nuevo a disponibles tras un tiempo
+                # Lógica de persistencia de repetibles
                 if mision.es_repetible:
                     mision.estado = "Disponible"
                     self.misiones_disponibles.append(self.misiones_activas.pop(self.misiones_activas.index(mision)))
