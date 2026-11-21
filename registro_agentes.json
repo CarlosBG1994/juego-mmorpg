@@ -46,5 +46,29 @@
     "rol": "Controla el prologo, textos de ambientacion, trasfondo de los reinos y narrativa de misiones.",
     "archivo": "modulos/historia_lore.py",
     "es_creador_modulos": false
+  },
+  "mascotas": {
+    "nombre": "Agente · Sistema de Mascotas",
+    "rol": "Gestión de compañeros, lealtad, niveles de mascota y habilidades pasivas de apoyo.",
+    "archivo": "modulos/mascotas.py",
+    "es_creador_modulos": false
+  },
+  "monturas": {
+    "nombre": "Agente · Sistema de Monturas",
+    "rol": "Gestión de velocidad de movimiento, capacidad de carga y niveles de fatiga.",
+    "archivo": "modulos/monturas.py",
+    "es_creador_modulos": false
+  },
+  "misiones": {
+    "nombre": "Agente · Sistema de Misiones",
+    "rol": "Control de ciclo de vida de misiones, gestión de recompensas y seguimiento de objetivos.",
+    "archivo": "modulos/misiones.py",
+    "es_creador_modulos": false
+  },
+  "persistencia": {
+    "nombre": "Agente · Persistencia y Datos",
+    "rol": "Guarda y carga el progreso del jugador en archivos externos para evitar perdidas.",
+    "archivo": "modulos/persistencia.py",
+    "es_creador_modulos": false
   }
 }
