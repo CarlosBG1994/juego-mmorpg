@@ -1,0 +1,11 @@
+[
+  {
+    "role": "user",
+    "content": "dime de que va este modulo"
+  },
+  {
+    "role": "assistant",
+    "content": "Este módulo se encarga de dar vida a toda la geografía, criaturas y desafíos PvE de **Snd-Worlds** en el **Continente Primordial (Niveles 1 al 100)**. En pocas palabras, es el mapa viviente del juego.\n\nGestiona cinco aspectos clave:\n\n1. **Los 4 Reinos Primordiales:**\n   - **Reino Humano:** Capital *Fortaleza Solar*.\n   - **Reino Elfo:** Capital *Árbol Corazón de Sylva*.\n   - **Reino Enano:** Capital *Forja Profunda de Kar-Drak*.\n   - **Reino Hombre Bestia:** Capital *Bastión Primordial de los Clanes*.\n\n2. **Zonas por Rangos de Nivel en cada Reino:**\n   - Nivel **1-15:** Iniciación y Tierras Bajas.\n   - Nivel **16-25:** Valles y Bosques Salvajes.\n   - Nivel **26-35:** Tierras Fronterizas.\n   - Nivel **36-45:** Zonas Hostiles y Cavernas.\n   - Nivel **46-60:** Territorio Peligroso y Bastiones de Élite.\n   - Cada zona cuenta con monstruos variados que patrullan su territorio y jefes élite propios. Además, durante eventos especiales, estos enemigos pueden desplazarse e invadir otras zonas.\n\n3. **Zonas Neutrales Conectadas (Nivel 61 al 100):**\n   - Áreas que no pertenecen a ningún reino, con peligros mayores y jefes élite superiores:\n     - Nivel **61-75:** Tierras de Nadie Inter-Reinos.\n     - Nivel **76-85:** Grieta de los Antiguos.\n     - Nivel **86-100:** Cumbre del Continente Primordial.\n\n4. **Mazmorras y Zonas Secretas:**\n   - Repartidas por todo el continente. El nivel de cada mazmorra va ligado a la zona en la que se ubica.\n   - Contienen **zonas secretas con cofres** que otorgan recompensas valiosas (objetos, dinero y habilidades).\n\n5. **Jefes Finales y Respawn (15-20 Minutos):**\n   - Las mazmorras no desaparecen una vez completadas. Los jugadores pueden reingresar en cualquier momento.\n   - Al derrotar al jefe final, este cuenta con un temporizador de reaparición global de **15 a 20 minutos** para que vuelva a estar disponible para todos.\n\nTodo lo necesario para añadir enemigos específicos, tablas de botín, rutas o mazmorras concretas se construye directamente sobre esta base sin borrar nada de lo existente.",
+    "aviso": ""
+  }
+]

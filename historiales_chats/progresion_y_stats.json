@@ -1,0 +1,11 @@
+[
+  {
+    "role": "user",
+    "content": "dime de que va este modulo"
+  },
+  {
+    "role": "assistant",
+    "content": "Error de conexion al llamar a Gemini: The read operation timed out",
+    "aviso": ""
+  }
+]

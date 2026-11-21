@@ -40,5 +40,11 @@
     "rol": "Conecta todos los sistemas garantizando que el personaje use las reglas completas de Snd-Worlds.",
     "archivo": "modulos/integrador.py",
     "es_creador_modulos": false
+  },
+  "historia_lore": {
+    "nombre": "Agente · Historia y Narrativa",
+    "rol": "Controla el prologo, textos de ambientacion, trasfondo de los reinos y narrativa de misiones.",
+    "archivo": "modulos/historia_lore.py",
+    "es_creador_modulos": false
   }
 }
