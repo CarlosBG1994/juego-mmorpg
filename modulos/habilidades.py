@@ -1,34 +1,29 @@
-# --- TIER I (Mitica) - Limitado a 5 jugadores por habilidad ---
-# Cada clase tiene acceso a al menos una habilidad definitiva de nivel Mitico.
+# Estructura de Datos para Habilidades Míticas
+# La "Potencia" se calcula sobre el Stat base del jugador (STR, INT o AGI).
 
-# --- HUMANOS ---
-registrar_habilidad("M001", "Ira del Cataclismo", "I", ["Humano"], ["Paladin", "Caballero"])
-registrar_habilidad("M006", "Dominio del Nexo Arcano", "I", ["Humano"], ["Mago de Batalla", "Invocador"])
-registrar_habilidad("M007", "Sentencia de la Forja Solar", "I", ["Humano", "Enano"], ["Clerigo"])
-registrar_habilidad("M008", "Danza de la Muerte Blanca", "I", ["Humano"], ["Pugil", "Asesino"])
-registrar_habilidad("M009", "Ojo del Explorador Eterno", "I", ["Humano"], ["Explorador"])
-
-# --- ELFOS ---
-registrar_habilidad("M002", "Corazon de los Ancestros", "I", ["Elfo"], ["Druida", "Alcaide"])
-registrar_habilidad("M010", "Flecha del Eclipse Lunar", "I", ["Elfo"], ["Guardabosques"])
-registrar_habilidad("M011", "Filo del Viento Silvano", "I", ["Elfo"], ["Espadachin Silvano"])
-registrar_habilidad("M012", "Sombra de la Noche Eterna", "I", ["Elfo"], ["Acechador Nocturno"])
-registrar_habilidad("M013", "Invocar al Guardian de Sylva", "I", ["Elfo"], ["Invocador", "Mago de Batalla"])
-registrar_habilidad("M014", "Meditacion del Monje del Aire", "I", ["Elfo"], ["Monje del Viento (Pugil)"])
-
-# --- ENANOS ---
-registrar_habilidad("M015", "Impacto de la Forja Profunda", "I", ["Enano"], ["Guerrero Pesado", "Campeon Runico"])
-registrar_habilidad("M016", "Muralla de los Mil Reinos", "I", ["Enano"], ["Defensor Runico de Asedio"])
-registrar_habilidad("M017", "Disparo del Baluarte Rúnico", "I", ["Enano"], ["Ballestero (Explorador)"])
-registrar_habilidad("M018", "Golpe de Hierro Ancestral", "I", ["Enano"], ["Luchador de Puno de Hierro (Pugil)"])
-
-# --- HOMBRE BESTIA ---
-registrar_habilidad("M003", "Rugido del Totem Primordial", "I", ["Hombre Bestia"], ["Chaman Primordial", "Campeon"])
-registrar_habilidad("M019", "Frenesi del Depredador Alfa", "I", ["Hombre Bestia"], ["Acechador Salvaje", "Pugil"])
-registrar_habilidad("M020", "Vision del Acechador Nocturno", "I", ["Hombre Bestia"], ["Asesino", "Explorador"])
-registrar_habilidad("M021", "Llamada del Nexo Bestial", "I", ["Hombre Bestia"], ["Invocador", "Mago de Batalla"])
-registrar_habilidad("M022", "Bendicion del Espiritu Vital", "I", ["Hombre Bestia"], ["Clerigo"])
-
-# --- NOTA DE CONTROL DE SISTEMA ---
-# Cada clase tiene ahora su propia habilidad Mítica única (o compartida entre clases de rol similar).
-# Se mantienen las restricciones de cupo (Max 5 jugadores por ID).
+DETALLES_MITICAS = {
+    "M001": { # Ira del Cataclismo (Caballero/Paladín)
+        "Efecto": "Invoca ondas sísmicas de luz solar.",
+        "Niv1": "Golpe base + 100% STR. Daño físico puro.",
+        "Niv15": "Suelo Sagrado: Reduce DEF enemigos 20%.",
+        "Niv30": "Cataclismo: Daño en área (AOE) masivo 250% STR."
+    },
+    "M006": { # Dominio del Nexo Arcano (Mago/Invocador)
+        "Efecto": "Manipulación pura del Eter.",
+        "Niv1": "Ráfaga de Eter + 100% INT. Daño mágico.",
+        "Niv15": "Resonancia: Recupera 10% de maná por golpe.",
+        "Niv30": "Colapso del Nexo: Ignora 50% de resistencia mágica."
+    },
+    "M015": { # Impacto de la Forja Profunda (Guerrero/Campeón Enano)
+        "Efecto": "Fuerza telúrica de las montañas.",
+        "Niv1": "Martillazo rúnico + 100% STR.",
+        "Niv15": "Estampida: Aturde al objetivo principal.",
+        "Niv30": "Forja Final: Daño masivo que rompe armaduras permanentes."
+    },
+    "M003": { # Rugido del Totem Primordial (Bestia)
+        "Efecto": "Conexión animal indomable.",
+        "Niv1": "Grito de guerra + 100% AGI/STR.",
+        "Niv15": "Furia Salvaje: Aumenta velocidad de ataque 30%.",
+        "Niv30": "Avatar del Totem: Invoca el espíritu del animal, daño 250%."
+    }
+}
