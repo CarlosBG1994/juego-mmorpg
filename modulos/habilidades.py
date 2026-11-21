@@ -1,29 +1,39 @@
-# Estructura de Datos para Habilidades Míticas
-# La "Potencia" se calcula sobre el Stat base del jugador (STR, INT o AGI).
-
-DETALLES_MITICAS = {
-    "M001": { # Ira del Cataclismo (Caballero/Paladín)
-        "Efecto": "Invoca ondas sísmicas de luz solar.",
-        "Niv1": "Golpe base + 100% STR. Daño físico puro.",
-        "Niv15": "Suelo Sagrado: Reduce DEF enemigos 20%.",
-        "Niv30": "Cataclismo: Daño en área (AOE) masivo 250% STR."
+# --- AMPLIACIÓN DE DETALLES_MITICAS ---
+DETALLES_MITICAS.update({
+    "M002": { # Corazón de los Ancestros (Druida/Alcaide)
+        "Efecto": "Vínculo vital con la raíz del mundo.",
+        "Niv1": "Pulso Vital + 100% INT. Cura aliada.",
+        "Niv15": "Raíces Enredadoras: Inmoviliza enemigos 3s.",
+        "Niv30": "Renacimiento: Revive aliado o cura 250% INT en área."
     },
-    "M006": { # Dominio del Nexo Arcano (Mago/Invocador)
-        "Efecto": "Manipulación pura del Eter.",
-        "Niv1": "Ráfaga de Eter + 100% INT. Daño mágico.",
-        "Niv15": "Resonancia: Recupera 10% de maná por golpe.",
-        "Niv30": "Colapso del Nexo: Ignora 50% de resistencia mágica."
+    "M004": { # Velo de la Oscuridad Eterna (Asesino/Acechador)
+        "Efecto": "Control absoluto de las sombras.",
+        "Niv1": "Filo de Sombra + 100% AGI. Daño crítico.",
+        "Niv15": "Capa Sombría: Invisibilidad total 5s.",
+        "Niv30": "Ejecución de Umbra: Daño crítico masivo 300% AGI."
     },
-    "M015": { # Impacto de la Forja Profunda (Guerrero/Campeón Enano)
-        "Efecto": "Fuerza telúrica de las montañas.",
-        "Niv1": "Martillazo rúnico + 100% STR.",
-        "Niv15": "Estampida: Aturde al objetivo principal.",
-        "Niv30": "Forja Final: Daño masivo que rompe armaduras permanentes."
+    "M005": { # Sentencia de la Forja Solar (Clérigo/Paladín)
+        "Efecto": "Juicio divino radiante.",
+        "Niv1": "Rayo Justiciero + 100% INT. Daño sagrado.",
+        "Niv15": "Aura de Pureza: Limpia estados alterados aliados.",
+        "Niv30": "Juicio Final: Daño área masivo 250% INT + Ceguera."
     },
-    "M003": { # Rugido del Totem Primordial (Bestia)
-        "Efecto": "Conexión animal indomable.",
-        "Niv1": "Grito de guerra + 100% AGI/STR.",
-        "Niv15": "Furia Salvaje: Aumenta velocidad de ataque 30%.",
-        "Niv30": "Avatar del Totem: Invoca el espíritu del animal, daño 250%."
+    "M010": { # Flecha del Eclipse Lunar (Guardabosques)
+        "Efecto": "Precisión infalible bajo el cosmos.",
+        "Niv1": "Flecha Gélida + 100% DES. Daño de precisión.",
+        "Niv15": "Marca del Cazador: Aumenta críticos en objetivo 20%.",
+        "Niv30": "Lluvia de Eclipse: Lluvia de flechas 250% DES en área."
+    },
+    "M016": { # Muralla de los Mil Reinos (Defensor Rúnico)
+        "Efecto": "La defensa absoluta.",
+        "Niv1": "Escudo de Roca + 100% VIT. Escudo personal.",
+        "Niv15": "Baluarte: Reduce daño recibido por aliados 40%.",
+        "Niv30": "Terremoto Rúnico: Daño de choque 200% VIT + Derribo."
+    },
+    "M019": { # Frenesí del Depredador Alfa (Hombre Bestia)
+        "Efecto": "Instinto de caza puro.",
+        "Niv1": "Zarpazo Salvaje + 100% STR/AGI.",
+        "Niv15": "Furia Creciente: +1% daño por cada golpe dado.",
+        "Niv30": "Depredación Total: Daño masivo 300% STR + Hemorragia."
     }
-}
+})
