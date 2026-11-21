@@ -1,39 +1,35 @@
-# --- AMPLIACIÓN DE DETALLES_MITICAS ---
-DETALLES_MITICAS.update({
-    "M002": { # Corazón de los Ancestros (Druida/Alcaide)
-        "Efecto": "Vínculo vital con la raíz del mundo.",
-        "Niv1": "Pulso Vital + 100% INT. Cura aliada.",
-        "Niv15": "Raíces Enredadoras: Inmoviliza enemigos 3s.",
-        "Niv30": "Renacimiento: Revive aliado o cura 250% INT en área."
+# --- CATÁLOGO DE HABILIDADES LEYENDA (TIER II) ---
+# Límite: 10 portadores simultáneos por habilidad.
+
+DETALLES_LEYENDA = {
+    "L001": { # Susurro del Viento Silvano (Elfo)
+        "Efecto": "Control sónico y natural.",
+        "Niv1": "Ráfaga Silenciosa + 80% AGI. Daño por aire.",
+        "Niv15": "Eco del Bosque: Refleja 20% del daño recibido.",
+        "Niv30": "Canto de la Arboleda: Daño en área 200% AGI + Ralentización."
     },
-    "M004": { # Velo de la Oscuridad Eterna (Asesino/Acechador)
-        "Efecto": "Control absoluto de las sombras.",
-        "Niv1": "Filo de Sombra + 100% AGI. Daño crítico.",
-        "Niv15": "Capa Sombría: Invisibilidad total 5s.",
-        "Niv30": "Ejecución de Umbra: Daño crítico masivo 300% AGI."
+    "L002": { # Marca del Cazador de Dragones (Humano/Enano)
+        "Efecto": "Perforación de armadura pesada.",
+        "Niv1": "Disparo de Precisión + 80% DES. Ignora 10% DEF.",
+        "Niv15": "Punto Débil: Los críticos reducen la resistencia del objetivo.",
+        "Niv30": "Flecha Rompe-Escamas: Daño directo 200% DES + Hemorragia."
     },
-    "M005": { # Sentencia de la Forja Solar (Clérigo/Paladín)
-        "Efecto": "Juicio divino radiante.",
-        "Niv1": "Rayo Justiciero + 100% INT. Daño sagrado.",
-        "Niv15": "Aura de Pureza: Limpia estados alterados aliados.",
-        "Niv30": "Juicio Final: Daño área masivo 250% INT + Ceguera."
+    "L003": { # Furia del Volcán (Enano)
+        "Efecto": "Canalización de magma rúnico.",
+        "Niv1": "Golpe de Magma + 80% STR. Daño fuego.",
+        "Niv15": "Piel de Obsidiana: +30% VIT y reducción de daño fuego.",
+        "Niv30": "Erupción Interna: Daño área 200% STR + quemadura persistente."
     },
-    "M010": { # Flecha del Eclipse Lunar (Guardabosques)
-        "Efecto": "Precisión infalible bajo el cosmos.",
-        "Niv1": "Flecha Gélida + 100% DES. Daño de precisión.",
-        "Niv15": "Marca del Cazador: Aumenta críticos en objetivo 20%.",
-        "Niv30": "Lluvia de Eclipse: Lluvia de flechas 250% DES en área."
+    "L004": { # Danza del Alma Bestial (Hombre Bestia)
+        "Efecto": "Transformación parcial en espíritu.",
+        "Niv1": "Garra Espectral + 80% AGI. Daño espíritu.",
+        "Niv15": "Reflejos Feroces: +20% esquiva durante 6s.",
+        "Niv30": "Danza del Depredador: Daño encadenado a 3 objetivos 180% AGI."
     },
-    "M016": { # Muralla de los Mil Reinos (Defensor Rúnico)
-        "Efecto": "La defensa absoluta.",
-        "Niv1": "Escudo de Roca + 100% VIT. Escudo personal.",
-        "Niv15": "Baluarte: Reduce daño recibido por aliados 40%.",
-        "Niv30": "Terremoto Rúnico: Daño de choque 200% VIT + Derribo."
-    },
-    "M019": { # Frenesí del Depredador Alfa (Hombre Bestia)
-        "Efecto": "Instinto de caza puro.",
-        "Niv1": "Zarpazo Salvaje + 100% STR/AGI.",
-        "Niv15": "Furia Creciente: +1% daño por cada golpe dado.",
-        "Niv30": "Depredación Total: Daño masivo 300% STR + Hemorragia."
+    "L005": { # Luz de la Aurora Sagrada (Humano/Elfo)
+        "Efecto": "Sanación y protección de luz pura.",
+        "Niv1": "Destello de Aurora + 80% INT. Cura básica.",
+        "Niv15": "Barrera de Fe: Escudo de absorción (150% INT).",
+        "Niv30": "Despertar Divino: Cura masiva en área 200% INT + Purga."
     }
-})
+}
