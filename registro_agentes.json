@@ -1,0 +1,44 @@
+{
+  "explorador": {
+    "nombre": "Agente 0 · Explorador y Creador",
+    "rol": "Lee todo lo que existe en el proyecto y en juego_explicado.txt, crea modulos base/nuevos y genera agentes con su chat.",
+    "archivo": null,
+    "es_creador_modulos": true
+  },
+  "razas_y_clases": {
+    "nombre": "Agente · Razas y Clases",
+    "rol": "Crea y modifica el modulo de las 4 razas, clases, sub-formas de Hombre Bestia, Pugil y compatibilidad de uso.",
+    "archivo": "modulos/razas_y_clases.py",
+    "es_creador_modulos": false
+  },
+  "habilidades": {
+    "nombre": "Agente · Habilidades (1.870)",
+    "rol": "Crea y modifica el catalogo de 1.870 habilidades, tiers 15/30, fusion nivel 40 y uso restringido vs. obtencion libre.",
+    "archivo": "modulos/habilidades.py",
+    "es_creador_modulos": false
+  },
+  "economia_y_comercio": {
+    "nombre": "Agente · Mochila, Subasta, Gremio e Intercambio",
+    "rol": "Crea y modifica inventario, habilidades no equipables obtenidas y comercio por Subasta, Gremio e Intercambio directo.",
+    "archivo": "modulos/economia_y_comercio.py",
+    "es_creador_modulos": false
+  },
+  "progresion_y_stats": {
+    "nombre": "Agente · Niveles y Estadisticas",
+    "rol": "Crea y modifica niveles 1-100 iniciales, +5 puntos libres, +10 HP por nivel y +50 niveles por continente hasta nivel 300.",
+    "archivo": "modulos/progresion_y_stats.py",
+    "es_creador_modulos": false
+  },
+  "mundo_y_pve": {
+    "nombre": "Agente · Reinos, Monstruos y Jefes",
+    "rol": "Crea y modifica reinos, zonas de caza, bestiario, drops, jefes de zona, misiones y continentes ocultos.",
+    "archivo": "modulos/mundo_y_pve.py",
+    "es_creador_modulos": false
+  },
+  "integrador": {
+    "nombre": "Agente · Integrador General",
+    "rol": "Revisa todos los modulos creados, los conecta sin borrar nada y verifica que todo encaje.",
+    "archivo": "modulos/integrador.py",
+    "es_creador_modulos": false
+  }
+}
