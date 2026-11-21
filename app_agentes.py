@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import socketserver
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -138,29 +139,62 @@ def llamar_gemini(system_prompt: str, mensajes: list) -> str:
             "Ejecuta: export GEMINI_API_KEY='tu_clave_aqui' y vuelve a arrancar."
         )
 
+    modelo_env = os.environ.get("GEMINI_MODEL", "").strip()
+    modelos_a_probar = [modelo_env] if modelo_env else [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+    ]
+
     contents = []
     for m in mensajes:
         rol = "user" if m["role"] == "user" else "model"
         contents.append({"role": rol, "parts": [{"text": m["content"]}]})
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     payload = {
         "system_instruction": {"parts": [{"text": system_prompt}]},
         "contents": contents,
     }
 
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=180) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
+    ultimo_error = ""
+    for modelo in modelos_a_probar:
+        if not modelo:
+            continue
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={api_key}"
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            partes = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+            texto = "".join(p.get("text", "") for p in partes if "text" in p).strip()
+            return texto or "No se recibio respuesta de texto."
+        except urllib.error.HTTPError as e:
+            detalle = ""
+            try:
+                detalle = e.read().decode("utf-8", errors="ignore")
+            except Exception:
+                detalle = str(e)
+            ultimo_error = f"Error HTTP {e.code} con el modelo '{modelo}': {detalle[:300]}"
+            print(f"[AVISO] {ultimo_error}")
+            if e.code == 404:
+                continue
+            return ultimo_error
+        except Exception as e:
+            ultimo_error = f"Error de conexion al llamar a Gemini: {e}"
+            print(f"[AVISO] {ultimo_error}")
+            return ultimo_error
 
-    partes = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-    texto = "".join(p.get("text", "") for p in partes if "text" in p).strip()
-    return texto or "No se recibio respuesta de texto."
+    return (
+        "No se pudo conectar con ningun modelo de Gemini (404 Not Found).\n"
+        f"Ultimo detalle: {ultimo_error}\n"
+        "Puedes probar indicando un modelo concreto en la terminal con:\n"
+        "export GEMINI_MODEL='gemini-2.0-flash'"
+    )
 
 
 def extraer_bloques_archivo(respuesta: str) -> list[tuple[str, str]]:
@@ -291,224 +325,3 @@ HTML_PAGE = """<!DOCTYPE html>
 </head>
 <body>
   <header>
-    <h1>Snd-Worlds · Centro de Agentes</h1>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <button class="quick-btn" id="btnAutoCrear">Leer todo y crear módulos/agentes</button>
-      <span style="font-size:12px;color:#94a3b8;">Puerto 9567 · Sin borrar lo previo</span>
-    </div>
-  </header>
-  <div class="main">
-    <aside class="sidebar" id="sidebar"></aside>
-    <section class="chat-area">
-      <div class="chat-header" id="chatHeader">
-        <strong id="agenteNombre">Cargando...</strong>
-        <span id="agenteRol"></span>
-      </div>
-      <div class="messages" id="messages"></div>
-      <form class="composer" id="composer">
-        <textarea id="inputMsg" placeholder="Escribe aquí lo que quieres que haga este agente..." required></textarea>
-        <button class="send" type="submit">Enviar</button>
-      </form>
-    </section>
-  </div>
-
-  <script>
-    let agentes = {};
-    let actual = "explorador";
-
-    async function cargarEstado(agenteId = actual) {
-      actual = agenteId;
-      const res = await fetch(`/api/estado?agente=${encodeURIComponent(actual)}`);
-      const data = await res.json();
-      agentes = data.agentes;
-      renderSidebar();
-      renderHeader();
-      renderMensajes(data.historial || []);
-    }
-
-    function renderSidebar() {
-      const sb = document.getElementById("sidebar");
-      sb.innerHTML = "";
-      for (const [id, info] of Object.entries(agentes)) {
-        const btn = document.createElement("button");
-        btn.className = "tab-btn" + (id === actual ? " active" : "");
-        btn.textContent = info.nombre;
-        btn.onclick = () => cargarEstado(id);
-        sb.appendChild(btn);
-      }
-    }
-
-    function renderHeader() {
-      const info = agentes[actual] || {};
-      document.getElementById("agenteNombre").textContent = info.nombre || actual;
-      const extra = info.archivo ? ` · Archivo: ${info.archivo}` : " · Lee todo y crea módulos/agentes";
-      document.getElementById("agenteRol").textContent = (info.rol || "") + extra;
-    }
-
-    function renderMensajes(historial) {
-      const box = document.getElementById("messages");
-      box.innerHTML = "";
-      for (const m of historial) {
-        const div = document.createElement("div");
-        div.className = "msg " + (m.role === "user" ? "user" : "assistant");
-        div.textContent = m.content;
-        if (m.aviso) {
-          const av = document.createElement("div");
-          av.className = "aviso";
-          av.textContent = m.aviso;
-          div.appendChild(av);
-        }
-        box.appendChild(div);
-      }
-      box.scrollTop = box.scrollHeight;
-    }
-
-    async function enviarTexto(texto) {
-      const res = await fetch("/api/mensaje", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agente: actual, mensaje: texto })
-      });
-      const data = await res.json();
-      if (data.nuevo_agente_id) {
-        actual = data.nuevo_agente_id;
-      }
-      await cargarEstado(actual);
-    }
-
-    document.getElementById("btnAutoCrear").addEventListener("click", async () => {
-      actual = "explorador";
-      await enviarTexto(
-        "Lee todo lo que tenemos ahora mismo en el proyecto y en juego_explicado.txt, genera el código inicial de los módulos que falten o estén vacíos sin borrar nada y activa los agentes correspondientes."
-      );
-    });
-
-    document.getElementById("composer").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const ta = document.getElementById("inputMsg");
-      const texto = ta.value.trim();
-      if (!texto) return;
-      ta.value = "";
-      await enviarTexto(texto);
-    });
-
-    cargarEstado("explorador");
-  </script>
-</body>
-</html>
-"""
-
-
-class ManejadorWeb(http.server.BaseHTTPRequestHandler):
-    def _json(self, payload: dict, status: int = 200):
-        cuerpo = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(cuerpo)))
-        self.end_headers()
-        self.wfile.write(cuerpo)
-
-    def do_GET(self):
-        if self.path.startswith("/api/estado"):
-            agente = "explorador"
-            if "agente=" in self.path:
-                agente = self.path.split("agente=", 1)[1].split("&", 1)[0]
-            registro = cargar_registro()
-            if agente not in registro:
-                agente = "explorador"
-            self._json({
-                "agentes": registro,
-                "actual": agente,
-                "historial": cargar_historial(agente),
-            })
-            return
-
-        html_bytes = HTML_PAGE.encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(html_bytes)))
-        self.end_headers()
-        self.wfile.write(html_bytes)
-
-    def do_POST(self):
-        if self.path != "/api/mensaje":
-            self._json({"error": "Ruta no encontrada"}, 404)
-            return
-
-        longitud = int(self.headers.get("Content-Length", "0"))
-        cuerpo = json.loads(self.rfile.read(longitud).decode("utf-8") or "{}")
-        agente_id = cuerpo.get("agente", "explorador")
-        mensaje = (cuerpo.get("mensaje") or "").strip()
-
-        registro = cargar_registro()
-        if agente_id not in registro:
-            agente_id = "explorador"
-
-        info = registro[agente_id]
-        historial = cargar_historial(agente_id)
-        historial.append({"role": "user", "content": mensaje})
-
-        system_prompt = construir_prompt_agente(agente_id, info, registro)
-        respuesta = llamar_gemini(system_prompt, historial)
-
-        avisos = []
-        nuevo_agente_id = None
-
-        if info.get("es_creador_modulos"):
-            for nuevo_mod in extraer_nuevos_modulos(respuesta):
-                mod_id = slug_modulo(nuevo_mod.get("id") or nuevo_mod.get("nombre") or "modulo")
-                archivo_mod = nuevo_mod.get("archivo") or f"modulos/{mod_id}.py"
-                if not archivo_mod.startswith("modulos/"):
-                    archivo_mod = f"modulos/{Path(archivo_mod).name}"
-                registro[mod_id] = {
-                    "nombre": nuevo_mod.get("nombre") or f"Agente · {mod_id}",
-                    "rol": nuevo_mod.get("rol") or "Agente especializado en su modulo.",
-                    "archivo": archivo_mod,
-                    "es_creador_modulos": False,
-                }
-                ruta_archivo = BASE_DIR / archivo_mod
-                if not ruta_archivo.exists():
-                    ruta_archivo.write_text(f"# Modulo: {mod_id}\n", encoding="utf-8")
-                nuevo_agente_id = mod_id
-                avisos.append(f"Agente listo: {registro[mod_id]['nombre']} ({archivo_mod})")
-
-            guardar_registro(registro)
-
-            for ruta_arch, cod_arch in extraer_bloques_archivo(respuesta):
-                respaldo = hacer_backup(ruta_arch)
-                (BASE_DIR / ruta_arch).write_text(cod_arch, encoding="utf-8")
-                avisos.append(
-                    f"Creado/actualizado {ruta_arch} sin borrar lo previo"
-                    + (f" (copia en {respaldo})" if respaldo else "")
-                )
-        else:
-            codigo = extraer_bloque_python(respuesta)
-            archivo_rel = info.get("archivo") or f"modulos/{agente_id}.py"
-            if codigo:
-                respaldo = hacer_backup(archivo_rel)
-                ruta_archivo = BASE_DIR / archivo_rel
-                ruta_archivo.write_text(codigo, encoding="utf-8")
-                avisos.append(
-                    f"Guardado en {archivo_rel} sin borrar lo previo"
-                    + (f" (copia en {respaldo})" if respaldo else "")
-                )
-
-        aviso_final = " · ".join(avisos)
-        historial.append({"role": "assistant", "content": respuesta, "aviso": aviso_final})
-        guardar_historial(agente_id, historial)
-
-        self._json({
-            "ok": True,
-            "nuevo_agente_id": nuevo_agente_id,
-            "aviso": aviso_final,
-        })
-
-    def log_message(self, format, *args):
-        pass
-
-
-if __name__ == "__main__":
-    puerto = int(os.environ.get("PORT", "9567"))
-    with socketserver.ThreadingTCPServer(("0.0.0.0", puerto), ManejadorWeb) as httpd:
-        print(f"Web de agentes de Snd-Worlds lista en http://localhost:{puerto}")
-        httpd.serve_forever()
