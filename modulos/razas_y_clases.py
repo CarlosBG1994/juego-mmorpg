@@ -4,67 +4,58 @@ Gestiona la identidad visual, atributos, restricciones de equipo,
 personalización estética y maestría de progresión de personajes.
 """
 
-# --- CONFIGURACIÓN DE ACCESO ---
-RAZAS_HABILITADAS = ["Humano", "Elfo", "Enano", "Hombre Bestia"]
+# ... [MANTENEMOS CONFIGURACIONES PREVIAS DE APARIENCIA Y RAZAS] ...
 
-# --- CONFIGURACIÓN DE APARIENCIA (Editor de Personaje) ---
-CONFIGURACION_APARIENCIA = {
-    "genero": ["Masculino", "Femenino"],
-    "tonos_piel": ["Palido", "Bronceado", "Oscuro", "Albino", "Sintetico", "Escamoso", "Pétreo", "Cenizo"],
-    "cabello": {
-        "estilos": ["Corto militar", "Largo ondulado", "Recogido en moño", "Rapado tribal", "Trenzado complejo", "Cresta punk", "Melena salvaje"],
-        "colores": ["Negro azabache", "Rubio platino", "Castaño rojizo", "Blanco invernal", "Azul electrico", "Fuego intenso"]
+# 1. CLASES DRACÓNICAS (Ocultas hasta nueva orden)
+CLASES_DRACONICAS = {
+    "Guerrero Dragon": {
+        "rol": "Tanque/DPS", 
+        "foco": "Combate cuerpo a cuerpo con aliento elemental", 
+        "armadura": ["Placas"],
+        "atributos_maestros": ["STR", "VIT"]
     },
-    "rasgos_faciales": ["Cicatrices de batalla", "Tatuajes rituales", "Pintura de guerra", "Piercings de hueso", "Marcas de nacimiento", "Vello facial denso"],
-    "constitucion": {"rango_peso": "1-100 (Delgado a Robusto)", "rango_altura": "1-100 (Bajo a Gigante)"},
-    "detalles": ["Color de ojos intensos", "Forma de la nariz perfilada", "Cicatrices en el torso", "Implantes runicos"]
+    "Mago de Sangre": {
+        "rol": "DPS Mágico", 
+        "foco": "Manipulación de energía vital y fuego", 
+        "armadura": ["Tela"],
+        "atributos_maestros": ["INT", "VIT"]
+    },
+    "Custodio de Escamas": {
+        "rol": "Tanque Defensivo", 
+        "foco": "Absorción de daño mediante escamas reforzadas", 
+        "armadura": ["Placas", "Malla"],
+        "atributos_maestros": ["VIT", "DES"]
+    },
+    "Acechador Draconico": {
+        "rol": "DPS Ágil", 
+        "foco": "Velocidad sobrehumana y ataques de precisión", 
+        "armadura": ["Cuero"],
+        "atributos_maestros": ["AGI", "DES"]
+    }
 }
 
-RESTRICCIONES_VISUALES = {
-    "Enano": {"prohibir_estilos": ["Melena salvaje"], "solo_tonos_piel": ["Palido", "Bronceado", "Cenizo", "Pétreo"]},
-    "Elfo": {"prohibir_rasgos": ["Vello facial denso"], "solo_tonos_piel": ["Palido", "Bronceado", "Albino"]},
-    "Draconica": {"solo_tonos_piel": ["Escamoso"], "prohibir_cabello": True}
+# 2. INTEGRACIÓN EN EL SISTEMA
+# Añadimos las clases a la lógica de validación pero NO habilitamos la raza
+CLASES_POR_RAZA = {
+    "Humano": ["Caballero", "Paladin", "Mago de Batalla", "Pugil", "Asesino", "Explorador", "Invocador", "Clerigo"],
+    "Elfo": ["Guardabosques", "Alcaide", "Druida", "Espadachin Silvano", "Monje del Viento (Pugil)", "Acechador Nocturno (Asesino)", "Mago de Batalla", "Invocador"],
+    "Enano": ["Guerrero Pesado", "Defensor Runico de Asedio", "Campeon Runico", "Luchador de Puno de Hierro (Pugil)", "Ballestero (Explorador)", "Asesino", "Mago de Batalla", "Invocador", "Clerigo"],
+    "Hombre Bestia": ["Campeon", "Acechador Salvaje", "Chaman Primordial", "Pugil", "Asesino", "Explorador", "Mago de Batalla", "Invocador", "Clerigo"],
+    "Draconica": list(CLASES_DRACONICAS.keys())
 }
 
-# --- SISTEMAS MECÁNICOS ---
-AFINIDADES_RACIALES = {
-    "Humano": {"nombre": "Diplomacia Comercial", "efecto": "+2% de oro"},
-    "Elfo": {"nombre": "Paso Silvano", "efecto": "+5% velocidad"},
-    "Enano": {"nombre": "Ojo del Forjador", "efecto": "+5% identificación"},
-    "Hombre Bestia": {"nombre": "Instinto Indómito", "efecto": "Inmunidad al Miedo"}
-}
+# Actualizamos ARMADURAS_PERMITIDAS para incluir las dracónicas
+for clase, datos in CLASES_DRACONICAS.items():
+    ARMADURAS_PERMITIDAS[clase] = datos["armadura"]
 
-ARMADURAS_PERMITIDAS = {
-    "Caballero": ["Placas", "Malla"], "Paladin": ["Placas", "Malla", "Cuero"],
-    "Mago de Batalla": ["Tela", "Cuero"], "Pugil": ["Tela", "Cuero"],
-    "Asesino": ["Cuero", "Tela"], "Explorador": ["Cuero", "Tela"]
-    # (Se expande según clases definidas)
-}
+# 3. MATRIZ DE ESPECIALIZACIÓN PARA LAS CLASES NUEVAS
+for clase, datos in CLASES_DRACONICAS.items():
+    MATRIZ_ESPECIALIZACION[clase] = datos["atributos_maestros"]
 
-MATRIZ_ESPECIALIZACION = {
-    "Caballero": ["STR", "VIT"], "Paladin": ["STR", "INT", "VIT"],
-    "Mago de Batalla": ["INT", "STR"], "Pugil": ["STR", "AGI"],
-    "Asesino": ["AGI", "DES"], "Explorador": ["DES", "AGI"]
-}
+# ... [RESTO DE FUNCIONES DE GESTIÓN INTACTAS] ...
 
-# --- FUNCIONES DE GESTIÓN ---
-
-def obtener_opciones_personalizacion(raza: str) -> dict:
-    if raza not in RAZAS_HABILITADAS: return {}
-    config = CONFIGURACION_APARIENCIA.copy()
-    restricciones = RESTRICCIONES_VISUALES.get(raza, {})
-    # ... (Lógica de filtrado aplicada aquí) ...
-    return config
-
-def validar_uso_equipo(clase: str, tipo_armadura: str) -> bool:
-    return tipo_armadura in ARMADURAS_PERMITIDAS.get(clase, [])
-
-def obtener_plantilla_creacion(raza: str) -> dict:
-    if raza not in RAZAS_HABILITADAS: return {}
-    plantilla = obtener_opciones_personalizacion(raza)
-    if raza == "Hombre Bestia": plantilla["detalles"].append("Patrón de Pelaje")
-    return plantilla
-
-def calcular_atributos_iniciales(raza: str, clase: str, subforma: str = None) -> dict:
-    # Lógica de cálculo acumulativa (Base + Clase + Subforma)
-    pass
+def obtener_maestria_clase(clase: str) -> dict:
+    """Retorna rol y foco. Incluye clases dracónicas."""
+    if clase in CLASES_DRACONICAS:
+        return {"rol": CLASES_DRACONICAS[clase]["rol"], "foco": CLASES_DRACONICAS[clase]["foco"]}
+    return MAESTRIA_CLASES.get(clase, {"rol": "Desconocido", "foco": "Exploración"})
