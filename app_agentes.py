@@ -17,6 +17,24 @@ BACKUPS_DIR = BASE_DIR / "backups_agentes"
 REGISTRO_PATH = BASE_DIR / "registro_agentes.json"
 HISTORIALES_DIR = BASE_DIR / "historiales_chats"
 TXT_GUIA_PATH = BASE_DIR / "juego_explicado.txt"
+ENV_PATH = BASE_DIR / ".env"
+
+
+def cargar_env() -> None:
+    if not ENV_PATH.exists():
+        return
+    for linea in ENV_PATH.read_text(encoding="utf-8").splitlines():
+        limpia = linea.strip()
+        if not limpia or limpia.startswith("#") or "=" not in limpia:
+            continue
+        clave, valor = limpia.split("=", 1)
+        clave = clave.strip()
+        valor = valor.strip().strip('"').strip("'")
+        if clave and clave not in os.environ:
+            os.environ[clave] = valor
+
+
+cargar_env()
 
 MODULOS_DIR.mkdir(exist_ok=True)
 BACKUPS_DIR.mkdir(exist_ok=True)
@@ -135,8 +153,8 @@ def llamar_gemini(system_prompt: str, mensajes: list) -> str:
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         return (
-            "Falta configurar GEMINI_API_KEY en la terminal del Codespace.\n"
-            "Ejecuta: export GEMINI_API_KEY='tu_clave_aqui' y vuelve a arrancar."
+            "Falta configurar GEMINI_API_KEY en el archivo .env o en la terminal.\n"
+            "Anade GEMINI_API_KEY='tu_clave_aqui' en .env y vuelve a arrancar."
         )
 
     modelo_env = os.environ.get("GEMINI_MODEL", "").strip()
@@ -192,8 +210,8 @@ def llamar_gemini(system_prompt: str, mensajes: list) -> str:
     return (
         "No se pudo conectar con ningun modelo de Gemini (404 Not Found).\n"
         f"Ultimo detalle: {ultimo_error}\n"
-        "Puedes probar indicando un modelo concreto en la terminal con:\n"
-        "export GEMINI_MODEL='gemini-2.0-flash'"
+        "Puedes probar indicando un modelo concreto en .env con:\n"
+        "GEMINI_MODEL=gemini-2.0-flash"
     )
 
 
