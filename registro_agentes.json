@@ -76,5 +76,17 @@
     "rol": "Gestión de carga masiva, particionamiento de zonas y sincronización de minimapa para grupos.",
     "archivo": "modulos/world_sync.py",
     "es_creador_modulos": false
+  },
+  "requisitos": {
+    "nombre": "Agente · Requisitos",
+    "rol": "Validador central de acciones. Determina si el jugador cumple los criterios para progresar.",
+    "archivo": "modulos/requisitos.py",
+    "es_creador_modulos": false
+  },
+  "monitor_calidad": {
+    "nombre": "Agente · Monitor de Calidad (Bot QA)",
+    "rol": "Prueba el sistema en tiempo real, audita dependencias y salta alertas ante errores de balance.",
+    "archivo": "modulos/monitor_calidad.py",
+    "es_creador_modulos": false
   }
 }

@@ -1,61 +1,42 @@
-"""
-Modulo: Razas y Clases de Snd-Worlds
-Gestiona la identidad visual, atributos, restricciones de equipo, 
-personalización estética y maestría de progresión de personajes.
-"""
+# ... [Mantenemos las estructuras previas intactas] ...
 
-# ... [MANTENEMOS CONFIGURACIONES PREVIAS DE APARIENCIA Y RAZAS] ...
-
-# 1. CLASES DRACÓNICAS (Ocultas hasta nueva orden)
-CLASES_DRACONICAS = {
+# 4. SISTEMA DE MAESTRIA DRACÓNICA
+# Esto define la ventaja táctica única (pasiva) que obtiene el jugador al elegir una de estas clases.
+MAESTRIA_DRACONICA = {
     "Guerrero Dragon": {
-        "rol": "Tanque/DPS", 
-        "foco": "Combate cuerpo a cuerpo con aliento elemental", 
-        "armadura": ["Placas"],
-        "atributos_maestros": ["STR", "VIT"]
+        "bono": "+10% de daño elemental tras recibir un golpe físico.",
+        "efecto_visual": "Brillo de escamas incandescente al activar."
     },
     "Mago de Sangre": {
-        "rol": "DPS Mágico", 
-        "foco": "Manipulación de energía vital y fuego", 
-        "armadura": ["Tela"],
-        "atributos_maestros": ["INT", "VIT"]
+        "bono": "Convierte el 5% del daño realizado en regeneración de HP.",
+        "efecto_visual": "Aura de vapor carmesí alrededor del jugador."
     },
     "Custodio de Escamas": {
-        "rol": "Tanque Defensivo", 
-        "foco": "Absorción de daño mediante escamas reforzadas", 
-        "armadura": ["Placas", "Malla"],
-        "atributos_maestros": ["VIT", "DES"]
+        "bono": "Reduce el daño de ataques críticos recibidos en un 15%.",
+        "efecto_visual": "Las escamas se vuelven de un tono metálico oscuro."
     },
     "Acechador Draconico": {
-        "rol": "DPS Ágil", 
-        "foco": "Velocidad sobrehumana y ataques de precisión", 
-        "armadura": ["Cuero"],
-        "atributos_maestros": ["AGI", "DES"]
+        "bono": "Aumenta la velocidad de movimiento un 10% tras atacar.",
+        "efecto_visual": "Estela de energía traslúcida al moverse."
     }
 }
 
-# 2. INTEGRACIÓN EN EL SISTEMA
-# Añadimos las clases a la lógica de validación pero NO habilitamos la raza
-CLASES_POR_RAZA = {
-    "Humano": ["Caballero", "Paladin", "Mago de Batalla", "Pugil", "Asesino", "Explorador", "Invocador", "Clerigo"],
-    "Elfo": ["Guardabosques", "Alcaide", "Druida", "Espadachin Silvano", "Monje del Viento (Pugil)", "Acechador Nocturno (Asesino)", "Mago de Batalla", "Invocador"],
-    "Enano": ["Guerrero Pesado", "Defensor Runico de Asedio", "Campeon Runico", "Luchador de Puno de Hierro (Pugil)", "Ballestero (Explorador)", "Asesino", "Mago de Batalla", "Invocador", "Clerigo"],
-    "Hombre Bestia": ["Campeon", "Acechador Salvaje", "Chaman Primordial", "Pugil", "Asesino", "Explorador", "Mago de Batalla", "Invocador", "Clerigo"],
-    "Draconica": list(CLASES_DRACONICAS.keys())
-}
-
-# Actualizamos ARMADURAS_PERMITIDAS para incluir las dracónicas
-for clase, datos in CLASES_DRACONICAS.items():
-    ARMADURAS_PERMITIDAS[clase] = datos["armadura"]
-
-# 3. MATRIZ DE ESPECIALIZACIÓN PARA LAS CLASES NUEVAS
-for clase, datos in CLASES_DRACONICAS.items():
-    MATRIZ_ESPECIALIZACION[clase] = datos["atributos_maestros"]
-
-# ... [RESTO DE FUNCIONES DE GESTIÓN INTACTAS] ...
-
 def obtener_maestria_clase(clase: str) -> dict:
-    """Retorna rol y foco. Incluye clases dracónicas."""
+    """
+    Retorna rol, foco y la Maestría única de la clase.
+    """
+    # Si es clase dracónica, devolvemos su maestría especial
     if clase in CLASES_DRACONICAS:
-        return {"rol": CLASES_DRACONICAS[clase]["rol"], "foco": CLASES_DRACONICAS[clase]["foco"]}
-    return MAESTRIA_CLASES.get(clase, {"rol": "Desconocido", "foco": "Exploración"})
+        datos = CLASES_DRACONICAS[clase]
+        maestria = MAESTRIA_DRACONICA.get(clase, {"bono": "N/A"})
+        return {
+            "rol": datos["rol"], 
+            "foco": datos["foco"],
+            "maestria_unica": maestria["bono"]
+        }
+    
+    # Maestría estándar para las razas iniciales
+    maestria_base = MAESTRIA_CLASES.get(clase, {"rol": "Desconocido", "foco": "Exploración", "maestria_unica": "Ninguna"})
+    return maestria_base
+
+# ... [RESTO DEL MÓDULO INTACTO] ...
