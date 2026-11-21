@@ -1,7 +1,7 @@
 """
 Modulo: World Sync
 Responsabilidad: Gestión de carga masiva, particionamiento y sincronización total.
-Mejora: Implementación de sistema de prioridades y caché de estado para mazmorras.
+Mejora: Sistema de visibilidad total con metadatos de entidades (jugadores, jefes, entorno).
 """
 
 import math
@@ -9,7 +9,6 @@ import math
 class GestorZonas:
     def __init__(self):
         self.particiones_activas = {}
-        # Nuevo: Estado de mazmorras para grupos
         self.instancias_mazmorras = {} 
 
     def registrar_jugador_en_zona(self, id_jugador: str, zona: str):
@@ -29,29 +28,45 @@ class SincronizadorGrupo:
         return False
 
 class MotorStreamingMundo:
+    # Registro de todas las entidades con sus características detalladas
     entidades_mundo = {
-        "jugadores": {}, "enemigos": {}, "mascotas": {}, 
-        "monturas": {}, "objetos_interactivos": {}
+        "jugadores": {},  # {id: {"pos": {"x": 0, "y": 0}, "datos": {...}}}
+        "enemigos": {},   # {id: {"pos": {...}, "datos": {"clase": "Elite", "hp": 100}}}
+        "mascotas": {}, 
+        "monturas": {}, 
+        "objetos_interactivos": {},
+        "ciudades": {}
     }
     
-    # Nuevo: Prioridades de visualización
-    prioridades = {"jefes": 1, "jugadores": 2, "objetos": 3, "npc_base": 4}
+    prioridades = {"jefes": 1, "jugadores": 2, "ciudades": 3, "objetos": 4, "npc_base": 5}
 
     @classmethod
-    def obtener_entidades_priorizadas(cls, jugador_pos: dict, radio: int = 500):
-        """Devuelve entidades ordenadas por importancia para el motor gráfico."""
+    def obtener_entidades_visibles(cls, jugador_pos: dict, radio: int = 1000):
+        """
+        Retorna todas las entidades dentro del radio, incluyendo sus características completas.
+        Esto garantiza que el jugador vea todo con sus detalles (ej: HP, clase, nombre).
+        """
         visibles = []
-        # Lógica de filtrado con ordenamiento por prioridad
         for cat, lista in cls.entidades_mundo.items():
-            for id_ent, data in lista.items():
-                if math.sqrt((data['pos']['x'] - jugador_pos['x'])**2 + (data['pos']['y'] - jugador_pos['y'])**2) <= radio:
-                    visibles.append({"id": id_ent, "tipo": cat, "pri": cls.prioridades.get(cat, 5)})
+            for id_ent, info in lista.items():
+                if math.sqrt((info['pos']['x'] - jugador_pos['x'])**2 + (info['pos']['y'] - jugador_pos['y'])**2) <= radio:
+                    # Incluimos los datos completos (clase, nivel, montura, etc.)
+                    visibles.append({
+                        "id": id_ent, 
+                        "tipo": cat, 
+                        "pos": info['pos'], 
+                        "datos": info.get('datos', {}),
+                        "pri": cls.prioridades.get(cat, 6)
+                    })
         return sorted(visibles, key=lambda x: x['pri'])
 
     @classmethod
-    def actualizar_entidad(cls, tipo: str, id_entidad: str, datos: dict):
-        """Actualiza posición y estado de cualquier entidad."""
+    def actualizar_entidad(cls, tipo: str, id_entidad: str, posicion: dict, datos: dict):
+        """
+        Actualiza tanto la ubicación como las características (vida, clase, montura, etc.)
+        de cualquier elemento del mundo.
+        """
         if tipo in cls.entidades_mundo:
-            cls.entidades_mundo[tipo][id_entidad] = datos
+            cls.entidades_mundo[tipo][id_entidad] = {"pos": posicion, "datos": datos}
             return True
         return False
