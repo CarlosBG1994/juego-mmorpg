@@ -1,50 +1,44 @@
 """
-Modulo: modulos/economia_y_comercio.py
-Sistema economico: Cobre, Plata, Oro, Diamante, Platino.
-Inventario para objetos y habilidades (equipables o no), Subasta, Gremio e Intercambio.
+Modulo: Economia y Comercio de Snd-Worlds
+Conversion de monedas (Cobre, Plata, Oro, Diamante, Platino con base 100).
+Mochila, Subastas, Comercio de Gremio e Intercambio directo.
 """
 
-class Monedero:
-    """Manejo de monedas con equivalencia base en cobre: 100 Cobre = 1 Plata, etc."""
-    VALOR_COBRE = 1
-    VALOR_PLATA = 100
-    VALOR_ORO = 10000
-    VALOR_DIAMANTE = 1000000
-    VALOR_PLATINO = 100000000
+from typing import Dict, List, Optional, Any
 
+COBRE_POR_PLATA = 100
+PLATA_POR_ORO = 100
+ORO_POR_DIAMANTE = 100
+DIAMANTE_POR_PLATINO = 100
+
+class Monedero:
+    """Gestiona el saldo en la unidad base (cobre) con conversion automatica."""
     def __init__(self, cobre_total: int = 0):
         self.cobre_total = max(0, cobre_total)
 
-    def anadir(self, cobre: int = 0, plata: int = 0, oro: int = 0, diamante: int = 0, platino: int = 0):
-        total = (
-            cobre * self.VALOR_COBRE +
-            plata * self.VALOR_PLATA +
-            oro * self.VALOR_ORO +
-            diamante * self.VALOR_DIAMANTE +
-            platino * self.VALOR_PLATINO
-        )
-        self.cobre_total += total
+    def agregar_cobre(self, cantidad: int):
+        self.cobre_total += max(0, cantidad)
 
-    def retirar(self, cobre_total_a_retirar: int) -> bool:
-        if self.cobre_total >= cobre_total_a_retirar:
-            self.cobre_total -= cobre_total_a_retirar
+    def retirar_cobre(self, cantidad: int) -> bool:
+        if cantidad <= self.cobre_total:
+            self.cobre_total -= cantidad
             return True
         return False
 
-    def desglose(self) -> dict:
-        resto = self.cobre_total
-        platino = resto // self.VALOR_PLATINO
-        resto %= self.VALOR_PLATINO
-
-        diamante = resto // self.VALOR_DIAMANTE
-        resto %= self.VALOR_DIAMANTE
-
-        oro = resto // self.VALOR_ORO
-        resto %= self.VALOR_ORO
-
-        plata = resto // self.VALOR_PLATA
-        cobre = resto % self.VALOR_PLATA
-
+    def desglose(self) -> Dict[str, int]:
+        total = self.cobre_total
+        cobre = total % COBRE_POR_PLATA
+        total //= COBRE_POR_PLATA
+        
+        plata = total % PLATA_POR_ORO
+        total //= PLATA_POR_ORO
+        
+        oro = total % ORO_POR_DIAMANTE
+        total //= ORO_POR_DIAMANTE
+        
+        diamante = total % DIAMANTE_POR_PLATINO
+        platino = total // DIAMANTE_POR_PLATINO
+        
         return {
             "platino": platino,
             "diamante": diamante,
@@ -53,37 +47,84 @@ class Monedero:
             "cobre": cobre
         }
 
+    @staticmethod
+    def a_cobre(platino: int = 0, diamante: int = 0, oro: int = 0, plata: int = 0, cobre: int = 0) -> int:
+        return (
+            cobre +
+            plata * 100 +
+            oro * 10000 +
+            diamante * 1000000 +
+            platino * 100000000
+        )
+
+class ItemInventario:
+    def __init__(self, id_item: str, nombre: str, tipo: str, datos: Optional[Dict] = None):
+        self.id_item = id_item
+        self.nombre = nombre
+        self.tipo = tipo  # 'habilidad', 'equipo', 'material', 'consumible'
+        self.datos = datos or {}
+
 class Mochila:
-    """Almacena equipo, objetos y habilidades que pueden venderse aunque no sean equipables."""
-    def __init__(self, capacidad: int = 50):
-        self.capacidad = capacidad
-        self.items = []
-        self.habilidades_almacenadas = []
+    def __init__(self, capacidad_maxima: int = 100):
+        self.capacidad_maxima = capacidad_maxima
+        self.items: List[ItemInventario] = []
         self.monedero = Monedero()
 
-    def guardar_habilidad(self, habilidad) -> bool:
-        if len(self.habilidades_almacenadas) < self.capacidad:
-            self.habilidades_almacenadas.append(habilidad)
+    def agregar_item(self, item: ItemInventario) -> bool:
+        if len(self.items) < self.capacidad_maxima:
+            self.items.append(item)
             return True
         return False
 
-class MercadoComercio:
-    """Permite el comercio por Subasta, Gremio e Intercambio directo."""
+    def remover_item(self, id_item: str) -> Optional[ItemInventario]:
+        for i, it in enumerate(self.items):
+            if it.id_item == id_item:
+                return self.items.pop(i)
+        return None
+
+class MercadoSubasta:
     def __init__(self):
-        self.subastas = []
-        self.tiendas_gremio = {}
+        self.lotes: List[Dict[str, Any]] = []
+        self.siguiente_lote_id = 1
 
-    def publicar_en_subasta(self, vendedor: str, item_o_habilidad, precio_cobre: int):
-        lote = {
-            "id_lote": len(self.subastas) + 1,
-            "vendedor": vendedor,
-            "articulo": item_o_habilidad,
-            "precio_cobre": precio_cobre
-        }
-        self.subastas.append(lote)
-        return lote["id_lote"]
+    def publicar_lote(self, vendedor_id: str, item: ItemInventario, precio_cobre: int) -> int:
+        lote_id = self.siguiente_lote_id
+        self.siguiente_lote_id += 1
+        self.lotes.append({
+            "lote_id": lote_id,
+            "vendedor_id": vendedor_id,
+            "item": item,
+            "precio_cobre": precio_cobre,
+            "estado": "activo"
+        })
+        return lote_id
 
-    def realizar_intercambio(self, pj_a, pj_b, item_a, item_b):
-        """Intercambio directo entre dos jugadores."""
-        # Se gestiona el traspaso directo y seguro entre mochilas
+    def comprar_lote(self, lote_id: int, comprador_mochila: Mochila) -> Optional[ItemInventario]:
+        for lote in self.lotes:
+            if lote["lote_id"] == lote_id and lote["estado"] == "activo":
+                if comprador_mochila.monedero.retirar_cobre(lote["precio_cobre"]):
+                    lote["estado"] = "vendido"
+                    comprador_mochila.agregar_item(lote["item"])
+                    return lote["item"]
+        return None
+
+class IntercambioDirecto:
+    @staticmethod
+    def realizar_intercambio(
+        jugador_a_mochila: Mochila, item_a_id: str,
+        jugador_b_mochila: Mochila, item_b_id: str
+    ) -> bool:
+        item_a = jugador_a_mochila.remover_item(item_a_id)
+        item_b = jugador_b_mochila.remover_item(item_b_id)
+        
+        if not item_a or not item_b:
+            # Revertir si fallo alguno
+            if item_a:
+                jugador_a_mochila.agregar_item(item_a)
+            if item_b:
+                jugador_b_mochila.agregar_item(item_b)
+            return False
+
+        jugador_a_mochila.agregar_item(item_b)
+        jugador_b_mochila.agregar_item(item_a)
         return True
