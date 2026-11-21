@@ -16,5 +16,14 @@
     "role": "assistant",
     "content": "Error de conexion al llamar a Gemini: The read operation timed out",
     "aviso": ""
+  },
+  {
+    "role": "user",
+    "content": "vamos con el catalogo base"
+  },
+  {
+    "role": "assistant",
+    "content": "Error de conexion al llamar a Gemini: The read operation timed out",
+    "aviso": ""
   }
 ]
