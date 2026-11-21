@@ -157,12 +157,7 @@ def llamar_gemini(system_prompt: str, mensajes: list) -> str:
             "Anade GEMINI_API_KEY='tu_clave_aqui' en .env y vuelve a arrancar."
         )
 
-    modelo_env = os.environ.get("GEMINI_MODEL", "").strip()
-    modelos_a_probar = [modelo_env] if modelo_env else [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-    ]
+    modelo = os.environ.get("GEMINI_MODEL", "").strip() or "gemini-flash-latest"
 
     contents = []
     for m in mensajes:
@@ -174,45 +169,36 @@ def llamar_gemini(system_prompt: str, mensajes: list) -> str:
         "contents": contents,
     }
 
-    ultimo_error = ""
-    for modelo in modelos_a_probar:
-        if not modelo:
-            continue
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={api_key}"
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=180) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            partes = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-            texto = "".join(p.get("text", "") for p in partes if "text" in p).strip()
-            return texto or "No se recibio respuesta de texto."
-        except urllib.error.HTTPError as e:
-            detalle = ""
-            try:
-                detalle = e.read().decode("utf-8", errors="ignore")
-            except Exception:
-                detalle = str(e)
-            ultimo_error = f"Error HTTP {e.code} con el modelo '{modelo}': {detalle[:300]}"
-            print(f"[AVISO] {ultimo_error}")
-            if e.code == 404:
-                continue
-            return ultimo_error
-        except Exception as e:
-            ultimo_error = f"Error de conexion al llamar a Gemini: {e}"
-            print(f"[AVISO] {ultimo_error}")
-            return ultimo_error
-
-    return (
-        "No se pudo conectar con ningun modelo de Gemini (404 Not Found).\n"
-        f"Ultimo detalle: {ultimo_error}\n"
-        "Puedes probar indicando un modelo concreto en .env con:\n"
-        "GEMINI_MODEL=gemini-2.0-flash"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "X-goog-api-key": api_key,
+        },
+        method="POST",
     )
+
+    try:
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        partes = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        texto = "".join(p.get("text", "") for p in partes if "text" in p).strip()
+        return texto or "No se recibio respuesta de texto."
+    except urllib.error.HTTPError as e:
+        detalle = ""
+        try:
+            detalle = e.read().decode("utf-8", errors="ignore")
+        except Exception:
+            detalle = str(e)
+        aviso = f"Error HTTP {e.code} con el modelo '{modelo}': {detalle[:400]}"
+        print(f"[AVISO] {aviso}")
+        return aviso
+    except Exception as e:
+        aviso = f"Error de conexion al llamar a Gemini: {e}"
+        print(f"[AVISO] {aviso}")
+        return aviso
 
 
 def extraer_bloques_archivo(respuesta: str) -> list[tuple[str, str]]:
