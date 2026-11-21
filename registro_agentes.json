@@ -7,37 +7,37 @@
   },
   "razas_y_clases": {
     "nombre": "Agente · Razas y Clases",
-    "rol": "Crea y modifica el modulo de las 4 razas, clases, sub-formas de Hombre Bestia, Pugil y compatibilidad de uso.",
+    "rol": "Controla las 4 razas, clases, sub-formas de Hombre Bestia y compatibilidad de uso.",
     "archivo": "modulos/razas_y_clases.py",
     "es_creador_modulos": false
   },
   "habilidades": {
     "nombre": "Agente · Habilidades (1.870)",
-    "rol": "Crea y modifica el catalogo de 1.870 habilidades, tiers 15/30, fusion nivel 40 y uso restringido vs. obtencion libre.",
+    "rol": "Controla catalogo, tiers VI al I, subida 1-50, desbloqueos a niv 15/30 y super fusiones.",
     "archivo": "modulos/habilidades.py",
     "es_creador_modulos": false
   },
   "economia_y_comercio": {
     "nombre": "Agente · Mochila, Subasta, Gremio e Intercambio",
-    "rol": "Crea y modifica inventario, habilidades no equipables obtenidas y comercio por Subasta, Gremio e Intercambio directo.",
+    "rol": "Administra el inventario, monedas (cobre, plata, oro, diamante, platino) y comercio.",
     "archivo": "modulos/economia_y_comercio.py",
     "es_creador_modulos": false
   },
   "progresion_y_stats": {
     "nombre": "Agente · Niveles y Estadisticas",
-    "rol": "Crea y modifica niveles 1-100 iniciales, +5 puntos libres, +10 HP por nivel y +50 niveles por continente hasta nivel 300.",
+    "rol": "Gestiona los niveles 1-100 iniciales, +5 puntos libres, +10 HP por nivel y limite a 300.",
     "archivo": "modulos/progresion_y_stats.py",
     "es_creador_modulos": false
   },
   "mundo_y_pve": {
     "nombre": "Agente · Reinos, Monstruos y Jefes",
-    "rol": "Crea y modifica reinos, zonas de caza, bestiario, drops, jefes de zona, misiones y continentes ocultos.",
+    "rol": "Gobierna los 4 reinos, las zonas por rangos, jefes de zona y mazmorras con respawn de 15-20 min.",
     "archivo": "modulos/mundo_y_pve.py",
     "es_creador_modulos": false
   },
   "integrador": {
     "nombre": "Agente · Integrador General",
-    "rol": "Revisa todos los modulos creados, los conecta sin borrar nada y verifica que todo encaje.",
+    "rol": "Conecta todos los sistemas garantizando que el personaje use las reglas completas de Snd-Worlds.",
     "archivo": "modulos/integrador.py",
     "es_creador_modulos": false
   }

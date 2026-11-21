@@ -1,60 +1,44 @@
 """
 Modulo: Integrador General de Snd-Worlds
-Conecta todos los modulos conservando las reglas existentes.
+Coordina y conecta todos los modulos asegurando que las reglas se cumplan.
 """
 
-from modulos.razas_y_clases import PersonajeRazaClase, RAZAS_Y_CLASES
-from modulos.progresion_y_stats import ProgresionPersonaje
-from modulos.habilidades import GestorHabilidadesPersonaje, Habilidad
-from modulos.economia_y_comercio import Mochila, MercadoSubasta
-from modulos.mundo_y_pve import Mazmorra, JefeElite
+from .razas_y_clases import CLASES_POR_RAZA, validar_compatibilidad
+from .progresion_y_stats import PersonajeProgresion
+from .economia_y_comercio import Mochila
+from .habilidades import Habilidad, fusionar_habilidades
+from .mundo_y_pve import REINOS_PRIMORDIALES
 
-class PersonajeSndWorlds:
-    """Clase principal que une las caracteristicas de un avatar en el juego."""
-    def __init__(self, id_jugador: str, nombre: str, raza: str, clase: str, subforma_bestia: str = None):
-        self.id_jugador = id_jugador
-        self.identidad = PersonajeRazaClase(nombre, raza, clase, subforma_bestia)
-        self.progresion = ProgresionPersonaje(nombre, self.identidad.stats)
-        self.habilidades = GestorHabilidadesPersonaje(id_jugador, raza, clase)
+class Jugador:
+    def __init__(self, nombre: str, raza: str, clase: str, subforma: str = None):
+        if clase not in CLASES_POR_RAZA.get(raza, []):
+            raise ValueError(f"La clase {clase} no es valida para la raza {raza}.")
+            
+        self.progresion = PersonajeProgresion(nombre, raza, clase, subforma)
         self.mochila = Mochila()
+        
+        # Maximo 5 habilidades equipadas simultaneamente (15 ataques en total)
+        self.habilidades_equipadas = []
+        # Hasta 10 super ataques por fusiones
+        self.super_habilidades = []
 
-    def estado_general(self) -> dict:
-        return {
-            "id": self.id_jugador,
-            "nombre": self.identidad.nombre,
-            "raza": self.identidad.raza,
-            "clase": self.identidad.clase,
-            "subforma": self.identidad.subforma_bestia,
-            "nivel": self.progresion.nivel,
-            "hp": f"{self.progresion.hp_actual}/{self.progresion.hp_max}",
-            "stats": self.progresion.stats,
-            "puntos_libres": self.progresion.puntos_libres,
-            "continente": self.progresion.continente_actual,
-            "monedero": self.mochila.monedero.desglose(),
-            "ataques_equipados": self.habilidades.listar_ataques_disponibles()
-        }
+    def equipar_habilidad(self, habilidad: Habilidad):
+        if not validar_compatibilidad(self.progresion.raza, self.progresion.clase, habilidad.raza_req, habilidad.clase_req):
+            return False, "No cumples los requisitos de raza o clase para equipar esta habilidad (puedes guardarla o venderla)."
 
-def verificar_integridad_sistema() -> bool:
-    """Comprobacion automatica de conexion entre modulos."""
-    pj = PersonajeSndWorlds("jugador_01", "Valerius", "Humano", "Caballero")
-    pj.progresion.ganar_experiencia(200)
-    pj.progresion.asignar_punto("STR", 2)
-    pj.mochila.monedero.agregar_cobre(15234)
-    
-    hab_prueba = Habilidad(
-        id_habilidad="hab_corte_01",
-        nombre="Corte de Luz",
-        tier="tier_VI",
-        raza_permitida="Humano",
-        clase_permitida="Caballero"
-    )
-    pj.habilidades.equipar(hab_prueba)
-    
-    resumen = pj.estado_general()
-    assert resumen["nivel"] >= 1
-    assert "Corte de Luz" in str(resumen["ataques_equipados"][0])
-    return True
+        if len(self.habilidades_equipadas) >= 5:
+            return False, "Ya tienes el limite de 5 habilidades equipadas (15 ataques)."
 
-if __name__ == "__main__":
-    if verificar_integridad_sistema():
-        print("Snd-Worlds: Todos los modulos base han sido cargados e integrados correctamente.")
+        self.habilidades_equipadas.append(habilidad)
+        return True, f"Habilidad {habilidad.nombre} equipada correctamente."
+
+    def fusionar_dos_habilidades(self, indice_a: int, indice_b: int):
+        if len(self.super_habilidades) >= 10:
+            return False, "Limite de 10 super ataques alcanzado."
+        if indice_a < len(self.habilidades_equipadas) and indice_b < len(self.habilidades_equipadas):
+            hab_a = self.habilidades_equipadas[indice_a]
+            hab_b = self.habilidades_equipadas[indice_b]
+            super_hab = fusionar_habilidades(hab_a, hab_b)
+            self.super_habilidades.append(super_hab)
+            return True, f"¡Fusion lograda! Se genero: {super_hab['nombre']}."
+        return False, "Indices de habilidad no validos."

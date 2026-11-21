@@ -1,65 +1,66 @@
 """
 Modulo: Progresion y Estadisticas de Snd-Worlds
-Nivel 1-100 inicial, +5 puntos libres por nivel, +10 HP max por nivel.
-Desbloqueo de continentes de expansion hasta nivel 300 (+50 niveles por continente).
+Reglas:
+- Nivel 1 a 100 inicial (Continente Primordial).
+- +5 puntos libres de estadisticas por nivel.
+- +10 HP maximo automatico por nivel.
+- Limite maximo hasta nivel 300 repartido por continentes (+50 por continente).
 """
 
-from typing import Dict
+CONTINENTES_Y_LIMITES = {
+    "Continente Primordial": 100,
+    "Archipielago de los Vientos": 150,
+    "Continente Abisal de los Demonios": 200,
+    "Continente Celestial de los Angeles": 250,
+    "Nucleo Central de Comercio y Nexo Global": 300
+}
 
-PUNTOS_LIBRES_POR_NIVEL = 5
-HP_MAX_POR_NIVEL = 10
-
-CONTINENTES = [
-    {"nombre": "Continente Primordial", "limite_nivel": 100},
-    {"nombre": "Archipielago de los Vientos", "limite_nivel": 150},
-    {"nombre": "Continente Abisal de los Demonios", "limite_nivel": 200},
-    {"nombre": "Continente Celestial de los Angeles", "limite_nivel": 250},
-    {"nombre": "Nucleo Central de Comercio y Nexo Global", "limite_nivel": 300}
-]
-
-class ProgresionPersonaje:
-    def __init__(self, nombre: str, stats_iniciales: Dict[str, int], hp_base: int = 100):
+class PersonajeProgresion:
+    def __init__(self, nombre: str, raza: str, clase: str, subforma: str = None):
         self.nombre = nombre
+        self.raza = raza
+        self.clase = clase
+        self.subforma = subforma
         self.nivel = 1
         self.experiencia = 0
         self.experiencia_siguiente = 100
         
-        self.stats = dict(stats_iniciales)
+        # Vida base
+        self.hp_max = 100
+        self.hp_actual = 100
+        
+        # Puntos libres para asignar (STR, INT, AGI, VIT, LUK, DES)
         self.puntos_libres = 0
-        
-        self.hp_base = hp_base
-        self.hp_max = hp_base + (self.nivel - 1) * HP_MAX_POR_NIVEL
-        self.hp_actual = self.hp_max
-        
-        self.continente_actual = CONTINENTES[0]["nombre"]
-        self.limite_nivel_actual = CONTINENTES[0]["limite_nivel"]
-
-    def ganar_experiencia(self, exp: int):
-        self.experiencia += max(0, exp)
-        while self.experiencia >= self.experiencia_siguiente and self.nivel < self.limite_nivel_actual:
-            self.experiencia -= self.experiencia_siguiente
-            self.subir_nivel()
+        self.stats = {
+            "STR": 10,
+            "INT": 10,
+            "AGI": 10,
+            "VIT": 10,
+            "LUK": 10,
+            "DES": 10
+        }
+        self.continente_actual = "Continente Primordial"
 
     def subir_nivel(self):
-        if self.nivel < self.limite_nivel_actual:
-            self.nivel += 1
-            self.puntos_libres += PUNTOS_LIBRES_POR_NIVEL
-            self.hp_max += HP_MAX_POR_NIVEL
-            self.hp_actual = self.hp_max
-            self.experiencia_siguiente = int(self.experiencia_siguiente * 1.15) + 50
+        limite_actual = CONTINENTES_Y_LIMITES.get(self.continente_actual, 100)
+        if self.nivel >= limite_actual:
+            return False, f"Alcanzaste el limite del {self.continente_actual} (Nivel {limite_actual})."
 
-    def asignar_punto(self, stat: str, cantidad: int = 1) -> bool:
-        if stat in self.stats and 0 < cantidad <= self.puntos_libres:
-            self.stats[stat] += cantidad
-            self.puntos_libres -= cantidad
-            return True
-        return False
+        self.nivel += 1
+        self.puntos_libres += 5
+        self.hp_max += 10
+        self.hp_actual = self.hp_max  # Se recupera toda la vida al subir
+        self.experiencia = 0
+        self.experiencia_siguiente = int(self.experiencia_siguiente * 1.15)
+        return True, f"¡Nivel {self.nivel}! +5 puntos libres de stats y +10 HP maximo."
 
-    def desbloquear_siguiente_continente(self) -> bool:
-        """Permite avanzar al siguiente continente expandiendo el tope de nivel en +50."""
-        for c in CONTINENTES:
-            if c["limite_nivel"] > self.limite_nivel_actual:
-                self.continente_actual = c["nombre"]
-                self.limite_nivel_actual = c["limite_nivel"]
-                return True
-        return False
+    def asignar_puntos(self, estadistica: str, cantidad: int):
+        estadistica = estadistica.upper()
+        if estadistica not in self.stats:
+            return False, "Estadistica no valida."
+        if cantidad <= 0 or cantidad > self.puntos_libres:
+            return False, "Cantidad de puntos insuficiente o no valida."
+        
+        self.stats[estadistica] += cantidad
+        self.puntos_libres -= cantidad
+        return True, f"{cantidad} puntos asignados a {estadistica}. Puntos libres restantes: {self.puntos_libres}."

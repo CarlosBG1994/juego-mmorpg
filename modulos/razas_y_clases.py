@@ -1,9 +1,8 @@
 """
 Modulo: Razas y Clases de Snd-Worlds
-Gestiona las 4 razas, sus clases compatibles, sub-formas de Hombres Bestia y verificaciones.
+Gestiona las 4 razas, clases permitidas, sub-formas de Hombre Bestia
+y la verificacion de compatibilidad de equipamiento.
 """
-
-from typing import Dict, List, Optional
 
 ESTADISTICAS_BASE = ["STR", "INT", "AGI", "VIT", "LUK", "DES"]
 
@@ -17,93 +16,47 @@ SUBFORMAS_HOMBRE_BESTIA = [
     "Hombre Panda"
 ]
 
-RAZAS_Y_CLASES: Dict[str, Dict] = {
-    "Humano": {
-        "descripcion": "Raza equilibrada y adaptable con gran potencial marcial y magico.",
-        "clases": [
-            "Caballero",
-            "Paladin",
-            "Mago de Batalla",
-            "Pugil",
-            "Asesino",
-            "Explorador",
-            "Invocador",
-            "Clerigo"
-        ],
-        "stats_iniciales": {"STR": 10, "INT": 10, "AGI": 10, "VIT": 10, "LUK": 10, "DES": 10}
-    },
-    "Elfo": {
-        "descripcion": "Raza afin con la naturaleza y los vientos. No usan clerigos; el Druida asume sanacion y soporte.",
-        "clases": [
-            "Guardabosques",
-            "Alcaide",
-            "Druida",
-            "Espadachin Silvano",
-            "Monje del Viento",      # Variante Pugil
-            "Acechador Nocturno",    # Variante Asesino
-            "Mago de Batalla",
-            "Invocador"
-        ],
-        "stats_iniciales": {"STR": 7, "INT": 12, "AGI": 13, "VIT": 8, "LUK": 10, "DES": 12}
-    },
-    "Enano": {
-        "descripcion": "Maestros de la forja, la runa y la resistencia inquebrantable.",
-        "clases": [
-            "Guerrero Pesado",
-            "Defensor Runico de Asedio",
-            "Campeon Runico",
-            "Luchador de Puno de Hierro",  # Variante Pugil
-            "Ballestero",                  # Variante Explorador
-            "Asesino",
-            "Mago de Batalla",
-            "Invocador",
-            "Clerigo"
-        ],
-        "stats_iniciales": {"STR": 13, "INT": 8, "AGI": 6, "VIT": 14, "LUK": 9, "DES": 10}
-    },
-    "Hombre Bestia": {
-        "descripcion": "Poder salvaje ancestral con 7 sub-formas totemicas.",
-        "subformas": SUBFORMAS_HOMBRE_BESTIA,
-        "clases": [
-            "Campeon",
-            "Acechador Salvaje",
-            "Chaman Primordial",
-            "Pugil",  # Incluye variantes y estado frenetico tipo Berserker
-            "Asesino",
-            "Explorador",
-            "Mago de Batalla",
-            "Invocador",
-            "Clerigo"
-        ],
-        "stats_iniciales": {"STR": 12, "INT": 7, "AGI": 11, "VIT": 12, "LUK": 8, "DES": 10}
-    }
+CLASES_POR_RAZA = {
+    "Humano": [
+        "Caballero", "Paladin", "Mago de Batalla", "Pugil",
+        "Asesino", "Explorador", "Invocador", "Clerigo"
+    ],
+    "Elfo": [
+        # El elfo no tiene clerigo; el druida asume la sanacion y soporte
+        "Guardabosques", "Alcaide", "Druida", "Espadachin Silvano",
+        "Monje del Viento (Pugil)", "Acechador Nocturno (Asesino)",
+        "Mago de Batalla", "Invocador"
+    ],
+    "Enano": [
+        "Guerrero Pesado", "Defensor Runico de Asedio", "Campeon Runico",
+        "Luchador de Puno de Hierro (Pugil)", "Ballestero (Explorador)",
+        "Asesino", "Mago de Batalla", "Invocador", "Clerigo"
+    ],
+    "Hombre Bestia": [
+        "Campeon", "Acechador Salvaje", "Chaman Primordial",
+        "Pugil",  # Incluye variantes/estado frenetico tipo Berserker
+        "Asesino", "Explorador", "Mago de Batalla", "Invocador", "Clerigo"
+    ]
 }
 
-class PersonajeRazaClase:
-    def __init__(self, nombre: str, raza: str, clase: str, subforma_bestia: Optional[str] = None):
-        if raza not in RAZAS_Y_CLASES:
-            raise ValueError(f"Raza invalida: {raza}")
-        
-        info_raza = RAZAS_Y_CLASES[raza]
-        if clase not in info_raza["clases"]:
-            raise ValueError(f"La clase '{clase}' no esta disponible para la raza '{raza}'.")
-        
-        if raza == "Hombre Bestia":
-            if not subforma_bestia or subforma_bestia not in SUBFORMAS_HOMBRE_BESTIA:
-                raise ValueError(f"Debes seleccionar una subforma valida para Hombre Bestia: {SUBFORMAS_HOMBRE_BESTIA}")
-            self.subforma_bestia = subforma_bestia
-        else:
-            self.subforma_bestia = None
+# Modificadores de atributos iniciales segun Raza
+ATRIBUTOS_RAZA = {
+    "Humano": {"STR": 10, "INT": 10, "AGI": 10, "VIT": 10, "LUK": 10, "DES": 10},
+    "Elfo": {"STR": 7, "INT": 13, "AGI": 13, "VIT": 8, "LUK": 9, "DES": 10},
+    "Enano": {"STR": 13, "INT": 8, "AGI": 7, "VIT": 14, "LUK": 8, "DES": 10},
+    "Hombre Bestia": {"STR": 14, "INT": 7, "AGI": 12, "VIT": 12, "LUK": 8, "DES": 7}
+}
 
-        self.nombre = nombre
-        self.raza = raza
-        self.clase = clase
-        self.stats = dict(info_raza["stats_iniciales"])
+def validar_compatibilidad(raza_jugador: str, clase_jugador: str, raza_req: list = None, clase_req: list = None) -> bool:
+    """
+    Comprueba si un jugador puede equipar y usar un objeto o habilidad.
+    Cualquiera puede obtenerlos en su mochila, pero solo usarlos si es compatible.
+    """
+    if raza_req and raza_jugador not in raza_req:
+        return False
+    if clase_req and clase_jugador not in clase_req:
+        return False
+    return True
 
-    def es_compatible(self, raza_requerida: Optional[str], clase_requerida: Optional[str]) -> bool:
-        """Verifica compatibilidad para equipamiento o habilidades."""
-        if raza_requerida and raza_requerida != self.raza:
-            return False
-        if clase_requerida and clase_requerida != self.clase:
-            return False
-        return True
+def obtener_clases_disponibles(raza: str) -> list:
+    return CLASES_POR_RAZA.get(raza, [])

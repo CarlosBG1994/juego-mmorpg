@@ -1,69 +1,43 @@
 """
-Modulo: Mundo y PVE de Snd-Worlds
-Reinos por raza, rangos de nivel por zonas, jefes elite,
-zonas neutrales y mazmorras con respawn de jefes (15-20 minutos).
+Modulo: Mundo y PvE de Snd-Worlds
+Gestiona los 4 reinos del Continente Primordial, zonas por nivel,
+jefes de zona y mazmorras con respawn de jefes (15-20 minutos).
 """
 
-from typing import Dict, List, Optional
-import time
-
-RANGOS_ZONAS_REINO = [
-    "1-15",
-    "16-25",
-    "26-35",
-    "36-45",
-    "46-60"
-]
-
-RANGOS_ZONAS_NEUTRALES = [
-    "61-75",
-    "76-85",
-    "86-100"
-]
-
 REINOS_PRIMORDIALES = {
-    "Reino Humano de Valoria": {"raza": "Humano", "capital": "Fortaleza del Alba"},
-    "Dominio Silvano de Elyria": {"raza": "Elfo", "capital": "Arbol Corazon"},
-    "Bastion de Kazad-Mor": {"raza": "Enano", "capital": "Forja Profunda"},
-    "Tierras Primigenias de Garra y Colmillo": {"raza": "Hombre Bestia", "capital": "Campamento Ancestral"}
+    "Reino Humano": {"capital": "Fortaleza Solar", "raza": "Humano"},
+    "Reino Elfo": {"capital": "Arbol Corazon de Sylva", "raza": "Elfo"},
+    "Reino Enano": {"capital": "Forja Profunda de Kar-Drak", "raza": "Enano"},
+    "Reino Hombre Bestia": {"capital": "Bastion Primordial de los Clanes", "raza": "Hombre Bestia"}
 }
 
-class JefeElite:
-    def __init__(self, nombre: str, nivel: int, zona_rango: str, es_jefe_mazmorra: bool = False):
-        self.nombre = nombre
-        self.nivel = nivel
-        self.zona_rango = zona_rango
-        self.es_jefe_mazmorra = es_jefe_mazmorra
-        self.vivo = True
-        self.ultimo_derribo: Optional[float] = None
-        self.tiempo_respawn_segundos = 15 * 60  # 15 a 20 minutos (en seg)
+RANGOS_ZONAS_REINOS = [
+    {"rango": "1-15", "tipo": "Iniciacion y Tierras Bajas"},
+    {"rango": "16-25", "tipo": "Valles y Bosques Salvajes"},
+    {"rango": "26-35", "tipo": "Tierras Fronterizas"},
+    {"rango": "36-45", "tipo": "Zonas Hostiles y Cavernas"},
+    {"rango": "46-60", "tipo": "Territorio Peligroso y Bastiones de Elite"}
+]
 
-    def derrotar(self):
-        self.vivo = False
-        self.ultimo_derribo = time.time()
-
-    def verificar_respawn(self, tiempo_actual: Optional[float] = None) -> bool:
-        if self.vivo:
-            return True
-        if self.ultimo_derribo is None:
-            self.vivo = True
-            return True
-        ahora = tiempo_actual or time.time()
-        if ahora - self.ultimo_derribo >= self.tiempo_respawn_segundos:
-            self.vivo = True
-            self.ultimo_derribo = None
-            return True
-        return False
+ZONAS_NEUTRALES_UNIDAS = [
+    {"rango": "61-75", "descripcion": "Tierras de Nadie Inter-Reinos"},
+    {"rango": "76-85", "descripcion": "Grieta de los Antiguos"},
+    {"rango": "86-100", "descripcion": "Cumbre del Continente Primordial"}
+]
 
 class Mazmorra:
-    def __init__(self, nombre: str, nivel_recomendado: int, zona_asociada: str, jefe_final: JefeElite):
+    def __init__(self, nombre: str, nivel_recomendado: int, zona: str, jefe_final: str):
         self.nombre = nombre
         self.nivel_recomendado = nivel_recomendado
-        self.zona_asociada = zona_asociada
+        self.zona = zona
         self.jefe_final = jefe_final
-        self.zonas_secretas: List[str] = ["Camara Oculta de Runas", "Cofre del Velo"]
+        self.cofres_secretos = []
+        self.jefe_derrotado = False
+        self.tiempo_respawn_minutos = 18  # Respawn entre 15 y 20 minutos
 
-    def entrar(self) -> str:
-        self.jefe_final.verificar_respawn()
-        estado_jefe = "Vivo" if self.jefe_final.vivo else "En espera de reaparicion (15-20 min)"
-        return f"Entrando a {self.nombre} (Nivel {self.nivel_recomendado}). Jefe final: {self.jefe_final.nombre} [{estado_jefe}]"
+    def anadir_cofre_secreto(self, contenido: dict):
+        self.cofres_secretos.append(contenido)
+
+    def derrotar_jefe(self):
+        self.jefe_derrotado = True
+        return f"¡{self.jefe_final} ha sido derrotado! El jefe reaparecera en {self.tiempo_respawn_minutos} minutos."
