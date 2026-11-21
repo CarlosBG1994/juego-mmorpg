@@ -15,6 +15,17 @@ LORE_INTRODUCCION = {
     )
 }
 
+# --- NARRATIVA DINAMICA DE CAMPAÑA (Base para Agente de Misiones) ---
+CRONICA_CONTINENTE_PRIMORDIAL = {
+    "eje_central": "La Búsqueda del Nexo",
+    "objetivo_global": "Unir los fragmentos de la civilización antigua y llegar al Centro del Continente.",
+    "pilares_narrativos": {
+        "ruta_viajero": "El jugador debe conectar las 4 capitales. Cada tramo exige negociar con NPCs, escoltar caravanas y desbloquear zonas fronterizas (1-15 a 86-100).",
+        "estatuas_heroicas": "En cada ciudad, las estatuas de Aurelius, Thalor’en, Bramir y Kaelen guardan inscripciones. Los jugadores deben interactuar con ellas para activar misiones de memoria histórica sobre la guerra contra Malakor’zeth.",
+        "vestigios_antiguos": "Las ruinas esparcidas contienen artefactos. Misiones de recolección de registros, fragmentos de metal rúnico o piedras etéreas que, al ser entregadas en el Centro, revelan la verdad del Gran Cataclismo."
+    }
+}
+
 CINEMATICA_INICIAL = (
     "Hace eones, los mundos se estremecieron en una guerra sin piedad.\n\n"
     "Los Xylaroth —una raza de demonios guiada por su rey, Malakor’zeth, el Soberano del Abismo— "
@@ -75,7 +86,6 @@ HISTORIA_RAZAS_DETALLADA = {
     }
 }
 
-# Diccionario heredado para compatibilidad
 HISTORIA_REINOS = {r: {"reino": d["reino"], "capital": d["capital"], "trasfondo": d["historia"]} for r, d in HISTORIA_RAZAS_DETALLADA.items()}
 
 DESTINOS_DEL_MUNDO = [
