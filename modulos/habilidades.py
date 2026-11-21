@@ -18,6 +18,10 @@ PORTADORES_MAXIMOS = {
     "Mitica": 5
 }
 
+# Catalogo Base: Estructura para las 1.870 habilidades
+# Se puede expandir mediante carga externa o registros sucesivos
+CATALOGO_HABILIDADES = {}
+
 class Habilidad:
     def __init__(self, id_hab: str, nombre: str, tier: str, raza_req: list = None, clase_req: list = None):
         self.id = id_hab
@@ -55,6 +59,9 @@ class Habilidad:
             ataques.append(self.ataque_3)
         return ataques
 
+def registrar_habilidad(id_hab, nombre, tier, razas, clases):
+    """Registra una habilidad en el catalogo global del juego."""
+    CATALOGO_HABILIDADES[id_hab] = Habilidad(id_hab, nombre, tier, razas, clases)
 
 def fusionar_habilidades(habilidad_a: Habilidad, habilidad_b: Habilidad) -> dict:
     """
