@@ -236,3 +236,79 @@ with tab_lore:
     st.write(f"**Orden de apertura de continentes raciales:** {st.session_state.orden_apertura_raciales or 'Ninguno abierto aún'}")
     st.write(f"**Jugador completó misiones principales abiertas:** {'Sí' if st.session_state.jugador_completo_principales_abiertas else 'No'}")
     st.write(f"**Misiones ocultas específicas para Continente Angelical resueltas:** {'Sí' if st.session_state.misiones_ocultas_angelical_completadas else 'No'}")
+
+# === AUTO-MODULOS START ===
+try:
+    from modulos import economia_y_comercio as _mod_economia_y_comercio
+except Exception as _err:
+    _mod_economia_y_comercio = None
+try:
+    from modulos import habilidades as _mod_habilidades
+except Exception as _err:
+    _mod_habilidades = None
+try:
+    from modulos import historia_lore as _mod_historia_lore
+except Exception as _err:
+    _mod_historia_lore = None
+try:
+    from modulos import integrador as _mod_integrador
+except Exception as _err:
+    _mod_integrador = None
+try:
+    from modulos import mascotas as _mod_mascotas
+except Exception as _err:
+    _mod_mascotas = None
+try:
+    from modulos import misiones as _mod_misiones
+except Exception as _err:
+    _mod_misiones = None
+try:
+    from modulos import monitor_calidad as _mod_monitor_calidad
+except Exception as _err:
+    _mod_monitor_calidad = None
+try:
+    from modulos import monturas as _mod_monturas
+except Exception as _err:
+    _mod_monturas = None
+try:
+    from modulos import mundo_y_pve as _mod_mundo_y_pve
+except Exception as _err:
+    _mod_mundo_y_pve = None
+try:
+    from modulos import persistencia as _mod_persistencia
+except Exception as _err:
+    _mod_persistencia = None
+try:
+    from modulos import progresion_y_stats as _mod_progresion_y_stats
+except Exception as _err:
+    _mod_progresion_y_stats = None
+try:
+    from modulos import razas_y_clases as _mod_razas_y_clases
+except Exception as _err:
+    _mod_razas_y_clases = None
+try:
+    from modulos import requisitos as _mod_requisitos
+except Exception as _err:
+    _mod_requisitos = None
+try:
+    from modulos import world_sync as _mod_world_sync
+except Exception as _err:
+    _mod_world_sync = None
+
+MODULOS_CARGADOS = {
+    "economia_y_comercio": _mod_economia_y_comercio,
+    "habilidades": _mod_habilidades,
+    "historia_lore": _mod_historia_lore,
+    "integrador": _mod_integrador,
+    "mascotas": _mod_mascotas,
+    "misiones": _mod_misiones,
+    "monitor_calidad": _mod_monitor_calidad,
+    "monturas": _mod_monturas,
+    "mundo_y_pve": _mod_mundo_y_pve,
+    "persistencia": _mod_persistencia,
+    "progresion_y_stats": _mod_progresion_y_stats,
+    "razas_y_clases": _mod_razas_y_clases,
+    "requisitos": _mod_requisitos,
+    "world_sync": _mod_world_sync
+}
+# === AUTO-MODULOS END ===
