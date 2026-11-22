@@ -1,4 +1,8 @@
+from datetime import datetime, timezone
+import firebase_admin
+from firebase_admin import credentials, firestore
 import streamlit as st
+
 from config import (
     DATOS_MUNDO,
     CONTINENTE_INICIAL,
@@ -26,6 +30,84 @@ TODOS_CONTINENTES = (
     + CONTINENTES_RACIALES
     + [CONTINENTE_DEMONIACO, CONTINENTE_ANGELICAL]
 )
+
+
+def obtener_db_firestore():
+    try:
+        if "firebase" not in st.secrets:
+            return None
+        if not firebase_admin._apps:
+            fb_cfg = dict(st.secrets["firebase"])
+            if isinstance(fb_cfg.get("private_key"), str):
+                fb_cfg["private_key"] = fb_cfg["private_key"].replace("\\n", "\n")
+            cred = credentials.Certificate(fb_cfg)
+            firebase_admin.initialize_app(cred)
+        return firestore.client()
+    except Exception as exc:
+        st.caption(f"⚠️ Firebase no disponible aún: {exc}")
+        return None
+
+
+def obtener_usuario_google():
+    user_obj = getattr(st, "user", None)
+    if user_obj is None:
+        return None
+    esta_logueado = bool(getattr(user_obj, "is_logged_in", False))
+    if not esta_logueado:
+        return None
+    email = getattr(user_obj, "email", None) or (user_obj.get("email") if hasattr(user_obj, "get") else None)
+    nombre = (
+        getattr(user_obj, "name", None)
+        or (user_obj.get("name") if hasattr(user_obj, "get") else None)
+        or email
+        or "Jugador Google"
+    )
+    return {"id": str(email or nombre).strip(), "nombre": str(nombre).strip(), "email": email}
+
+
+def _sanitizar_doc_id(valor: str) -> str:
+    limpio = "".join(ch if ch.isalnum() or ch in ("_", "-") else "_" for ch in valor.strip())
+    return limpio[:120] or "jugador_anonimo"
+
+
+def sincronizar_jugador_y_listar(db, usuario_actual: dict | None, nombre_fallback: str):
+    ahora_iso = datetime.now(timezone.utc).isoformat()
+    base_nombre = (nombre_fallback or "").strip() or "Aventurero"
+    identidad = usuario_actual["id"] if usuario_actual else base_nombre
+    nombre_visible = usuario_actual["nombre"] if usuario_actual else base_nombre
+
+    jugador_doc = {
+        "jugador_id": identidad,
+        "nombre": nombre_visible,
+        "autenticado_google": bool(usuario_actual),
+        "continente": st.session_state.continente_actual,
+        "zona": st.session_state.zona_actual,
+        "clase": st.session_state.clase_pj,
+        "ultima_conexion": ahora_iso,
+    }
+
+    if "jugadores_locales_sim" not in st.session_state:
+        st.session_state.jugadores_locales_sim = {}
+    st.session_state.jugadores_locales_sim[identidad] = jugador_doc
+
+    jugadores = []
+    if db is not None:
+        try:
+            doc_id = _sanitizar_doc_id(identidad)
+            db.collection("jugadores_activos").document(doc_id).set(jugador_doc, merge=True)
+            for snap in db.collection("jugadores_activos").stream():
+                data = snap.to_dict() or {}
+                if data.get("nombre"):
+                    jugadores.append(data)
+        except Exception as exc:
+            st.caption(f"⚠️ No se pudo sincronizar jugadores en Firestore: {exc}")
+
+    if not jugadores:
+        jugadores = list(st.session_state.jugadores_locales_sim.values())
+
+    jugadores.sort(key=lambda item: str(item.get("ultima_conexion", "")), reverse=True)
+    return jugadores
+
 
 if "continentes_abiertos" not in st.session_state:
     st.session_state.continentes_abiertos = [CONTINENTE_INICIAL]
@@ -151,6 +233,40 @@ with st.sidebar:
                         else:
                             st.error("Oro insuficiente.")
 
+    st.markdown("---")
+    st.header("🔐 Cuenta y Jugadores")
+    usuario_google = obtener_usuario_google()
+    if usuario_google:
+        st.success(f"Conectado: {usuario_google['nombre']}")
+        if hasattr(st, "logout") and st.button("Cerrar sesión Google", key="btn_logout_google"):
+            st.logout()
+    else:
+        st.caption("Sesión de Google no iniciada")
+        if hasattr(st, "login"):
+            if st.button("Iniciar sesión con Google", key="btn_login_google"):
+                st.login("google")
+
+    nombre_invitado = st.text_input(
+        "Nombre si juegas sin login:",
+        value=st.session_state.get("nombre_invitado", "Aventurero"),
+        key="input_nombre_invitado",
+    )
+    st.session_state.nombre_invitado = nombre_invitado
+
+    db_firestore = obtener_db_firestore()
+    lista_jugadores = sincronizar_jugador_y_listar(db_firestore, usuario_google, nombre_invitado)
+
+    st.markdown("**👥 Jugadores registrados / activos:**")
+    if lista_jugadores:
+        for j in lista_jugadores:
+            badge = " 🔵" if j.get("autenticado_google") else ""
+            st.write(
+                f"• **{j.get('nombre', 'Jugador')}**{badge} — {j.get('clase', '?')} "
+                f"({j.get('continente', '?')} / {j.get('zona', '?')})"
+            )
+    else:
+        st.info("Sin jugadores visibles todavía.")
+
 tab_juego, tab_misiones, tab_lore = st.tabs(["🎮 Mundo Abierto y Combate", "📜 Registro de Misiones", "👑 Continentes y Progreso"])
 
 with tab_juego:
@@ -239,9 +355,10 @@ with tab_lore:
 
 # === AUTO-MODULOS START ===
 try:
-    from modulos import economia_y_comercio as _mod_economia_y_comercio
+    from modulos import config_segura as _mod_config_segura
 except Exception as _err:
-    _mod_economia_y_comercio = None
+    _mod_config_segura = None
+_mod_economia_y_comercio = None  # Revisar error: IndentationError: unexpected indent (economia_y_comercio.py, line 3)
 try:
     from modulos import habilidades as _mod_habilidades
 except Exception as _err:
@@ -296,6 +413,7 @@ except Exception as _err:
     _mod_world_sync = None
 
 MODULOS_CARGADOS = {
+    "config_segura": _mod_config_segura,
     "economia_y_comercio": _mod_economia_y_comercio,
     "habilidades": _mod_habilidades,
     "historia_lore": _mod_historia_lore,
@@ -312,4 +430,3 @@ MODULOS_CARGADOS = {
     "world_sync": _mod_world_sync
 }
 # === AUTO-MODULOS END ===
-    
