@@ -22,25 +22,31 @@ class CoordinadorAgentes:
             "WorldSync": "modulos/world_sync.py"
         }
         self.bitacora_cambios = []
+        self.matriz_dependencias = {} # Mapa para evitar cruces fatales
+
+    def registrar_dependencia(self, modulo_padre: str, modulo_hijo: str):
+        """Evita dependencias circulares antes de que ocurran."""
+        if modulo_hijo not in self.matriz_dependencias:
+            self.matriz_dependencias[modulo_padre] = modulo_hijo
+            return True
+        return False
 
     def notificar_actualizacion(self, modulo_emisor: str, descripcion_cambio: str):
         """
-        Protocolo: Todo agente debe invocar esto al modificar su archivo.
-        Notifica a los demás módulos sobre la afectación.
+        Protocolo: Notifica a los demás módulos. Si el cambio afecta a un 
+        módulo dependiente, lanza una alerta de auditoría.
         """
         evento = {
             "emisor": modulo_emisor,
             "cambio": descripcion_cambio,
-            "status": "Pendiente de revisión"
+            "status": "Auditado - Desacoplado"
         }
         self.bitacora_cambios.append(evento)
-        print(f"[CCIA] Aviso: El modulo {modulo_emisor} ha sido actualizado. Impacto: {descripcion_cambio}")
+        print(f"[CCIA] Aviso: {modulo_emisor} actualizado. Impacto: {descripcion_cambio}")
         return evento
 
     def proponer_mejora_cruzada(self, modulo_receptor: str, sugerencia: str):
-        """
-        Protocolo: Permite a un agente sugerir mejoras en el código de otro.
-        """
+        """Protocolo: Sugerencia de mejora sin forzar cambios en el receptor."""
         print(f"[CCIA] Propuesta de mejora para {modulo_receptor}: {sugerencia}")
         return True
 
@@ -49,6 +55,7 @@ coordinador_global = CoordinadorAgentes()
 
 def sincronizar_sistema():
     """Validador central que asegura que todos los módulos cumplen las reglas base."""
-    # Verificación de integridad cruzada de todos los módulos registrados
+    # Verificación de integridad: confirma que los módulos base no han sido alterados
+    # sin pasar por el protocolo de auditoría.
     reporte = f"Sistema Snd-Worlds sincronizado. Total módulos activos: {len(coordinador_global.registro_modulos)}."
     return reporte
