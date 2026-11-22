@@ -24,7 +24,27 @@ def listar_modulos_validos() -> list[str]:
 
 
 def probar_import_modulo(nombre: str) -> tuple[bool, str]:
-    ruta = MODULOS_DIR / f"{nombre}.py""
+    ruta = MODULOS_DIR / f"{nombre}.py"
+    try:
+        spec = importlib.util.spec_from_file_location(f"modulos.{nombre}", ruta)
+        if spec is None or spec.loader is None:
+            return False, "No se pudo crear spec"
+        modulo = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modulo)
+        return True, "OK"
+    except Exception as exc:
+        return False, f"{type(exc).__name__}: {exc}"
+
+
+def construir_bloque(modulos: list[str], estados: dict[str, tuple[bool, str]]) -> str:
+    lineas_imports = []
+    for m in modulos:
+        if estados.get(m, (False, ""))[0]:
+            lineas_imports.append(
+                f"try:\n"
+                f"    from modulos import {m} as _mod_{m}\n"
+                f"except Exception as _err:\n"
+                f"    _mod_{m} = None"
             )
         else:
             lineas_imports.append(
