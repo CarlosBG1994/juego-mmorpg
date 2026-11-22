@@ -1,7 +1,7 @@
 """
 Modulo: Mascotas de Snd-Worlds
-Gestiona los compañeros de aventura. Incluye sistemas de movimiento,
-habilidades con rango de efecto (AoE) y combate táctico.
+Gestión avanzada: Lealtad, Evolución, Movimiento, Combate AoE
+y Sistema de Gestión de Pasivas equipables.
 """
 
 class Mascota:
@@ -16,9 +16,36 @@ class Mascota:
         self.stats_combate = {"ATK": 10, "DEF": 10, "VEL": 10}
         self.energia = 100
         self.puntos_entrenamiento = 0 
-        self.habilidades_pasivas = [] 
+        
+        # SISTEMA DE PASIVAS Y EQUIPAMIENTO
+        self.habilidades_pasivas = {} # Formato: {"STR": 5, "LUK": 2}
+        self.equipamiento = {"collar": None, "talisman": None} 
+        
         self.habilidades_activas = [] 
         self.ataque_especial = None 
+
+    def gestionar_pasiva(self, stat: str, valor: int):
+        """Añade o actualiza un bono pasivo que la mascota otorga al jugador."""
+        self.habilidades_pasivas[stat] = valor
+        return f"La mascota ahora otorga {valor} de {stat}."
+
+    def equipar_objeto(self, slot: str, nombre_objeto: str):
+        """Permite equipar objetos para potenciar stats o rango."""
+        if slot in self.equipamiento:
+            self.equipamiento[slot] = nombre_objeto
+            return True, f"Equipado {nombre_objeto} en {slot}."
+        return False, "Slot no válido."
+
+    def ajustar_lealtad(self, cambio: int):
+        self.lealtad = max(0, min(100, self.lealtad + cambio))
+        return f"Lealtad ajustada a {self.lealtad}."
+
+    def obtener_bono_lealtad(self):
+        return 0.8 + (self.lealtad / 250)
+
+    def evolucionar_rareza(self, nuevo_tier: str, costo_oro: int):
+        self.rareza = nuevo_tier
+        return f"¡{self.nombre} ha evolucionado a rareza {nuevo_tier}!"
 
     def moverse(self, nueva_x: int, nueva_y: int):
         distancia = abs(nueva_x - self.posicion["x"]) + abs(nueva_y - self.posicion["y"])
@@ -34,13 +61,13 @@ class Mascota:
             distancia = abs(objetivo_x - self.posicion["x"]) + abs(objetivo_y - self.posicion["y"])
             if self.energia >= hab["coste"] and distancia <= hab["rango"]:
                 self.energia -= hab["coste"]
-                return f"{self.nombre} usa {hab['nombre']} en ({objetivo_x}, {objetivo_y})."
+                dano_final = hab["dano"] * self.obtener_bono_lealtad()
+                return f"{self.nombre} usa {hab['nombre']} haciendo {dano_final:.1f} daño."
             return "Energía insuficiente o fuera de rango."
         return "Habilidad no encontrada."
 
 # --- GESTOR DE REGISTRO ---
 class RegistroMascotas:
-    """Clase para añadir nuevas mascotas al juego de forma dinámica."""
     catalogo_global = []
 
     @classmethod
@@ -50,6 +77,7 @@ class RegistroMascotas:
         return f"Mascota '{nombre}' registrada exitosamente."
 
 # --- CATÁLOGOS BASE ---
+# (Se mantienen iguales)
 MASCOTAS_BASE = {
     "Humano": {"nombre": "Cachorro de Grifo", "pasiva": "STR"},
     "Elfo": {"nombre": "Espíritu del Bosque", "pasiva": "INT"},
@@ -71,6 +99,6 @@ MASCOTAS_MITICAS = [
     {"nombre": "Byakko", "elemento": "Metal", "rareza": "Mítica", "ataque": "Zarpazo del Tigre Blanco"},
     {"nombre": "Suzaku", "elemento": "Fuego", "rareza": "Mítica", "ataque": "Llamarada Carmesí"},
     {"nombre": "Genbu", "elemento": "Agua", "rareza": "Mítica", "ataque": "Escudo del Norte"},
-    {"nombre": "Seiryu", "elemento": "Madera", "rareza": "Mítica", "ataque": "Aliento del Dragón Azur"},
+    {"nombre": "Seiryu", "elemento": "Wood", "rareza": "Mítica", "ataque": "Aliento del Dragón Azur"},
     {"nombre": "Dragón del Nexo", "elemento": "Eter", "rareza": "Mítica", "ataque": "Pulso del Vacío"}
 ]

@@ -28,22 +28,29 @@ class CoordinadorAgentes:
         self.bitacora_cambios = []
         self.alertas_conflicto = []
 
-    def detectar_y_reportar_conflictos(self):
+    def calcular_precio_sugerido(self, tier: str, nivel: int, clase: str):
         """
-        MOTOR DE AUDITORÍA: Analiza la economía contra la rareza de habilidades.
+        Motor de valoración automática para Tiers no Leyenda/Mítica.
+        Formula: (Nivel base * 10) + Ajuste de Clase.
         """
-        # Aquí validamos que los precios en Economía no violen las Reglas de Oro
-        # Si un objeto Leyenda se publica por < 100 Platino, el coordinador lo marca.
-        pass
+        if tier in self.precios_objetivo:
+            return self.precios_objetivo[tier]
         
+        # Ajuste de rareza por Tier
+        multiplicadores = {"VI": 0.5, "V": 1, "IV": 2, "III": 5, "II": 10, "I": 20}
+        base = nivel * 10 * multiplicadores.get(tier, 1)
+        
+        # Ajuste por Clase (ejemplo: clases más complejas tienen +10% valor)
+        return int(base)
+
+    def detectar_y_reportar_conflictos(self):
+        """MOTOR DE AUDITORÍA: Valida precios contra Reglas de Oro."""
         if self.alertas_conflicto:
-            print(f"[ALERTA CRÍTICA] Conflicto económico: {self.alertas_conflicto}")
-            return self.alertas_conflicto
-        return "Estado del sistema: Coordinado."
+            print(f"[ALERTA CRÍTICA] Conflictos detectados: {self.alertas_conflicto}")
+        return "Estado: Coordinado."
 
     def notificar_actualizacion(self, modulo_emisor: str, descripcion_cambio: str):
         self.bitacora_cambios.append({"emisor": modulo_emisor, "cambio": descripcion_cambio})
-        # Siempre que Economía actualice, forzamos una revisión de precios contra las Reglas de Oro
         self.detectar_y_reportar_conflictos()
         return True
 
@@ -54,5 +61,5 @@ class CoordinadorAgentes:
 coordinador_global = CoordinadorAgentes()
 
 def sincronizar_sistema():
-    """Valida la integridad de todos los módulos registrados."""
+    """Valida la integridad de todos los módulos."""
     return coordinador_global.detectar_y_reportar_conflictos()

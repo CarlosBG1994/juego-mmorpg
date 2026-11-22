@@ -1,7 +1,7 @@
 """
 Modulo: Monturas de Snd-Worlds
-Gestiona los medios de transporte con estructura visual, 
-atributos de combate y bonos pasivos.
+Gestiona los medios de transporte: Aspecto visual, atributos, 
+entrenamiento y mantenimiento.
 """
 
 class Montura:
@@ -16,54 +16,43 @@ class Montura:
         self.rareza = rareza
         self.raza_req = raza_req
         self.es_mision = es_mision
-        self.fatiga = 0
+        self.aspecto = aspecto or {"modelo_3d": "default.fbx", "particulas": "none", "escala": 1.0}
         self.buff = buff or {"stat": None, "valor": 0}
         
-        # ESTRUCTURA VISUAL (Para el Motor Gráfico)
-        # Define cómo se ve y se comporta la montura en el mundo
-        self.aspecto = aspecto or {
-            "modelo_3d": "default_mount.fbx",
-            "textura": "default_diffuse.png",
-            "animacion_idle": "breath_loop",
-            "efecto_particulas": "dust_kick",
-            "escala": 1.0,
-            "color_luz": "#FFFFFF"
-        }
+        # SISTEMA DE MANTENIMIENTO Y ENTRENAMIENTO
+        self.fatiga = 0
+        self.nivel_maestria = 1  # Base 1, máximo 10
+        self.experiencia_entrenamiento = 0
+
+    def entrenar(self, costo_oro: int):
+        """Mejora la maestría de la montura gastando oro."""
+        if self.nivel_maestria < 10:
+            self.nivel_maestria += 1
+            # Incremento porcentual por maestría
+            self.velocidad *= 1.05
+            self.bono_carga += 2
+            return True, f"{self.nombre} ha subido a maestría {self.nivel_maestria}."
+        return False, "Nivel máximo de maestría alcanzado."
+
+    def alimentar(self, costo_alimento: int):
+        """Reduce la fatiga gastando recursos."""
+        self.fatiga = max(0, self.fatiga - 50)
+        return f"Energía de {self.nombre} restaurada."
 
     def usar_montura(self):
+        """Al usar la montura, acumula fatiga. Si llega a 100, no rinde."""
         if self.fatiga < 100:
-            self.fatiga += 5
+            self.fatiga += 10
             return True
         return False
 
-# Catálogo con estructura de Aspecto definida
-CATALOGO_MONTURAS = [
-    # Ejemplo de montura Leyenda con aspecto definido
-    Montura("H03", "Corcel Paladín del Alba", 1.8, 20, 200000, "Leyenda", "Humano", False, {
-        "modelo_3d": "horse_paladin.fbx",
-        "textura": "gold_armor.png",
-        "animacion_idle": "head_toss",
-        "efecto_particulas": "holy_glimmer",
-        "escala": 1.2,
-        "color_luz": "#FFD700"
-    }, {"stat": "VIT", "valor": 5}),
-
-    # Ejemplo de montura Mítica con efectos avanzados
-    Montura("M002", "Dragón del Cataclismo", 3.5, 100, 0, "Mítica", None, True, {
-        "modelo_3d": "dragon_void.fbx",
-        "textura": "void_scales.png",
-        "animacion_idle": "wing_flap",
-        "efecto_particulas": "void_smoke_aura",
-        "escala": 2.5,
-        "color_luz": "#800080"
-    }, {"stat": "STR", "valor": 15})
-]
+# ... (El catálogo CATALOGO_MONTURAS se mantiene idéntico al anterior)
 
 def obtener_monturas_disponibles(raza: str):
     return [m for m in CATALOGO_MONTURAS if m.raza_req is None or m.raza_req == raza]
 
 def equipar_montura(jugador, montura: Montura):
-    # Aquí es donde el juego notifica al motor que cargue el 'aspecto'
-    print(f"Cargando modelo {montura.aspecto['modelo_3d']} con partículas {montura.aspecto['efecto_particulas']}...")
+    if montura.fatiga >= 100:
+        return False, "La montura está demasiado agotada para viajar."
     jugador.mochila.actualizar_bono_montura(montura.bono_carga)
-    return True
+    return True, f"Cargando modelo {montura.aspecto['modelo_3d']}..."

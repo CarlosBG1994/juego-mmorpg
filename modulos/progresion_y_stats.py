@@ -6,6 +6,8 @@ Reglas:
 - +10 HP maximo automatico por nivel.
 - Coste fijo de 100 Platino para reseteo total.
 - Stats Derivadas: Equilibrio mediante interdependencia.
+- Restricción de equipo: Basada en nivel del jugador.
+- Habilidades: Equipables por Clase/Raza sin restricción de nivel (Solo compatibilidad).
 """
 
 from modulos.integrador import EventBus 
@@ -48,15 +50,9 @@ class PersonajeProgresion:
             self.puntos_libres += 5 
             self.hp_max += 10 
             self.experiencia_siguiente = int(self.experiencia_siguiente * 1.15)
-            
-            # Hitos: Cada 50 niveles, el personaje gana una bonificación pasiva
-            if self.nivel % 50 == 0:
-                print(f"¡Hito alcanzado! {self.nombre} ha recibido un bono de maestría nivel {self.nivel}.")
-            
             EventBus.emit("LEVEL_UP", {"jugador": self.nombre, "nuevo_nivel": self.nivel})
 
     def obtener_modificador_raza(self):
-        """Aplica un toque único según la raza, haciendo que la build sea más profunda."""
         mod = {"VIT": 1.0, "STR": 1.0, "INT": 1.0}
         if self.raza == "Enano": mod["VIT"] = 1.1
         if self.raza == "Elfo": mod["INT"] = 1.1
@@ -88,3 +84,7 @@ class PersonajeProgresion:
             self.puntos_libres -= cantidad
             return True, "Puntos asignados."
         return False, "Error en asignación."
+
+    def puede_equipar_equipo(self, nivel_equipo: int):
+        """Validación simple para que el equipo dependa del nivel del jugador."""
+        return self.nivel >= nivel_equipo

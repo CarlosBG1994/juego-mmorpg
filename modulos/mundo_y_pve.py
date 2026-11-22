@@ -1,42 +1,53 @@
 """
 Modulo: Mundo y PvE de Snd-Worlds
-Gestiona los reinos, geografía detallada, NPCs, puntos de interés y jefes.
+Gestiona los reinos, geografía, NPCs, sistemas de oficios (talleres) y PvE.
 """
+
+# Sistema de Oficios y Talleres por Reino
+TALLERES_POR_REINO = {
+    "Reino Humano": ["Forja Real", "Laboratorio de Alquimia", "Taller de Cuero y Telas", "Inscripción de Pergaminos"],
+    "Reino Elfo": ["Jardín de Infusión Arcana", "Taller de Cristalería Mágica", "Artesanía de Madera Etérea"],
+    "Reino Enano": ["Forja de Magma", "Taller de Ingeniería Rúnica", "Taller de Gemología", "Cantería de Precisión"],
+    "Reino Hombre Bestia": ["Taller de Curtido de Pieles", "Forja de Hueso y Acero", "Herbolaria Ancestral"]
+}
 
 REINOS_DETALLADOS = {
     "Reino Humano": {
         "extension_km2": 250_000,
-        "puntos_interes": ["Gremio de Caballeros", "Taller de Forja Real", "Taberna del Viajero", "Mercado Central"],
-        "npcs_activos": ["Comandante Alaric (Misiones)", "Mercader Silas (Comercio)", "Maestro Artesano Bram (Talleres)"],
-        "arquitectura": "Calles empedradas, callejones oscuros con misiones ocultas, murallas de piedra caliza y castillo central vigilado."
+        "talleres": TALLERES_POR_REINO["Reino Humano"],
+        "puntos_interes": ["Gremio de Caballeros", "Mercado Central", "Taberna del Viajero"],
+        "npcs_activos": ["Maestro Artesano Bram", "Comerciante Silas", "Guardia de Ciudad"],
+        "arquitectura": "Calles empedradas, callejones con misiones ocultas, murallas de caliza."
     },
     "Reino Elfo": {
         "extension_km2": 250_000,
-        "puntos_interes": ["Biblioteca Arcana", "Clínica de Druidas", "Santuario del Viento", "Gremio de Exploradores"],
-        "npcs_activos": ["Guardián Thalon", "Druida Lyra", "Elfa del Viento (Misiones secretas)"],
-        "arquitectura": "Plataformas colgantes, puentes de luz, callejuelas de ramas entrelazadas, castillos de cristal traslúcido."
+        "talleres": TALLERES_POR_REINO["Reino Elfo"],
+        "puntos_interes": ["Biblioteca Arcana", "Santuario del Viento", "Gremio de Exploradores"],
+        "npcs_activos": ["Druida Lyra", "Sabia Thalía", "Elfa del Viento"],
+        "arquitectura": "Plataformas colgantes, puentes de luz, torres de cristal traslúcido."
     },
     "Reino Enano": {
         "extension_km2": 250_000,
-        "puntos_interes": ["Gran Forja de Runas", "Taberna de Cerveza Dorada", "Túneles de Entrenamiento", "Banco de Oro"],
-        "npcs_activos": ["Maestro Forjador Durnik", "Sabio Rúnico", "Guardia de Piedra"],
-        "arquitectura": "Pasillos de granito pulido, callejones subterráneos, fortalezas talladas en roca viva con luz de magma."
+        "talleres": TALLERES_POR_REINO["Reino Enano"],
+        "puntos_interes": ["Gran Forja de Runas", "Banco de Oro", "Túneles de Entrenamiento"],
+        "npcs_activos": ["Maestro Durnik", "Sabio Rúnico", "Guardia de Piedra"],
+        "arquitectura": "Pasillos de granito pulido, iluminación de magma, fortalezas subterráneas."
     },
     "Reino Hombre Bestia": {
         "extension_km2": 250_000,
-        "puntos_interes": ["Arena de Combate", "Chamán de las Tribus", "Mercado de Pieles", "Cueva de los Ancianos"],
+        "talleres": TALLERES_POR_REINO["Reino Hombre Bestia"],
+        "puntos_interes": ["Arena de Combate", "Chamán de las Tribus", "Mercado de Pieles"],
         "npcs_activos": ["Chamán Garra", "Cazador de Manada", "Guerrero Frenético"],
-        "arquitectura": "Tiendas de campaña de gran tamaño, caminos de tierra batida, fogatas comunitarias y fortalezas de piedra tosca."
+        "arquitectura": "Tiendas de cuero reforzado, fogatas comunitarias, piedra tosca."
     }
 }
 
-# SISTEMA DE MUNDO VIVO (Capa de visualización para el motor)
+# Geografía Dinámica y Jefes
 GEOGRAFIA_DETALLADA = {
-    "Entornos": ["Montañas escarpadas con picos nevados", "Bosques densos con árboles de éter", "Caminos serpenteantes con piedras rúnicas"],
-    "Monstruos_por_Zona": {
-        "1-15": ["Lobos de Pradera", "Bandidos de Camino", "Slimes de Eter"],
-        "46-60": ["Centinelas de Acero", "Espíritus del Bosque Oscuro", "Bestias Abisales"],
-        "86-100": ["Dragones del Nexo", "Caballeros Caídos", "Ecos de Malakor'zeth"]
+    "Entornos": ["Montañas escarpadas", "Bosques de éter", "Caminos rúnicos"],
+    "Monstruos_y_Jefes": {
+        "Zonas_Bajas": {"monstruos": ["Slimes", "Lobos"], "jefes": ["Jefe de Banda Local"]},
+        "Zonas_Altas": {"monstruos": ["Centinelas", "Dragones"], "jefes": ["Ecos de Malakor'zeth"]}
     }
 }
 
@@ -50,9 +61,7 @@ class Mazmorra:
         self.npcs_eventos = ["Guía de Mazmorra", "Comerciante de Suministros"]
 
     def derrotar_jefe(self):
-        return f"¡{self.jefe_final} derrotado! Cofre abierto. Respawn en {self.respawn_jefe} min."
+        return f"¡{self.jefe_final} derrotado! Respawn en {self.respawn_jefe} min."
 
-# Integración con el Motor de Streaming (World_Sync)
 def obtener_escena_jugador(posicion_x, posicion_y):
-    """Retorna los datos de visualización para el cliente (árboles, npcs, caminos)."""
-    return {"entidades": "Cargando render de alta definición de NPCs y entorno dinámico"}
+    return {"entidades": "Renderizado de alta definición con NPCs y talleres activos"}

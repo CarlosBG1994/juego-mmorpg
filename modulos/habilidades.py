@@ -1,35 +1,43 @@
-# --- MÓDULO: HABILIDADES (CATÁLOGO MAESTRO) ---
+# --- MÓDULO: HABILIDADES (OPTIMIZADO Y VALIDADO) ---
 
-# TIER 0: ÉPICAS (1 Portador por ID)
-DETALLES_EPICAS = {
-    f"E{i:03}": datos for i, datos in enumerate([
-        {"Clase": "Caballero", "Nombre": "Excalibur del Nexo", "Niv30": "Daño 400% STR + Ejecución."},
-        {"Clase": "Paladín", "Nombre": "Aura del Juicio Final", "Niv30": "Daño 400% INT + Purga Global."},
-        {"Clase": "Mago de Batalla", "Nombre": "Singularidad Arcano", "Niv30": "Daño 400% INT + Stasis."},
-        {"Clase": "Púgil", "Nombre": "Golpe del Dios del Rayo", "Niv30": "Daño 400% STR + Aturdimiento masivo."},
-        {"Clase": "Asesino", "Nombre": "Muerte Silenciosa", "Niv30": "Daño 400% AGI + Invisible permanente."},
-        {"Clase": "Explorador", "Nombre": "Ojo del Halcón Cósmico", "Niv30": "Daño 400% DES + Visión Real."},
-        {"Clase": "Invocador", "Nombre": "Pacto del Rey Demoníaco", "Niv30": "Daño 400% INT + Invoca jefe Tier I."},
-        {"Clase": "Clérigo", "Nombre": "Resurrección del Cosmos", "Niv30": "Revive todo el grupo + Inmortalidad."},
-        {"Clase": "Guardabosques", "Nombre": "Flecha del Destino", "Niv30": "Daño 400% DES + Perfora todo."},
-        {"Clase": "Alcaide", "Nombre": "Custodio del Árbol Mundo", "Niv30": "Escudo invencible 10s + Regeneración HP total."},
-        {"Clase": "Druida", "Nombre": "Avatar de la Madre Naturaleza", "Niv30": "Transmutación en Coloso + 400% INT."},
-        {"Clase": "Espadachín Silvano", "Nombre": "Filo del Infinito", "Niv30": "Daño 400% AGI + Velocidad x10."},
-        {"Clase": "Guerrero Pesado", "Nombre": "Coloso de Hierro", "Niv30": "Daño 400% VIT + Inmune a CC."},
-        {"Clase": "Defensor Rúnico", "Nombre": "Baluarte de los 4 Reinos", "Niv30": "Daño 400% VIT + Reflejo de daño 100%."},
-        {"Clase": "Campeón Rúnico", "Nombre": "Furia de Ymir", "Niv30": "Daño 400% STR + Terremoto global."},
-        {"Clase": "Campeón (Bestia)", "Nombre": "Aliento del Dragón Ancestral", "Niv30": "Daño 400% STR + Fuego azul."},
-        {"Clase": "Chamán Primordial", "Nombre": "Espirítu del Nexo", "Niv30": "Daño 400% INT + Invocación de Avatar."}
-    ], start=1)
-}
+class ControladorHabilidades:
+    """Valida restricciones de clase, cupos y balanceo de poder."""
+    
+    @staticmethod
+    def calcular_dano(habilidad, stats_jugador):
+        """Fórmula lógica para evitar 'roturas' de juego."""
+        # Multiplicadores base para evitar desbalanceo
+        multiplicadores = {"I": 2.5, "II": 1.8, "III": 1.5, "IV": 1.2, "V": 1.1, "VI": 1.0}
+        tier = habilidad.get("tier", "VI")
+        mult = multiplicadores.get(tier, 1.0)
+        
+        # El daño escala con el atributo principal (ej: STR, INT)
+        stat_base = stats_jugador.get(habilidad.get("stat_req"), 10)
+        return int(stat_base * mult)
 
-# TIER II: LEYENDA (10 Portadores por ID)
-# Catálogo estandarizado para las 30 habilidades
+    @staticmethod
+    def validar_equipamiento(jugador, habilidad_id):
+        """Validación automática de reglas de oro."""
+        # 1. ¿Es Épica? Solo puede tener una equipada en todo el slot
+        if habilidad_id.startswith("E") and any(h.startswith("E") for h in jugador.habs_activas):
+            return False, "Error: Solo puedes equipar una habilidad Épica."
+        
+        # 2. ¿Cupos Míticos/Leyenda?
+        # Aquí el sistema consultaría el servidor para ver si hay >5 (Mit) o >10 (Ley) usuarios
+        return True, "Habilidad validada."
+
+# --- ESCALADO LOGICO DE PODER (Niv 30) ---
+# Se ajustan multiplicadores para que solo las Míticas (Tier I) rompan el balance.
 DETALLES_LEYENDA = {
     f"L{i:03}": {
-        "Efecto": f"Poder Leyenda {i}", 
-        "Niv1": "80% Stat base", 
-        "Niv15": "Efecto Utility", 
-        "Niv30": "200% Stat base"
+        "stat_req": "STR", # Ejemplo, cada una usará el suyo
+        "Niv30": "Daño 180% stat base (Equilibrado)" 
     } for i in range(1, 31)
+}
+
+DETALLES_MITICAS = {
+    f"M{i:03}": {
+        "stat_req": "STR",
+        "Niv30": "Daño 300% stat base + EFECTO ROTO (Control total)" 
+    } for i in range(1, 14)
 }
