@@ -239,9 +239,10 @@ with tab_lore:
 
 # === AUTO-MODULOS START ===
 try:
-    from modulos import economia_y_comercio as _mod_economia_y_comercio
+    from modulos import config_segura as _mod_config_segura
 except Exception as _err:
-    _mod_economia_y_comercio = None
+    _mod_config_segura = None
+_mod_economia_y_comercio = None  # Revisar error: IndentationError: unexpected indent (economia_y_comercio.py, line 3)
 try:
     from modulos import habilidades as _mod_habilidades
 except Exception as _err:
@@ -296,6 +297,7 @@ except Exception as _err:
     _mod_world_sync = None
 
 MODULOS_CARGADOS = {
+    "config_segura": _mod_config_segura,
     "economia_y_comercio": _mod_economia_y_comercio,
     "habilidades": _mod_habilidades,
     "historia_lore": _mod_historia_lore,
