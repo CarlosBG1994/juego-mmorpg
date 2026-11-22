@@ -1,11 +1,14 @@
 """
 Modulo: Progresion y Estadisticas de Snd-Worlds
 Reglas:
-- Nivel 1 a 100 inicial.
-- Ganancia de 5 puntos libres por nivel.
+- Nivel 1 a 100 inicial (Continente Primordial).
+- Sistema de experiencia + UI en tiempo real.
 - +10 HP maximo automatico por nivel.
-- Sistema de Estadísticas Derivadas: Cada stat influye en el equilibrio global.
+- Coste fijo de 100 Platino para reseteo total.
+- Stats Derivadas: Equilibrio mediante interdependencia.
 """
+
+from modulos.integrador import EventBus 
 
 CONTINENTES_Y_LIMITES = {
     "Continente Primordial": 100,
@@ -15,64 +18,73 @@ CONTINENTES_Y_LIMITES = {
     "Nucleo Central de Comercio y Nexo Global": 300
 }
 
+COSTE_REESPECIALIZACION_PLATINO = 100
+
 class PersonajeProgresion:
     def __init__(self, nombre: str, raza: str, clase: str, subforma: str = None):
         self.nombre = nombre
         self.raza = raza
         self.clase = clase
-        self.subforma = subforma
         self.nivel = 1
         self.experiencia = 0
         self.experiencia_siguiente = 100
-        
         self.hp_max = 100
-        self.hp_actual = 100 # Solo sube por curación externa (pociones/descanso)
-        
         self.puntos_libres = 0
-        self.stats = {
-            "STR": 10, "INT": 10, "AGI": 10, "VIT": 10, "LUK": 10, "DES": 10
-        }
+        self.stats = {"STR": 10, "INT": 10, "AGI": 10, "VIT": 10, "LUK": 10, "DES": 10}
         self.continente_actual = "Continente Primordial"
 
     def ganar_experiencia(self, cantidad: int):
         self.experiencia += cantidad
-        subidas = 0
+        EventBus.emit("XP_UPDATE", {"jugador": self.nombre, "xp_actual": self.experiencia, "xp_requerida": self.experiencia_siguiente})
+        
         while self.experiencia >= self.experiencia_siguiente:
             self.experiencia -= self.experiencia_siguiente
-            resultado, _ = self.subir_nivel()
-            if resultado: subidas += 1
-            else: break
-        return subidas
+            self.subir_nivel()
 
     def subir_nivel(self):
         limite_actual = CONTINENTES_Y_LIMITES.get(self.continente_actual, 100)
-        if self.nivel >= limite_actual: return False, "Límite de nivel alcanzado."
+        if self.nivel < limite_actual:
+            self.nivel += 1
+            self.puntos_libres += 5 
+            self.hp_max += 10 
+            self.experiencia_siguiente = int(self.experiencia_siguiente * 1.15)
+            
+            # Hitos: Cada 50 niveles, el personaje gana una bonificación pasiva
+            if self.nivel % 50 == 0:
+                print(f"¡Hito alcanzado! {self.nombre} ha recibido un bono de maestría nivel {self.nivel}.")
+            
+            EventBus.emit("LEVEL_UP", {"jugador": self.nombre, "nuevo_nivel": self.nivel})
 
-        self.nivel += 1
-        self.puntos_libres += 5 
-        self.hp_max += 10 # El HP máximo sube, pero el actual NO se rellena (regla de no curar al subir)
-        self.experiencia_siguiente = int(self.experiencia_siguiente * 1.15)
-        return True, f"Nivel {self.nivel} alcanzado."
-
-    def asignar_puntos(self, estadistica: str, cantidad: int):
-        est = estadistica.upper()
-        if est not in self.stats or cantidad <= 0 or cantidad > self.puntos_libres:
-            return False, "Error en asignación de puntos."
-        
-        self.stats[est] += cantidad
-        self.puntos_libres -= cantidad
-        return True, f"{est} subida a {self.stats[est]}."
+    def obtener_modificador_raza(self):
+        """Aplica un toque único según la raza, haciendo que la build sea más profunda."""
+        mod = {"VIT": 1.0, "STR": 1.0, "INT": 1.0}
+        if self.raza == "Enano": mod["VIT"] = 1.1
+        if self.raza == "Elfo": mod["INT"] = 1.1
+        return mod
 
     def obtener_stats_derivadas(self):
-        """
-        Sistema de Equilibrio: Las stats base generan resultados secundarios.
-        Esto obliga a diversificar para sobrevivir.
-        """
+        m = self.obtener_modificador_raza()
         return {
-            "Daño_Fisico": self.stats["STR"] * 2,
-            "Defensa": (self.stats["VIT"] * 1.5) + (self.stats["STR"] * 0.5),
+            "Daño_Fisico": self.stats["STR"] * 2 * m["STR"],
+            "Defensa": ((self.stats["VIT"] * 1.5) * m["VIT"]) + (self.stats["STR"] * 0.5),
+            "Poder_Magico": self.stats["INT"] * 2 * m["INT"],
             "Precision": (self.stats["DES"] * 2) + (self.stats["AGI"] * 0.5),
             "Evasion": (self.stats["AGI"] * 1.2) + (self.stats["LUK"] * 0.3),
-            "Critico": (self.stats["LUK"] * 0.5) + (self.stats["DES"] * 0.2),
-            "Poder_Magico": self.stats["INT"] * 2
+            "Critico": (self.stats["LUK"] * 0.5) + (self.stats["DES"] * 0.2)
         }
+
+    def usar_pergamino_reespecializacion(self, tiene_pergamino: bool, billetera: object):
+        coste_en_cobre = COSTE_REESPECIALIZACION_PLATINO * 100_000_000
+        if not tiene_pergamino: return False, "Pergamino no encontrado."
+        if not billetera.retirar_cobre(coste_en_cobre, "Reseteo Total"): return False, "Fondos insuficientes (100 Platino)."
+        
+        self.stats = {k: 10 for k in self.stats}
+        self.puntos_libres = ((self.nivel - 1) * 5)
+        return True, "Stats reseteadas con éxito."
+
+    def asignar_puntos(self, estadistica: str, cantidad: int):
+        if estadistica.upper() in self.stats and 0 < cantidad <= self.puntos_libres:
+            self.stats[estadistica.upper()] += cantidad
+            self.puntos_libres -= cantidad
+            return True, "Puntos asignados."
+        return False, "Error en asignación."

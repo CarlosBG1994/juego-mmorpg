@@ -1,7 +1,7 @@
 """
 Modulo: monitor_calidad
 Rol: Auditoría en tiempo real, validación de integridad y monitoreo de balance.
-Funciones: Verificación de Login, Validación de Estado de Sesión y Control de Seguridad.
+Funciones: Verificación de Login, Validación de Sesión, Control de Seguridad y Simulación de Entorno.
 """
 
 import time
@@ -36,6 +36,16 @@ class MonitorCalidad:
         if not hasattr(jugador, 'id') or jugador.id is None:
             return False, "Error: ID de jugador no detectado tras login."
         return True, "Sesión íntegra."
+
+    def simular_flujo_login(self, jugador_mock):
+        """
+        Herramienta de QA: Simula un intento de login para verificar la respuesta del sistema.
+        """
+        print(f"[QA TEST] Iniciando simulación de login para ID: {jugador_mock.id}")
+        self.auditar_inicio_sesion("Google", "success", jugador_mock.id)
+        valido, mensaje = self.verificar_integridad_sesion(jugador_mock)
+        print(f"[QA TEST] Resultado de integridad: {mensaje}")
+        return valido
 
 # Instancia para el sistema
 monitor_qa = MonitorCalidad()

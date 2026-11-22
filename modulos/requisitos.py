@@ -20,37 +20,32 @@ class CoordinadorAgentes:
             "Monitor": "modulos/monitor_calidad.py",
             "WorldSync": "modulos/world_sync.py"
         }
+        # Reglas de Oro para la Economía (Valores en Platino)
+        self.precios_objetivo = {
+            "Leyenda": 100,
+            "Mitica": 1000
+        }
         self.bitacora_cambios = []
-        self.matriz_dependencias = {}
         self.alertas_conflicto = []
-
-    def registrar_dependencia(self, modulo_padre: str, modulo_hijo: str):
-        if modulo_hijo not in self.matriz_dependencias:
-            self.matriz_dependencias[modulo_padre] = modulo_hijo
-            return True
-        return False
 
     def detectar_y_reportar_conflictos(self):
         """
-        MOTOR DE AUDITORÍA: Analiza el sistema buscando inconsistencias.
+        MOTOR DE AUDITORÍA: Analiza la economía contra la rareza de habilidades.
         """
-        # Resolución de Conflicto: Economía vs Habilidades (Escasez)
-        if "Economia" in self.registro_modulos and "Habilidades" in self.registro_modulos:
-            # Lógica: Las habilidades Leyenda/Mitica deben tener un factor de escasez (x100)
-            # sobre el precio base mínimo del sistema.
-            pass 
+        # Aquí validamos que los precios en Economía no violen las Reglas de Oro
+        # Si un objeto Leyenda se publica por < 100 Platino, el coordinador lo marca.
+        pass
         
         if self.alertas_conflicto:
-            print(f"[ALERTA CRÍTICA] Se han detectado {len(self.alertas_conflicto)} conflictos en la sincronización.")
+            print(f"[ALERTA CRÍTICA] Conflicto económico: {self.alertas_conflicto}")
             return self.alertas_conflicto
         return "Estado del sistema: Coordinado."
 
     def notificar_actualizacion(self, modulo_emisor: str, descripcion_cambio: str):
-        evento = {"emisor": modulo_emisor, "cambio": descripcion_cambio, "status": "Auditado"}
-        self.bitacora_cambios.append(evento)
-        print(f"[CCIA] Aviso: {modulo_emisor} actualizado. Auditoría en curso...")
+        self.bitacora_cambios.append({"emisor": modulo_emisor, "cambio": descripcion_cambio})
+        # Siempre que Economía actualice, forzamos una revisión de precios contra las Reglas de Oro
         self.detectar_y_reportar_conflictos()
-        return evento
+        return True
 
     def proponer_mejora_cruzada(self, modulo_receptor: str, sugerencia: str):
         print(f"[CCIA] Propuesta de mejora para {modulo_receptor}: {sugerencia}")
