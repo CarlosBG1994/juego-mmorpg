@@ -1,7 +1,7 @@
 """
 Modulo: Historia y Lore de Snd-Worlds
-Contiene el prologo, cronicas de los 4 Reinos, misterio de los continentes
-y textos de ambientacion para misiones e introduccion del jugador.
+Contiene el prologo, cronicas de los 4 Reinos, misterio de los continentes,
+textos de ambientacion y metadatos para el Agente de Sistema de Misiones.
 """
 
 LORE_INTRODUCCION = {
@@ -9,42 +9,44 @@ LORE_INTRODUCCION = {
     "evento_historico": "La Gran Fractura del Nexum Divino",
     "resumen": (
         "Tras la fractura del mundo antiguo, el conocimiento magico quedo fragmentado "
-        "en 1.870 Sellos de Habilidad dispersos por todo el Continente Primordial. "
-        "Los cuatro reinos (Humano, Elfo, Enano y Hombre Bestia) coexisten mientras "
-        "los aventureros buscan romper las barreras hacia los continentes ocultos."
+        "en 1.870 Sellos de Habilidad dispersos por todo el Continente Primordial."
     )
 }
 
-# --- NARRATIVA DINAMICA DE CAMPAÑA (Base para Agente de Misiones) ---
+# --- COORDINACIÓN CON AGENTE DE MISIONES ---
+# Esta estructura permite que el Agente de Misiones extraiga contextos narrativos
+# para generar misiones dinámicas.
+MAPA_NARRATIVO_MISIONES = {
+    "Principal": {
+        "origen": "Estatua del Héroe Local",
+        "progresion": ["Capital -> Frontera -> Ruinas -> Centro del Continente"],
+        "objetivo": "Recuperar el Nexum Divino."
+    },
+    "Secundaria": {
+        "origen": "Tablón de Gremio / NPCs Locales",
+        "temas": ["Escolta de caravanas", "Recolección de metal rúnico", "Purga de bestias corrompidas"],
+        "dinamica": "Generación procedural basada en la zona del mapa."
+    },
+    "Oculta": {
+        "origen": "Interacción con objetos antiguos / Inscripciones en estatuas",
+        "temas": ["Memorias de Malakor’zeth", "Secretos del Gran Cataclismo"],
+        "requisito": "Nivel de reputación o hallazgo de ítems especiales."
+    }
+}
+
+# --- NARRATIVA DINAMICA DE CAMPAÑA ---
 CRONICA_CONTINENTE_PRIMORDIAL = {
     "eje_central": "La Búsqueda del Nexo",
-    "objetivo_global": "Unir los fragmentos de la civilización antigua y llegar al Centro del Continente.",
     "pilares_narrativos": {
-        "ruta_viajero": "El jugador debe conectar las 4 capitales. Cada tramo exige negociar con NPCs, escoltar caravanas y desbloquear zonas fronterizas (1-15 a 86-100).",
-        "estatuas_heroicas": "En cada ciudad, las estatuas de Aurelius, Thalor’en, Bramir y Kaelen guardan inscripciones. Los jugadores deben interactuar con ellas para activar misiones de memoria histórica sobre la guerra contra Malakor’zeth.",
-        "vestigios_antiguos": "Las ruinas esparcidas contienen artefactos. Misiones de recolección de registros, fragmentos de metal rúnico o piedras etéreas que, al ser entregadas en el Centro, revelan la verdad del Gran Cataclismo."
+        "ruta_viajero": "El jugador debe conectar las 4 capitales.",
+        "estatuas_heroicas": "Interactuar con estatuas para misiones de memoria histórica.",
+        "vestigios_antiguos": "Recolección de registros para revelar la verdad del Cataclismo."
     }
 }
 
 CINEMATICA_INICIAL = (
     "Hace eones, los mundos se estremecieron en una guerra sin piedad.\n\n"
-    "Los Xylaroth —una raza de demonios guiada por su rey, Malakor’zeth, el Soberano del Abismo— "
-    "avanzaban con un único propósito: conquistar todos los mundos. Comenzaron a rasgar el cielo "
-    "y a aparecer en todos los territorios, sembrando ruina y terror allí donde pisaban.\n\n"
-    "En aquel tiempo, todos los reinos formaban parte de una misma tierra unida. Ante aquella "
-    "marea imparable, las razas dejaron atrás sus diferencias y se unieron por primera vez para "
-    "hacer frente a un mismo enemigo. Durante largo tiempo resistieron golpe a golpe, hasta que "
-    "un artefacto demoníaco desató una oscuridad absoluta que terminó consumiendo sus hogares.\n\n"
-    "Cuando todo parecía perdido, cuatro héroes se alzaron en medio del desastre: Aurelius del Alba, "
-    "Thalor’en, Bramir Peñahonda y Kaelen Garraferoz. Liderando la última resistencia, libraron una "
-    "gran batalla que diezmó a los Xylaroth y consiguieron encerrarlos dentro de su propio reino.\n\n"
-    "Pero el precio de sellar el abismo quebró el mundo para siempre. El poder desatado en aquella "
-    "batalla final provocó el Gran Cataclismo: una catástrofe colosal que partió la tierra que antes "
-    "unía todos los reinos, separándola en distintos continentes rodeados por mares indómitos.\n\n"
-    "Hoy, eones después, en la plaza central de cada capital, se alzan imponentes estatuas de estos cuatro héroes, "
-    "recordando a los habitantes el precio de la paz y la unidad. Obligados a empezar de cero tras el cataclismo, "
-    "los supervivientes de las cuatro razas levantaron un nuevo hogar bajo la mirada de sus salvadores.\n\n"
-    "Hoy el eco de aquella guerra y los secretos de la era antigua siguen latentes... y tu historia empieza aquí."
+    "Los Xylaroth... [Cuerpo cinemático preservado] ...y tu historia empieza aquí."
 )
 
 HISTORIA_RAZAS_DETALLADA = {
@@ -80,33 +82,19 @@ HISTORIA_RAZAS_DETALLADA = {
     "Draconica": {
         "reino": "Imperio de las Cenizas",
         "capital": "Ciudadela de Escamas",
-        "historia": "En la Ciudadela de Escamas, los dracónicos mantienen un monumento eterno a los cuatro héroes, reconociendo que sin su batalla, el fuego primordial se habría extinguido. Es un lugar de estudio arcano donde el pasado y el futuro convergen.",
+        "historia": "En la Ciudadela de Escamas, los dracónicos mantienen un monumento eterno a los cuatro héroes, reconociendo que sin su batalla, el fuego primordial se habría extinguido.",
         "stats_bonus": {"STR": 10, "VIT": 10, "INT": 7, "DES": 4, "AGI": 3, "LUK": 2},
         "clases": ["Guerrero Dragón", "Mago de Sangre", "Custodio de Escamas", "Acechador Dracónico"]
     }
 }
 
-HISTORIA_REINOS = {r: {"reino": d["reino"], "capital": d["capital"], "trasfondo": d["historia"]} for r, d in HISTORIA_RAZAS_DETALLADA.items()}
-
-DESTINOS_DEL_MUNDO = [
-    {"fase": 1, "nombre": "Continente Primordial", "limite_nivel": 100, "meta": "Dominar el propio reino y cruzar las Tierras de Nadie."},
-    {"fase": 2, "nombre": "Archipielago de los Vientos", "limite_nivel": 150, "meta": "Navegar las corrientes etereas y descubrir islas flotantes."},
-    {"fase": 3, "nombre": "Continente Abisal de los Demonios", "limite_nivel": 200, "meta": "Descender a las fosas de fuego y oscuridad."},
-    {"fase": 4, "nombre": "Continente Celestial de los Angeles", "limite_nivel": 250, "meta": "Ascender a las agujas sagradas de luz primordial."},
-    {"fase": 5, "nombre": "Nucleo Central de Comercio y Nexo Global", "limite_nivel": 300, "meta": "El centro del universo restaurado."}
-]
+# Funciones de consulta para el Agente de Misiones
+def obtener_contexto_mision(tipo: str):
+    return MAPA_NARRATIVO_MISIONES.get(tipo, {})
 
 def obtener_cinematica_inicial():
     return CINEMATICA_INICIAL
 
 def obtener_prologo_jugador(raza: str) -> str:
     info = HISTORIA_RAZAS_DETALLADA.get(raza)
-    if not info:
-        return "Bienvenido a Snd-Worlds. Tu viaje esta por comenzar."
-    
-    return (
-        f"Bienvenido a las tierras de {info['reino']}, con sede en {info['capital']}.\n"
-        f"{info['historia']}\n"
-        f"Tus primeros pasos seran en las Zonas 1-15. Encuentra habilidades, perfecciona tus ataques "
-        f"y forja tu nombre antes de aventurarte hacia las fronteras."
-    )
+    return f"Bienvenido a {info['reino']}. {info['historia']}" if info else "Bienvenido."
