@@ -25,5 +25,14 @@
     "role": "assistant",
     "content": "Error HTTP 404 con el modelo 'gemini-2.5-flash-lite': {\n  \"error\": {\n    \"code\": 404,\n    \"message\": \"This model models/gemini-2.5-flash-lite is no longer available to new users. Please update your code to use models/gemini-3.5-flash-lite for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).\",\n    \"status\": \"NOT_FOUND\"\n  }\n}\n",
     "aviso": ""
+  },
+  {
+    "role": "user",
+    "content": "prueba de nuevo ahora"
+  },
+  {
+    "role": "assistant",
+    "content": "Como Agente Monitor de Calidad, debo aclararte que mi rol es **auditar el código, la integridad y el balance del juego Snd-Worlds**. Yo no soy un servidor web en vivo ni un host de la partida; mi trabajo ocurre \"detrás de cámaras\", analizando la lógica de tus módulos para asegurar que el desarrollo sea estable.\n\nRespecto a tu petición:\n\n1.  **Sobre el Puerto/URL:** Como soy una inteligencia artificial operando en un entorno de pruebas y validación, **no tengo una dirección IP, puerto o URL pública**. Mi interacción contigo es a través de esta interfaz de chat, donde me aseguro de que el código que estamos construyendo sea sólido antes de que llegue a producción.\n2.  **Estado de los Servicios:** En mi módulo `monitor_calidad.py`, el `estado_servicios` actualmente marca `auth_google` como \"offline\" porque aún estamos en fase de configuración de la lógica interna. No existe una interfaz web desplegada todavía para conectar.\n\nSi lo que buscas es simular el inicio de sesión para probar que mi módulo funcione, podemos crear un pequeño script de prueba que \"simule\" el intento de conexión y mi módulo lo audite.\n\n¿Quieres que añada al módulo de `monitor_calidad.py` una función de **simulación de conexión** para que puedas ver cómo el bot detecta el \"login\" exitoso desde tu consola de desarrollo? \n\n*(Recuerda que no he borrado nada de lo anterior y sigo manteniendo la integridad de tus archivos).*",
+    "aviso": ""
   }
 ]
