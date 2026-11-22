@@ -1,432 +1,102 @@
-from datetime import datetime, timezone
-import firebase_admin
-from firebase_admin import credentials, firestore
-import streamlit as st
+import ast
+import importlib.util
+import re
+import shutil
+from pathlib import Path
 
-from config import (
-    DATOS_MUNDO,
-    CONTINENTE_INICIAL,
-    CONTINENTES_RACIALES,
-    CONTINENTE_DEMONIACO,
-    CONTINENTE_ANGELICAL,
-)
-from habilidades import CATALOGO_HABILIDADES, BARRA_HABILIDADES_DEFECTO
-from misiones_reino import SISTEMA_MISIONES, obtener_secundarias_disponibles
-from progression_engine import (
-    obtener_rango_visual_continente,
-    verificar_acceso_continente,
-)
-from canvas_engine import generar_canvas_html
+BASE_DIR = Path("/workspaces/juego-mmorpg")
+APP_FILE = BASE_DIR / "app.py"
+MODULOS_DIR = BASE_DIR / "modulos"
 
-st.set_page_config(page_title="Snd-Worlds MMORPG", page_icon="⚔️", layout="wide")
-
-OPCIONES_PERSONALIZACION = {
-    "cabello": ["Rubio Legendario", "Castaño Oscuro", "Pelirrojo Fuego", "Platino Arcano", "Negro Sombra"],
-    "armadura_color": ["Azul Real (Valoria)", "Rojo Sangre", "Verde Esmeralda", "Dorado Divino", "Oscuro Abisal"],
-}
-
-TODOS_CONTINENTES = (
-    [CONTINENTE_INICIAL]
-    + CONTINENTES_RACIALES
-    + [CONTINENTE_DEMONIACO, CONTINENTE_ANGELICAL]
-)
+START_MARKER = "# === AUTO-MODULOS START ==="
+END_MARKER = "# === AUTO-MODULOS END ==="
 
 
-def obtener_db_firestore():
+def listar_modulos_validos() -> list[str]:
+    if not MODULOS_DIR.exists():
+        return []
+    nombres = []
+    for ruta in sorted(MODULOS_DIR.glob("*.py")):
+        if ruta.name.startswith("__"):
+            continue
+        nombres.append(ruta.stem)
+    return nombres
+
+
+def probar_import_modulo(nombre: str) -> tuple[bool, str]:
+    ruta = MODULOS_DIR / f"{nombre}.py"
     try:
-        if "firebase" not in st.secrets:
-            return None
-        if not firebase_admin._apps:
-            fb_cfg = dict(st.secrets["firebase"])
-            if isinstance(fb_cfg.get("private_key"), str):
-                fb_cfg["private_key"] = fb_cfg["private_key"].replace("\\n", "\n")
-            cred = credentials.Certificate(fb_cfg)
-            firebase_admin.initialize_app(cred)
-        return firestore.client()
+        spec = importlib.util.spec_from_file_location(f"modulos.{nombre}", ruta)
+        if spec is None or spec.loader is None:
+            return False, "No se pudo crear spec"
+        modulo = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modulo)
+        return True, "OK"
     except Exception as exc:
-        st.caption(f"⚠️ Firebase no disponible aún: {exc}")
-        return None
+        return False, f"{type(exc).__name__}: {exc}"
 
 
-def obtener_usuario_google():
-    user_obj = getattr(st, "user", None)
-    if user_obj is None:
-        return None
-    esta_logueado = bool(getattr(user_obj, "is_logged_in", False))
-    if not esta_logueado:
-        return None
-    email = getattr(user_obj, "email", None) or (user_obj.get("email") if hasattr(user_obj, "get") else None)
-    nombre = (
-        getattr(user_obj, "name", None)
-        or (user_obj.get("name") if hasattr(user_obj, "get") else None)
-        or email
-        or "Jugador Google"
+def construir_bloque(modulos: list[str], estados: dict[str, tuple[bool, str]]) -> str:
+    lineas_imports = []
+    for m in modulos:
+        if estados.get(m, (False, ""))[0]:
+            lineas_imports.append(
+                f"try:\n"
+                f"    from modulos import {m} as _mod_{m}\n"
+                f"except Exception as _err:\n"
+                f"    _mod_{m} = None"
+            )
+        else:
+            lineas_imports.append(
+                f"_mod_{m} = None  # Revisar error: {estados.get(m, ('', ''))[1]}"
+            )
+
+    diccionario_items = ",\n    ".join(f'"{m}": _mod_{m}' for m in modulos)
+    cuerpo_imports = "\n".join(lineas_imports) if lineas_imports else "pass"
+
+    return (
+        f"{START_MARKER}\n"
+        f"{cuerpo_imports}\n\n"
+        f"MODULOS_CARGADOS = {{\n"
+        f"    {diccionario_items}\n"
+        f"}}\n"
+        f"{END_MARKER}"
     )
-    return {"id": str(email or nombre).strip(), "nombre": str(nombre).strip(), "email": email}
 
 
-def _sanitizar_doc_id(valor: str) -> str:
-    limpio = "".join(ch if ch.isalnum() or ch in ("_", "-") else "_" for ch in valor.strip())
-    return limpio[:120] or "jugador_anonimo"
+def sincronizar_app():
+    if not APP_FILE.exists():
+        print(f"No existe {APP_FILE}")
+        return
 
+    modulos = listar_modulos_validos()
+    estados = {m: probar_import_modulo(m) for m in modulos}
 
-def sincronizar_jugador_y_listar(db, usuario_actual: dict | None, nombre_fallback: str):
-    ahora_iso = datetime.now(timezone.utc).isoformat()
-    base_nombre = (nombre_fallback or "").strip() or "Aventurero"
-    identidad = usuario_actual["id"] if usuario_actual else base_nombre
-    nombre_visible = usuario_actual["nombre"] if usuario_actual else base_nombre
+    for m in modulos:
+        ok, info = estados[m]
+        print(f"[MODULO] {m}.py -> {info}" if ok else f"[MODULO / AVISO] {m}.py -> {info}")
 
-    jugador_doc = {
-        "jugador_id": identidad,
-        "nombre": nombre_visible,
-        "autenticado_google": bool(usuario_actual),
-        "continente": st.session_state.continente_actual,
-        "zona": st.session_state.zona_actual,
-        "clase": st.session_state.clase_pj,
-        "ultima_conexion": ahora_iso,
-    }
+    shutil.copy2(APP_FILE, APP_FILE.with_suffix(".py.bak"))
+    codigo_actual = APP_FILE.read_text(encoding="utf-8")
+    bloque_nuevo = construir_bloque(modulos, estados)
 
-    if "jugadores_locales_sim" not in st.session_state:
-        st.session_state.jugadores_locales_sim = {}
-    st.session_state.jugadores_locales_sim[identidad] = jugador_doc
-
-    jugadores = []
-    if db is not None:
-        try:
-            doc_id = _sanitizar_doc_id(identidad)
-            db.collection("jugadores_activos").document(doc_id).set(jugador_doc, merge=True)
-            for snap in db.collection("jugadores_activos").stream():
-                data = snap.to_dict() or {}
-                if data.get("nombre"):
-                    jugadores.append(data)
-        except Exception as exc:
-            st.caption(f"⚠️ No se pudo sincronizar jugadores en Firestore: {exc}")
-
-    if not jugadores:
-        jugadores = list(st.session_state.jugadores_locales_sim.values())
-
-    jugadores.sort(key=lambda item: str(item.get("ultima_conexion", "")), reverse=True)
-    return jugadores
-
-
-if "continentes_abiertos" not in st.session_state:
-    st.session_state.continentes_abiertos = [CONTINENTE_INICIAL]
-if "orden_apertura_raciales" not in st.session_state:
-    st.session_state.orden_apertura_raciales = []
-if "continente_actual" not in st.session_state:
-    st.session_state.continente_actual = CONTINENTE_INICIAL
-if "zona_actual" not in st.session_state:
-    st.session_state.zona_actual = DATOS_MUNDO["zonas_por_continente"][CONTINENTE_INICIAL][0]
-if "clase_pj" not in st.session_state:
-    st.session_state.clase_pj = "Púgil"
-if "cabello_pj" not in st.session_state:
-    st.session_state.cabello_pj = OPCIONES_PERSONALIZACION["cabello"][0]
-if "armadura_pj" not in st.session_state:
-    st.session_state.armadura_pj = OPCIONES_PERSONALIZACION["armadura_color"][0]
-if "oro_jugador" not in st.session_state:
-    st.session_state.oro_jugador = 1450
-if "misiones_completadas_ids" not in st.session_state:
-    st.session_state.misiones_completadas_ids = []
-if "jugador_completo_principales_abiertas" not in st.session_state:
-    st.session_state.jugador_completo_principales_abiertas = False
-if "misiones_ocultas_angelical_completadas" not in st.session_state:
-    st.session_state.misiones_ocultas_angelical_completadas = False
-if "monturas_desbloqueadas" not in st.session_state:
-    st.session_state.monturas_desbloqueadas = ["A Pie (Velocidad Base)"]
-if "montura_equipada" not in st.session_state:
-    st.session_state.montura_equipada = "A Pie (Velocidad Base)"
-if "barra_habilidades" not in st.session_state:
-    st.session_state.barra_habilidades = BARRA_HABILIDADES_DEFECTO.copy()
-
-principales_ids = {m["id"] for m in SISTEMA_MISIONES["principales"]}
-todas_principales_completadas = principales_ids.issubset(set(st.session_state.misiones_completadas_ids))
-if todas_principales_completadas:
-    st.session_state.jugador_completo_principales_abiertas = True
-
-st.title(f"⚔️ {DATOS_MUNDO['nombre_mundo']} — {DATOS_MUNDO['superficie_km2']:,} km²")
-
-with st.sidebar:
-    st.header("🎨 Creador y Moldear Personaje")
-    st.session_state.clase_pj = st.selectbox("Clase del Héroe:", [c["nombre"] for c in DATOS_MUNDO["clases_personaje"]])
-    st.session_state.cabello_pj = st.selectbox("Estilo de Pelo / Casco:", OPCIONES_PERSONALIZACION["cabello"])
-    st.session_state.armadura_pj = st.selectbox("Color de Armadura:", OPCIONES_PERSONALIZACION["armadura_color"])
-
-    st.markdown("---")
-    st.header(f"⚡ Banco de Habilidades ({len(CATALOGO_HABILIDADES)})")
-    with st.expander("Equipar Habilidades en Teclas (1, 2, 3, 4, Q)", expanded=True):
-        filtro_cat = st.selectbox(
-            "Filtrar por Categoría:",
-            ["Todas", "Tier I", "Tier II", "Tier III", "Tier IV", "Tier V", "Mítica"],
+    if START_MARKER in codigo_actual and END_MARKER in codigo_actual:
+        patron = re.compile(
+            rf"{re.escape(START_MARKER)}.*?{re.escape(END_MARKER)}",
+            re.DOTALL,
         )
-        ids_filtrados = [
-            sid for sid, sk in CATALOGO_HABILIDADES.items()
-            if filtro_cat == "Todas" or sk["categoria"] == filtro_cat
-        ]
-        for tecla in ["1", "2", "3", "4", "q"]:
-            actual = st.session_state.barra_habilidades.get(tecla, "skill_0001")
-            opciones_tecla = ids_filtrados if actual in ids_filtrados else [actual] + ids_filtrados
-            elegida = st.selectbox(
-                f"Ranura [{tecla.upper()}]:",
-                options=opciones_tecla,
-                index=opciones_tecla.index(actual),
-                format_func=lambda k: f"#{CATALOGO_HABILIDADES[k]['numero']:04d} {CATALOGO_HABILIDADES[k]['icono']} {CATALOGO_HABILIDADES[k]['nombre']}",
-                key=f"equip_slot_{tecla}",
-            )
-            st.session_state.barra_habilidades[tecla] = elegida
-
-    st.markdown("---")
-    st.header("🌍 Continentes y Niveles")
-    continente_sel = st.selectbox(
-        "Seleccionar Continente:",
-        TODOS_CONTINENTES,
-        format_func=lambda c: f"{c} [{obtener_rango_visual_continente(c, st.session_state.orden_apertura_raciales)}]",
-    )
-
-    permitido, msg_cont = verificar_acceso_continente(
-        continente_sel,
-        st.session_state.continentes_abiertos,
-        st.session_state.orden_apertura_raciales,
-        st.session_state.jugador_completo_principales_abiertas,
-        todas_principales_completadas,
-        st.session_state.misiones_ocultas_angelical_completadas,
-    )
-
-    if continente_sel not in st.session_state.continentes_abiertos and permitido:
-        if st.button(f"🔓 Abrir {continente_sel}", key="btn_abrir_continente"):
-            st.session_state.continentes_abiertos.append(continente_sel)
-            if continente_sel in CONTINENTES_RACIALES and continente_sel not in st.session_state.orden_apertura_raciales:
-                st.session_state.orden_apertura_raciales.append(continente_sel)
-            st.session_state.continente_actual = continente_sel
-            st.session_state.zona_actual = DATOS_MUNDO["zonas_por_continente"][continente_sel][0]
-            st.rerun()
-
-    if continente_sel in st.session_state.continentes_abiertos:
-        st.session_state.continente_actual = continente_sel
-        st.success(msg_cont)
-        zonas_cont = DATOS_MUNDO["zonas_por_continente"][continente_sel]
-        idx_z = zonas_cont.index(st.session_state.zona_actual) if st.session_state.zona_actual in zonas_cont else 0
-        st.session_state.zona_actual = st.selectbox("Zona Activa:", zonas_cont, index=idx_z)
+        nuevo_codigo = patron.sub(bloque_nuevo, codigo_actual)
     else:
-        st.warning(msg_cont)
+        nuevo_codigo = f"{codigo_actual.rstrip()}\n\n{bloque_nuevo}\n"
 
-    st.markdown("---")
-    st.header("🐴 Establo y Movilidad")
-    montura_elegida = st.selectbox("Montura Equipada:", st.session_state.monturas_desbloqueadas)
-    st.session_state.montura_equipada = montura_elegida
-    velocidad_mapa = 4.5
-    for m in DATOS_MUNDO["monturas_disponibles"]:
-        if m["nombre"] == montura_elegida:
-            velocidad_mapa = 4.5 * m["bonus_velocidad"]
+    APP_FILE.write_text(nuevo_codigo, encoding="utf-8")
 
-    with st.expander("🛒 Comprar Monturas (Oro)"):
-        st.write(f"💰 Oro: {st.session_state.oro_jugador}")
-        for m in DATOS_MUNDO["monturas_disponibles"]:
-            if m["nombre"] != "A Pie (Velocidad Base)":
-                if m["nombre"] in st.session_state.monturas_desbloqueadas:
-                    st.success(f"✅ {m['nombre']}")
-                else:
-                    if st.button(f"Comprar {m['nombre']} ({m['coste']} oro)", key=f"buy_{m['nombre']}"):
-                        if st.session_state.oro_jugador >= m["coste"]:
-                            st.session_state.oro_jugador -= m["coste"]
-                            st.session_state.monturas_desbloqueadas.append(m["nombre"])
-                            st.rerun()
-                        else:
-                            st.error("Oro insuficiente.")
+    try:
+        ast.parse(nuevo_codigo, filename=str(APP_FILE))
+        print(f"[APP SYNC] {APP_FILE.name} actualizado correctamente ({len(modulos)} módulos).")
+    except SyntaxError as exc:
+        print(f"[APP SYNC / ERROR SINTAXIS] Línea {exc.lineno}: {exc.msg}")
 
-    st.markdown("---")
-    st.header("🔐 Cuenta y Jugadores")
-    usuario_google = obtener_usuario_google()
-    if usuario_google:
-        st.success(f"Conectado: {usuario_google['nombre']}")
-        if hasattr(st, "logout") and st.button("Cerrar sesión Google", key="btn_logout_google"):
-            st.logout()
-    else:
-        st.caption("Sesión de Google no iniciada")
-        if hasattr(st, "login"):
-            if st.button("Iniciar sesión con Google", key="btn_login_google"):
-                st.login("google")
 
-    nombre_invitado = st.text_input(
-        "Nombre si juegas sin login:",
-        value=st.session_state.get("nombre_invitado", "Aventurero"),
-        key="input_nombre_invitado",
-    )
-    st.session_state.nombre_invitado = nombre_invitado
-
-    db_firestore = obtener_db_firestore()
-    lista_jugadores = sincronizar_jugador_y_listar(db_firestore, usuario_google, nombre_invitado)
-
-    st.markdown("**👥 Jugadores registrados / activos:**")
-    if lista_jugadores:
-        for j in lista_jugadores:
-            badge = " 🔵" if j.get("autenticado_google") else ""
-            st.write(
-                f"• **{j.get('nombre', 'Jugador')}**{badge} — {j.get('clase', '?')} "
-                f"({j.get('continente', '?')} / {j.get('zona', '?')})"
-            )
-    else:
-        st.info("Sin jugadores visibles todavía.")
-
-tab_juego, tab_misiones, tab_lore = st.tabs(["🎮 Mundo Abierto y Combate", "📜 Registro de Misiones", "👑 Continentes y Progreso"])
-
-with tab_juego:
-    mobs_zona = [
-        {"nombre": "Goblin Guerrero", "nivel": 3, "hp": 80, "ataque": "Físico", "velocidad": 1.8},
-        {"nombre": "Lobo Huargo", "nivel": 6, "hp": 95, "ataque": "Físico", "velocidad": 2.3},
-    ]
-    habilidades_equipadas = {
-        tecla: CATALOGO_HABILIDADES[st.session_state.barra_habilidades[tecla]]
-        for tecla in ["1", "2", "3", "4", "q"]
-    }
-    rango_act = obtener_rango_visual_continente(
-        st.session_state.continente_actual,
-        st.session_state.orden_apertura_raciales,
-    )
-    html_engine = generar_canvas_html(
-        st.session_state.continente_actual,
-        rango_act,
-        st.session_state.zona_actual,
-        st.session_state.montura_equipada,
-        velocidad_mapa,
-        st.session_state.cabello_pj,
-        st.session_state.armadura_pj,
-        mobs_zona,
-        habilidades_equipadas,
-    )
-    st.components.v1.html(html_engine, height=750, scrolling=False)
-
-with tab_misiones:
-    st.subheader(f"📜 Misiones — {st.session_state.continente_actual}")
-
-    st.markdown("### 👑 Historia Principal")
-    for m in SISTEMA_MISIONES["principales"]:
-        hecha = m["id"] in st.session_state.misiones_completadas_ids
-        with st.expander(f"{'✅ ' if hecha else ''}{m['titulo']} (Nivel: {m['nivel_requerido']}) — {m['continente']}"):
-            st.write(f"**Zona:** {m['zona']}")
-            st.write(f"**Descripción:** {m['descripcion']}")
-            st.info(f"**Objetivo:** {m['objetivo']}")
-            st.success(f"**Recompensa:** {m['recompensa']}")
-            if not hecha and st.button("Completar Misión Principal", key=f"done_mq_{m['id']}"):
-                st.session_state.misiones_completadas_ids.append(m["id"])
-                st.session_state.oro_jugador += m["recompensa"].get("oro", 0)
-                st.rerun()
-
-    st.markdown("### 🔗 Secundarias de Única Vez Encadenadas")
-    sec_disponibles = obtener_secundarias_disponibles(st.session_state.misiones_completadas_ids)
-    if not sec_disponibles:
-        st.info("No hay nuevas secundarias de única vez disponibles en este momento (o ya completaste la cadena actual).")
-    for sq in sec_disponibles:
-        with st.expander(f"[Cadena: {sq['cadena']} · Paso {sq['paso']}] {sq['titulo']} (Nivel: {sq['nivel_requerido']})"):
-            st.write(f"**Zona:** {sq['zona']} | **Única vez:** Sí")
-            st.write(f"**Descripción:** {sq['descripcion']}")
-            st.info(f"**Objetivo:** {sq['objetivo']}")
-            st.success(f"**Recompensa:** {sq['recompensa']}")
-            if st.button("Completar Secundaria (Única Vez)", key=f"done_sec_{sq['id']}"):
-                st.session_state.misiones_completadas_ids.append(sq["id"])
-                st.session_state.oro_jugador += sq["recompensa"].get("oro", 0)
-                st.rerun()
-
-    st.markdown("### 🔮 Misiones Míticas Ocultas (Activación Secreta)")
-    for mo in SISTEMA_MISIONES["ocultas_miticas"]:
-        with st.expander(f"🔒 {mo['titulo']} [Nivel Mínimo: {mo['nivel_minimo']}]"):
-            st.write(f"**Estado:** {mo['estado']}")
-            st.info(f"**Pista del Rumor:** {mo['pista_rumor']}")
-            st.warning("⚠️ *La condición exacta de activación está oculta hasta descubrirla en el mundo.*")
-
-    st.markdown("### 🗝️ Misiones Ocultas de Apertura de Continentes")
-    for oc in SISTEMA_MISIONES["ocultas_apertura_continentes"]:
-        with st.expander(f"🗝️ {oc['titulo']} — {oc['objetivo_tipo']}"):
-            st.write(f"**Estado:** {oc['estado']}")
-            st.info(f"**Pista del Rumor:** {oc['pista_rumor']}")
-            st.warning("⚠️ *Las condiciones ocultas de apertura requieren exploración y cumplimiento de requisitos.*")
-
-with tab_lore:
-    st.subheader("👑 Estado de Continentes, Niveles y Progresión")
-    for cont in TODOS_CONTINENTES:
-        abierto = cont in st.session_state.continentes_abiertos
-        rango = obtener_rango_visual_continente(cont, st.session_state.orden_apertura_raciales)
-        estado_txt = "🔓 Abierto" if abierto else "🔒 Cerrado"
-        st.write(f"- **{cont}** | Rango: `{rango}` | Estado: {estado_txt}")
-
-    st.markdown("---")
-    st.write(f"**Orden de apertura de continentes raciales:** {st.session_state.orden_apertura_raciales or 'Ninguno abierto aún'}")
-    st.write(f"**Jugador completó misiones principales abiertas:** {'Sí' if st.session_state.jugador_completo_principales_abiertas else 'No'}")
-    st.write(f"**Misiones ocultas específicas para Continente Angelical resueltas:** {'Sí' if st.session_state.misiones_ocultas_angelical_completadas else 'No'}")
-
-# === AUTO-MODULOS START ===
-try:
-    from modulos import config_segura as _mod_config_segura
-except Exception as _err:
-    _mod_config_segura = None
-_mod_economia_y_comercio = None  # Revisar error: IndentationError: unexpected indent (economia_y_comercio.py, line 3)
-try:
-    from modulos import habilidades as _mod_habilidades
-except Exception as _err:
-    _mod_habilidades = None
-try:
-    from modulos import historia_lore as _mod_historia_lore
-except Exception as _err:
-    _mod_historia_lore = None
-try:
-    from modulos import integrador as _mod_integrador
-except Exception as _err:
-    _mod_integrador = None
-try:
-    from modulos import mascotas as _mod_mascotas
-except Exception as _err:
-    _mod_mascotas = None
-try:
-    from modulos import misiones as _mod_misiones
-except Exception as _err:
-    _mod_misiones = None
-try:
-    from modulos import monitor_calidad as _mod_monitor_calidad
-except Exception as _err:
-    _mod_monitor_calidad = None
-try:
-    from modulos import monturas as _mod_monturas
-except Exception as _err:
-    _mod_monturas = None
-try:
-    from modulos import mundo_y_pve as _mod_mundo_y_pve
-except Exception as _err:
-    _mod_mundo_y_pve = None
-try:
-    from modulos import persistencia as _mod_persistencia
-except Exception as _err:
-    _mod_persistencia = None
-try:
-    from modulos import progresion_y_stats as _mod_progresion_y_stats
-except Exception as _err:
-    _mod_progresion_y_stats = None
-try:
-    from modulos import razas_y_clases as _mod_razas_y_clases
-except Exception as _err:
-    _mod_razas_y_clases = None
-try:
-    from modulos import requisitos as _mod_requisitos
-except Exception as _err:
-    _mod_requisitos = None
-try:
-    from modulos import world_sync as _mod_world_sync
-except Exception as _err:
-    _mod_world_sync = None
-
-MODULOS_CARGADOS = {
-    "config_segura": _mod_config_segura,
-    "economia_y_comercio": _mod_economia_y_comercio,
-    "habilidades": _mod_habilidades,
-    "historia_lore": _mod_historia_lore,
-    "integrador": _mod_integrador,
-    "mascotas": _mod_mascotas,
-    "misiones": _mod_misiones,
-    "monitor_calidad": _mod_monitor_calidad,
-    "monturas": _mod_monturas,
-    "mundo_y_pve": _mod_mundo_y_pve,
-    "persistencia": _mod_persistencia,
-    "progresion_y_stats": _mod_progresion_y_stats,
-    "razas_y_clases": _mod_razas_y_clases,
-    "requisitos": _mod_requisitos,
-    "world_sync": _mod_world_sync
-}
-# === AUTO-MODULOS END ===
+if __name__ == "__main__":
+    sincronizar_app()
