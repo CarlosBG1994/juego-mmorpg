@@ -312,3 +312,4 @@ MODULOS_CARGADOS = {
     "world_sync": _mod_world_sync
 }
 # === AUTO-MODULOS END ===
+    
