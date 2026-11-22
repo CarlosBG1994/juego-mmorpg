@@ -8,7 +8,8 @@ BASE_DIR = Path("/workspaces/juego-mmorpg")
 APP_FILE = BASE_DIR / "app.py"
 MODULOS_DIR = BASE_DIR / "modulos"
 
-START_MARKER = "# === AUTO-MODULOS START ===
+START_MARKER = "# === AUTO-MODULOS START ==="
+END_MARKER = "# === AUTO-MODULOS END ==="
 try:
     from modulos import config_segura as _mod_config_segura
 except Exception as _err:
