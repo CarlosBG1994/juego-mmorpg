@@ -53,8 +53,13 @@ if not st.session_state.autenticado:
     try:
         from modulos.razas_y_clases import CLASES_POR_RAZA, SUBFORMAS_HOMBRE_BESTIA
     except Exception:
-        CLASES_POR_RAZA = {"Humano": ["Caballero", "Paladín", "Mago de Batalla"]}
-        SUBFORMAS_HOMBRE_BESTIA = ["Hombre Lobo"]
+        CLASES_POR_RAZA = {
+            "Humano": ["Caballero", "Paladín", "Mago de Batalla", "Púgil", "Asesino", "Explorador", "Invocador", "Clérigo"],
+            "Elfo": ["Guardabosques", "Alcaide", "Druida", "Espadachín Silvano", "Monje del Viento (Púgil)", "Acechador Nocturno (Asesino)", "Mago de Batalla", "Invocador"],
+            "Enano": ["Guerrero Pesado", "Defensor Rúnico de Asedio", "Campeón Rúnico", "Luchador de Puño de Hierro (Púgil)", "Ballestero (Explorador)", "Asesino", "Mago de Batalla", "Invocador", "Clérigo"],
+            "Hombre Bestia": ["Campeón", "Acechador Salvaje", "Chamán Primordial", "Púgil", "Asesino", "Explorador", "Mago de Batalla", "Invocador", "Clérigo"]
+        }
+        SUBFORMAS_HOMBRE_BESTIA = ["Hombre Lobo", "Hombre Pantera", "Hombre Tigre", "Hombre León", "Hombre Mono", "Hombre Tortuga", "Hombre Panda"]
 
     nombre_input = st.text_input("Nombre de Aventurero:", value=st.session_state.nombre)
     raza_sel = st.selectbox("Raza:", list(CLASES_POR_RAZA.keys()))
@@ -139,7 +144,6 @@ else:
     ahora = time.time()
     jugadores_vivos = {}
     for p_nombre, p_data in mundo.get("jugadores", {}).items():
-        # Mostrar jugadores activos en los últimos 5 minutos
         if ahora - p_data.get("ultimo_mov", 0) < 300:
             jugadores_vivos[p_nombre] = p_data
 
