@@ -1,3 +1,8 @@
 node_modules/
 serviceAccountKey.json
-.env
+.env.venv/
+.venv/
+**/
+**/
+**/__pycache__/
+*.pyc
